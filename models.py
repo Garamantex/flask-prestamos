@@ -28,6 +28,13 @@ class Employee(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True, doc='Usuario')
+    maximum_cash = db.Column(db.Numeric(10, 2), nullable=False, doc='Máxima caja')
+    maximum_sale = db.Column(db.Numeric(10, 2), nullable=False, doc='Máxima venta')
+    maximum_expense = db.Column(db.Numeric(10, 2), nullable=False, doc='Límite gasto')
+    maximum_payment = db.Column(db.Numeric(10, 2), nullable=False, doc='Máximo pago')
+    minimum_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Mínimo interés')
+    percentage_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Porcentaje interés')
+    fix_value = db.Column(db.Numeric(10, 2), nullable=False, doc='Valor fijo')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
                                   onupdate=datetime.datetime.utcnow)
@@ -44,13 +51,6 @@ class Manager(db.Model):
     """ Modelo de Coordinador """
 
     id = db.Column(db.Integer, primary_key=True)
-    maximum_cash = db.Column(db.Numeric(10, 2), nullable=False, doc='Máxima caja')
-    maximum_sale = db.Column(db.Numeric(10, 2), nullable=False, doc='Máxima venta')
-    maximum_expense = db.Column(db.Numeric(10, 2), nullable=False, doc='Límite gasto')
-    maximum_payment = db.Column(db.Numeric(10, 2), nullable=False, doc='Máximo pago')
-    minimum_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Mínimo interés')
-    percentage_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Porcentaje interés')
-    fix_value = db.Column(db.Numeric(10, 2), nullable=False, doc='Valor fijo')
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), unique=True)
 
     employee = db.relationship('Employee', back_populates='manager')
@@ -63,13 +63,6 @@ class Salesman(db.Model):
     """ Modelo de Vendedor """
 
     id = db.Column(db.Integer, primary_key=True)
-    maximum_cash = db.Column(db.Numeric(10, 2), nullable=False, doc='Máxima caja')
-    maximum_sale = db.Column(db.Numeric(10, 2), nullable=False, doc='Máxima venta')
-    maximum_expense = db.Column(db.Numeric(10, 2), nullable=False, doc='Límite gasto')
-    maximum_payment = db.Column(db.Numeric(10, 2), nullable=False, doc='Máximo pago')
-    minimum_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Mínimo interés')
-    percentage_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Porcentaje interés')
-    fix_value = db.Column(db.Numeric(10, 2), nullable=False, doc='Valor fijo')
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), unique=True)
     manager_id = db.Column(db.Integer, db.ForeignKey('manager.id'), nullable=False, doc='Coordinador')
 
