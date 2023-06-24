@@ -1,0 +1,25 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local development environment
+prestamos/
+.env
+
+# Flask instance folder
+instance/
+
+# SQLAlchemy migrations folder
+migrations/
+
+# SQLite database file
+database.db
+
+# Editor and IDE files
+.idea/
+.vscode/
+
+# System and temporary files
+.DS_Store
+Thumbs.db
