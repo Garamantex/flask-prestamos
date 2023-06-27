@@ -2,14 +2,18 @@ from enum import Enum
 
 from app import db
 import datetime
+import json
 
 
 # Definición de enumeración para el campo 'role' en User
-# roles = db.Enum('Administrador', 'Coordinador', 'Vendedor')
+
 class Role(Enum):
     ADMINISTRATOR = 1
     COORDINATOR = 2
     SELLER = 3
+
+    def to_json(self):
+        return self.name
 
 
 class User(db.Model):
@@ -26,8 +30,21 @@ class User(db.Model):
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
                                   onupdate=datetime.datetime.utcnow)
 
+    def to_json(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'password': self.password,
+            'role': self.role.toJSON(),
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'cellphone': self.cellphone,
+            'creation_date': self.creation_date.isoformat(),
+            'modification_date': self.modification_date.isoformat()
+        }
+
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return json.dumps(self.toJSON(), indent=4)
 
 
 class Employee(db.Model):
@@ -50,8 +67,23 @@ class Employee(db.Model):
     manager = db.relationship('Manager', uselist=False, back_populates='employee')
     salesman = db.relationship('Salesman', uselist=False, back_populates='employee')
 
+    def to_json(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'maximum_cash': str(self.maximum_cash),
+            'maximum_sale': str(self.maximum_sale),
+            'maximum_expense': str(self.maximum_expense),
+            'maximum_payment': str(self.maximum_payment),
+            'minimum_interest': str(self.minimum_interest),
+            'percentage_interest': str(self.percentage_interest),
+            'fix_value': str(self.fix_value),
+            'creation_date': self.creation_date.isoformat(),
+            'modification_date': self.modification_date.isoformat()
+        }
+
     def __str__(self):
-        return f"{self.user.first_name} {self.user.last_name}"
+        return json.dumps(self.toJSON(), indent=4)
 
 
 class Manager(db.Model):
@@ -62,8 +94,14 @@ class Manager(db.Model):
 
     employee = db.relationship('Employee', back_populates='manager')
 
+    def to_json(self):
+        return {
+            'id': self.id,
+            'employee_id': self.employee_id
+        }
+
     def __str__(self):
-        return f"{self.employee.user.first_name} {self.employee.user.last_name}"
+        return json.dumps(self.toJSON(), indent=4)
 
 
 class Salesman(db.Model):
@@ -76,11 +114,23 @@ class Salesman(db.Model):
     employee = db.relationship('Employee', back_populates='salesman')
     manager = db.relationship('Manager', backref='salesmen')
 
+    def to_json(self):
+        return {
+            'id': self.id,
+            'employee_id': self.employee_id,
+            'manager_id': self.manager_id
+        }
+
     def __str__(self):
-        return f"{self.employee.user.first_name} {self.employee.user.last_name}"
+        return json.dumps(self.toJSON(), indent=4)
 
 
-genders = db.Enum('Hombre', 'Mujer')
+class Gender(Enum):
+    HOMBRE = 1
+    MUJER = 2
+
+    def to_json(self):
+        return self.name
 
 
 class Client(db.Model):
@@ -91,7 +141,7 @@ class Client(db.Model):
     last_name = db.Column(db.String(30), nullable=False, doc='Apellido')
     alias = db.Column(db.String(100), nullable=False, doc='Alias')
     document = db.Column(db.String(20), unique=True, nullable=False, doc='Documento')
-    gender = db.Column(genders, nullable=False, doc='Género')
+    gender = db.Column(db.Enum(Gender), nullable=False, doc='Genero')
     cellphone = db.Column(db.String(20), nullable=False, doc='Celular')
     address = db.Column(db.String(100), nullable=False, doc='Dirección')
     neighborhood = db.Column(db.String(100), nullable=False, doc='Barrio')
@@ -104,8 +154,26 @@ class Client(db.Model):
 
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=True)
 
+    def to_json(self):
+        return {
+            'id': self.id,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'alias': self.alias,
+            'document': self.document,
+            'gender': self.gender.toJSON(),
+            'cellphone': self.cellphone,
+            'address': self.address,
+            'neighborhood': self.neighborhood,
+            'status': self.status,
+            'debtor': self.debtor,
+            'black_list': self.black_list,
+            'creation_date': self.creation_date.isoformat(),
+            'modification_date': self.modification_date.isoformat()
+        }
+
     def __str__(self):
-        return f"{self.user.first_name} {self.user.last_name}"
+        return json.dumps(self.toJSON(), indent=4)
 
 
 class Loan(db.Model):
@@ -125,14 +193,32 @@ class Loan(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
 
+    def to_json(self):
+        return {
+            'id': self.id,
+            'amount': str(self.amount),
+            'dues': str(self.dues),
+            'interest': str(self.interest),
+            'payment': str(self.payment),
+            'status': self.status,
+            'up_to_date': self.up_to_date,
+            'creation_date': self.creation_date.isoformat(),
+            'modification_date': self.modification_date.isoformat(),
+            'client_id': self.client_id,
+            'employee_id': self.employee_id
+        }
+
     def __str__(self):
-        return f"{self.client.user.first_name} {self.client.user.last_name}"
+        return json.dumps(self.toJSON(), indent=4)
 
 
 class TransactionType(Enum):
     GASTO = 1,
     INGRESO = 2,
     RETIRO = 3
+
+    def to_json(self):
+        return self.name
 
 
 class Concept(db.Model):
@@ -141,6 +227,16 @@ class Concept(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, doc='Nombre')
     transaction_types = db.Column(db.Enum(TransactionType), nullable=False, doc='Tipo')
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'transaction_types': self.transaction_types.toJSON()
+        }
+
+    def __str__(self):
+        return json.dumps(self.toJSON(), indent=4)
 
 
 class Transaction(db.Model):
@@ -160,3 +256,20 @@ class Transaction(db.Model):
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
                                   onupdate=datetime.datetime.utcnow)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'transaction_types': self.transaction_types.toJSON(),
+            'concept_id': self.concept_id,
+            'description': self.description,
+            'mount': str(self.mount),
+            'attachment': self.attachment,
+            'status': self.status,
+            'creation_date': self.creation_date.isoformat(),
+            'modification_date': self.modification_date.isoformat(),
+            'employee_id': self.employee_id
+        }
+
+    def __str__(self):
+        return json.dumps(self.toJSON(), indent=4)
