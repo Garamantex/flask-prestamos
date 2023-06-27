@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container c-bg c-bg__gray-400 pt-5">
+    <div class="row">
+        <div class="col">
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-salesman">Volver al menu</a>
+        </div>
+        <div class="col">
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="c-users">
+                <p class="c-users__title">Registro de Retiro</p>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <form action="">
+                <fieldset>
+                    <legend>Concepto</legend>
+                    <div class="mb-3">
+                        <select name="perfil" class="c-form c-form__dropdown" aria-label="Default select example">
+                            <option selected></option>
+                            <option value="1">Viaticos</option>
+                            <option value="2">Combustible</option>
+                            <option value="3">Facturas</option>
+                            <option value="4">Nomina</option>
+                            <option value="5">Aceite motor</option>
+                            <option value="6">Pasajes</option>
+                            <option value="7">Moto varios</option>
+                            <option value="8">Papeleria</option>
+                        </selec
+                    </div>
+                </fieldset>
+               
+                <fieldset>
+                    <legend>descripción</legend>
+                    <div class="mb-3">
+                        <label for="concept" class="form-label">description</label>
+                        <textarea class="c-form c-form__textarea" name="concept" id="" cols="30" rows="10"></textarea>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Valor</legend>
+                    <div class="mb-3">
+                        <label for="loan" class="form-label">Valor</label>
+                        <input type="text" class="c-form c-form__input" id="quantity" name="quantity" placeholder="">
+                    </div>
+                    <div class="mb-3">
+                        <label for="photo" class="form-label">Subir foto:</label>
+                        <input type="file" class="form-control" id="photo" accept="image/*" capture="user" name="photo">
+                    </div>
+                </fieldset>
+                <button class="c-btn c-btn-primary mb-4" type="submit">Enviar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container c-bg c-bg__gray-400 pt-5">
+    <div class="row">
+        <div class="col">
+            <a class="c-btn c-btn-primary c-btn-block mb-3"
+                href="./menu-manager">Volver al menu</a>
+        </div>
+        <div class="col">
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col">
+            <h2>Detalles del Crédito</h2>
+        </div>
+        <div class="col">
+            <div class="float-right">
+                <h5 class="mr-3">Nombre del Cliente: Cliente 1</h5>
+                <a href="#" class="btn btn-primary mr-3">Editar Datos Cliente</a>
+                <a href="#" class="btn btn-primary">estado de la cartera: Activa</a>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    Información del Crédito
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <h5>Número de Cuotas Totales:</h5>
+                            <p>10</p>
+                        </div>
+                        <div class="col">
+                            <h5>Número de Cuotas Pagadas:</h5>
+                            <p>3</p>
+                        </div>
+                        <div class="col">
+                            <h5>Número de Cuotas Abonadas:</h5>
+                            <p>1</p>
+                        </div>
+                        <div class="col">
+                            <h5>Número de Cuotas Vencidas:</h5>
+                            <p>5</p>
+                        </div>
+                        <div class="col">
+                            <h5>Valor Total del Crédito:</h5>
+                            <p>$1000</p>
+                        </div>
+                        <div class="col">
+                            <h5>Saldo Pendiente:</h5>
+                            <p>$500</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    Listado de Cuotas
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">N° Cuota</th>
+                                <th scope="col">Estado</th>
+                                <th scope="col">Fecha de Pago</th>
+                                <th scope="col">Valor de Cuota</th>
+                                <th scope="col">Saldo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th scope="row">1</th>
+                                <td>Pagada</td>
+                                <td>01/06/2023</td>
+                                <td>$100</td>
+                                <td>$0</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">2</th>
+                                <td>Pagada</td>
+                                <td>08/06/2023</td>
+                                <td>$100</td>
+                                <td>$0</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">3</th>
+                                <td>Pagada</td>
+                                <td>15/06/2023</td>
+                                <td>$100</td>
+                                <td>$0</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">4</th>
+                                <td>Abonada</td>
+                                <td>22/06/2023</td>
+                                <td>$100</td>
+                                <td>$50</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">5</th>
+                                <td>Pendiente</td>
+                                <td>29/06/2023</td>
+                                <td>$100</td>
+                                <td>$100</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">6</th>
+                                <td>Pendiente</td>
+                                <td>06/07/2023</td>
+                                <td>$100</td>
+                                <td>$100</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">7</th>
+                                <td>Pendiente</td>
+                                <td>13/07/2023</td>
+                                <td>$100</td>
+                                <td>$100</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">8</th>
+                                <td>Pendiente</td>
+                                <td>20/07/2023</td>
+                                <td>$100</td>
+                                <td>$100</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">9</th>
+                                <td>Pendiente</td>
+                                <td>27/07/2023</td>
+                                <td>$100</td>
+                                <td>$100</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">10</th>
+                                <td>Vencida</td>
+                                <td>03/08/2023</td>
+                                <td>$100</td>
+                                <td>$100</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

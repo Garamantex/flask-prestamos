@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container c-bg c-bg__gray-400 pt-5">
+    <div class="row">
+        <div class="col">
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="./client-list">Ver Clientes</a>
+        </div>
+        <div class="col">
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-salesman">Volver al menu</a>
+        </div>
+        <div class="col">
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="c-users">
+                <p class="c-users__title">Formulario de creacion de Cliente</p>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <form action="" method="POST">
+                <fieldset>
+                    <legend>Crear usuario</legend>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nombre</label>
+                        <input type="text" class="c-form c-form__input" id="name" placeholder="">
+                    </div>
+                    <div class="mb-3">
+                        <label for="lastname" class="form-label">Apellido</label>
+                        <input type="lastname" class="c-form c-form__input" id="lastname" placeholder="Apellido">
+                    </div>
+                    <div class="mb-3">
+                        <label for="alias" class="form-label">Alias</label>
+                        <input type="text" class="c-form c-form__input" id="alias" placeholder="Alias">
+                    <div class="mb-3">
+                        <label for="dni" class="form-label">DNI</label>
+                        <input type="text" class="c-form c-form__input" id="dni" placeholder="DNI">
+                    </div>
+                    <div class="mb-3">
+                        <h4 class="c-text c-text__h4">Sexo</h4>
+                        <div class="form-check">
+                            <input class="form-check-input c-form__checkbox" type="checkbox" value="" id="flexCheckDefault">
+                            <label class="form-check-label" for="flexCheckDefault">Hombre</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input c-form__checkbox" type="checkbox" value="" id="flexCheckChecked" checked>
+                            <label class="form-check-label" for="flexCheckChecked">Mujer</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Telefono</label>
+                        <input type="text" class="c-form c-form__input" id="phone" placeholder="Telefono"> 
+                    </div>
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Direccion</label>
+                        <input type="text" class="c-form c-form__input" id="address" placeholder="Direccion">
+                    </div>
+                    <div class="mb-3">
+                        <label for="neighborhood" class="form-label">Barrio</label>
+                        <input type="text" class="c-form c-form__input" id="neighborhood" placeholder="Barrio">
+                    </div>
+                </fieldset>
+                
+                <fieldset>
+                    <legend>Datos del prestamos</legend>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Monto</label>
+                        <input type="text" class="c-form c-form__input" id="amount" placeholder="Monto">
+                    </div>
+                    <div class="mb-3">
+                        <label for="fee" class="form-label">Cuotas</label>
+                        <select class="form-select c-form__select" aria-label="pays">
+                            <option selected>Seleccionar</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fee" class="form-label">interes</label>
+                        <select class="form-select c-form__select" aria-label="fee">
+                            <option selected>Seleccionar</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amoutPerPay" class="form-label">Monto por cuota</label>
+                        <input type="text" class="c-form c-form__input" id="amoutPerPay" placeholder="Monto por cuota">
+                    </div>
+                </fieldset>
+                
+                <button class="c-btn c-btn-primary mb-4" type="submit">Crear Cliente</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container c-bg c-bg__gray-400 pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3"
+                    href="./menu-manager">Volver al menu</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col">
+                <h2>Reportes</h2>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-6">
+                <a href="#" class="btn btn-link"><span class="bi bi-file-earmark-text"></span></a>
+                <a href="#" class="btn btn-link"><span class="bi bi-file-earmark-spreadsheet"></span></a>
+                <a href="#" class="btn btn-link"><span class="bi bi-file-earmark-bar-graph"></span></a>
+                <a href="#" class="btn btn-link"><span class="bi bi-file-earmark-richtext"></span></a>
+            </div>
+            <div class="col-6">
+                <div class="form-group">
+                    <label for="fecha-inicio">Fecha de Inicio:</label>
+                    <input type="date" class="form-control" id="fecha-inicio">
+                </div>
+                <div class="form-group">
+                    <label for="fecha-fin">Fecha de Fin:</label>
+                    <input type="date" class="form-control" id="fecha-fin">
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col">
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col-6">
+                                <span class="bi bi-file-earmark-text"></span>
+                                <span class="bi bi-file-earmark-bar-graph"></span>
+                                <span class="bi bi-file-earmark-richtext"></span>
+                            </div>
+                            <div class="col-6">
+                                <span class="bi bi-person-fill"></span> Usuario 1 (Coordinador)
+                            </div>
+                            
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col-6">
+                                <span class="bi bi-file-earmark-text"></span>
+                                <span class="bi bi-file-earmark-bar-graph"></span>
+                                <span class="bi bi-file-earmark-richtext"></span>
+                            </div>
+                            <div class="col-6">
+                                <span class="bi bi-person-badge"></span> Usuario 2 (Vendedor)
+                            </div>
+                            
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col-6">
+                                <span class="bi bi-file-earmark-text"></span>
+                                <span class="bi bi-file-earmark-bar-graph"></span>
+                                <span class="bi bi-file-earmark-richtext"></span>
+                            </div>
+                            <div class="col-6">
+                                <span class="bi bi-person-fill"></span> Usuario 3 (Coordinador)
+                            </div>
+                            
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="row">
+                            <div class="col-6">
+                                <span class="bi bi-file-earmark-text"></span>
+                                <span class="bi bi-file-earmark-bar-graph"></span>
+                                <span class="bi bi-file-earmark-richtext"></span>
+                            </div>
+                            <div class="col-6">
+                                <span class="bi bi-person-badge"></span> Usuario 4 (Vendedor)
+                            </div>
+                            
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endblock %}
