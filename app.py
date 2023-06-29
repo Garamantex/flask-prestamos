@@ -1,6 +1,8 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, session, redirect, url_for, abort, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+
+from models import User
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -9,11 +11,43 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-from models import User
-
 
 @app.route('/')
 def home():
+    if 'user_id' in session:
+        role = session.get('role')
+        if role == 'ADMINISTRADOR' and role == 'COORDINADOR':
+            return redirect(url_for('routes.menu-manager'))
+        elif role == 'VENDEDOR':
+            return redirect(url_for('routes.menu-salesman'))
+        else:
+            abort(403)  # Acceso no autorizado
+
+    if request.method == 'POST':
+        # Obtener los datos del formulario
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        # Verificar las credenciales del usuario en la base de datos
+        user = User.query.filter_by(username=username, password=password).first()
+
+        if user:
+            # Guardar el usuario en la sesión
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['role'] = user.role
+
+            # Redireccionar según el rol del usuario
+            if user.role == 'ADMINISTRADOR':
+                return redirect(url_for('routes.menu-manager'))
+            elif user.role == 'vendedor':
+                return redirect(url_for('routes.menu-salesman'))
+            else:
+                abort(403)  # Acceso no autorizado
+
+        error_message = 'Credenciales inválidas. Inténtalo nuevamente.'
+        return render_template('index.html', error_message=error_message)
+
     return render_template('index.html')
 
 

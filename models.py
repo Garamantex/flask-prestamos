@@ -8,9 +8,9 @@ import json
 # Definición de enumeración para el campo 'role' en User
 
 class Role(Enum):
-    ADMINISTRATOR = 1
-    COORDINATOR = 2
-    SELLER = 3
+    ADMINISTRADOR = 1
+    COORDINADOR = 2
+    VENDEDOR = 3
 
     def to_json(self):
         return self.name
