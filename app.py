@@ -2,7 +2,7 @@ from flask import Flask, render_template, session, redirect, url_for, abort, req
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
-from models import User
+from models import User, Client, Loan
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -51,19 +51,102 @@ def home():
     return render_template('index.html')
 
 
+@app.route('/logout')
+def logout():
+    # Limpiar la sesión
+    session.clear()
+    return redirect(url_for('routes.index'))
+
+
 @app.route('/menu-manager')
 def menu_manager():
+    # Verificar si el usuario está logueado
+    if 'user_id' not in session:
+        return redirect(url_for('routes.index'))
+
+    # Verificar si el usuario es administrador
+    if session.get('role') != 'ADMINISTRADOR' and session.get('role') != 'COORDINADOR':
+        abort(403)  # Acceso no autorizado
+
+    # Mostrar el menú del administrador
     return render_template('menu-manager.html')
 
 
 @app.route('/menu-salesman')
 def menu_salesman():
+    # Verificar si el usuario está logueado
+    if 'user_id' not in session:
+        return redirect(url_for('routes.index'))
+
+    # Verificar si el usuario es vendedor
+    if session.get('role') != 'VENDEDOR':
+        abort(403)  # Acceso no autorizado
+
+    # Mostrar el menón del vendedor
     return render_template('menu-salesman.html')
 
 
-@app.route('/create-client')
+@app.route('/create-client',  methods=['GET', 'POST'])
 def create_client():
-    return render_template('create-client.html')
+    if 'user_id' in session and session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR':
+        if request.method == 'POST':
+            first_name = request.form.get('first_name')
+            last_name = request.form.get('last_name')
+            alias = request.form.get('alias')
+            document = request.form.get('document')
+            gender = request.form.get('gender')
+            cellphone = request.form.get('cellphone')
+            address = request.form.get('address')
+            neighborhood = request.form.get('neighborhood')
+            amount = request.form.get('amount')
+            dues = request.form.get('dues')
+            interest = request.form.get('interest')
+            payment = request.form.get('payment')
+            employee_id = session.get('employee_id')
+
+            # Crea una instancia del cliente con los datos proporcionados
+            client = Client(
+                first_name=first_name,
+                last_name=last_name,
+                alias=alias,
+                document=document,
+                gender=gender,
+                cellphone=cellphone,
+                address=address,
+                neighborhood=neighborhood,
+            )
+
+            # Guarda el cliente en la base de datos
+            db.session.add(client)
+            db.session.commit()
+
+            # Obtiene el ID del cliente recién creado
+            client_id = client.id
+
+            # Crea una instancia del préstamo con los datos proporcionados
+            loan = Loan(
+                amount=amount,
+                dues=dues,
+                interest=interest,
+                payment=payment,
+                status=True,
+                up_to_date=False,
+                client_id=client_id,
+                employee_id=employee_id
+            )
+
+            # Guarda el préstamo en la base de datos
+            db.session.add(loan)
+            db.session.commit()
+
+            return redirect(url_for('credit_detail.html'))
+
+        return render_template('create-client.html')
+    else:
+        return redirect(url_for('routes.menu-manager'))
+
+
+
 
 
 @app.route('/renewal')
