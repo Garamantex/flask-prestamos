@@ -1,12 +1,11 @@
 from enum import Enum
-
-from app import db
+from flask_sqlalchemy import SQLAlchemy
 import datetime
 import json
 
+db = SQLAlchemy()
 
 # Definición de enumeración para el campo 'role' en User
-
 class Role(Enum):
     ADMINISTRADOR = 1
     COORDINADOR = 2
@@ -44,7 +43,7 @@ class User(db.Model):
         }
 
     def __str__(self):
-        return json.dumps(self.toJSON(), indent=4)
+        return json.dumps(self.to_json(), indent=4)
 
 
 class Employee(db.Model):
@@ -83,7 +82,7 @@ class Employee(db.Model):
         }
 
     def __str__(self):
-        return json.dumps(self.toJSON(), indent=4)
+        return json.dumps(self.to_json(), indent=4)
 
 
 class Manager(db.Model):
@@ -101,7 +100,7 @@ class Manager(db.Model):
         }
 
     def __str__(self):
-        return json.dumps(self.toJSON(), indent=4)
+        return json.dumps(self.to_json(), indent=4)
 
 
 class Salesman(db.Model):
@@ -122,7 +121,7 @@ class Salesman(db.Model):
         }
 
     def __str__(self):
-        return json.dumps(self.toJSON(), indent=4)
+        return json.dumps(self.to_json(), indent=4)
 
 
 class Gender(Enum):
@@ -145,9 +144,9 @@ class Client(db.Model):
     cellphone = db.Column(db.String(20), nullable=False, doc='Celular')
     address = db.Column(db.String(100), nullable=False, doc='Dirección')
     neighborhood = db.Column(db.String(100), nullable=False, doc='Barrio')
-    status = db.bollean(default=True, nullable=False, doc='Estado')
-    debtor = db.bollean(default=False, nullable=False, doc='Deudor')
-    black_list = db.bollean(default=False, nullable=False, doc='Lista Negra')
+    status = db.Column(db.Boolean, default=True, nullable=False, doc='Estado')
+    debtor = db.Column(db.Boolean, default=False, nullable=False, doc='Deudor')
+    black_list = db.Column(db.Boolean, default=False, nullable=False, doc='Lista Negra')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
                                   onupdate=datetime.datetime.utcnow)
@@ -173,7 +172,7 @@ class Client(db.Model):
         }
 
     def __str__(self):
-        return json.dumps(self.toJSON(), indent=4)
+        return json.dumps(self.to_json(), indent=4)
 
 
 class Loan(db.Model):
@@ -184,8 +183,8 @@ class Loan(db.Model):
     dues = db.Column(db.Numeric(10, 2), nullable=False, doc='Cuotas')
     interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Interés')
     payment = db.Column(db.Numeric(10, 2), nullable=False, doc='Pago')
-    status = db.bollean(default=True, nullable=False, doc='Estado')
-    up_to_date = db.bollean(default=False, nullable=False, doc='Al día')
+    status = db.Column(db.Boolean, default=True, nullable=False, doc='Estado')
+    up_to_date = db.Column(db.Boolean, default=False, nullable=False, doc='Al día')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
                                   onupdate=datetime.datetime.utcnow)
@@ -209,12 +208,12 @@ class Loan(db.Model):
         }
 
     def __str__(self):
-        return json.dumps(self.toJSON(), indent=4)
+        return json.dumps(self.to_json(), indent=4)
 
 
 class TransactionType(Enum):
-    GASTO = 1,
-    INGRESO = 2,
+    GASTO = 1
+    INGRESO = 2
     RETIRO = 3
 
     def to_json(self):
@@ -236,7 +235,7 @@ class Concept(db.Model):
         }
 
     def __str__(self):
-        return json.dumps(self.toJSON(), indent=4)
+        return json.dumps(self.to_json(), indent=4)
 
 
 class Transaction(db.Model):
@@ -248,7 +247,7 @@ class Transaction(db.Model):
     description = db.Column(db.String(100), nullable=False, doc='Descripción')
     mount = db.Column(db.Numeric(10, 2), nullable=False, doc='Monto')
     attachment = db.Column(db.String(100), nullable=True, doc='Adjunto')
-    status = db.bollean(default=False, nullable=False, doc='Estado')
+    status = db.Column(db.Boolean, default=False, nullable=False, doc='Estado')
 
     concept = db.relationship('Concept', backref='transaction', uselist=False)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
@@ -272,4 +271,11 @@ class Transaction(db.Model):
         }
 
     def __str__(self):
-        return json.dumps(self.toJSON(), indent=4)
+        return json.dumps(self.to_json(), indent=4)
+
+
+def create_database(app):
+    """ Crea la base de datos si no existe """
+    with app.app_context():
+        db.create_all()
+
