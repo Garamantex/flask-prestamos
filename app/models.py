@@ -1,7 +1,8 @@
 from enum import Enum
-from flask_sqlalchemy import SQLAlchemy
 import datetime
 import json
+
+from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
@@ -278,4 +279,3 @@ def create_database(app):
     """ Crea la base de datos si no existe """
     with app.app_context():
         db.create_all()
-
