@@ -16,83 +16,78 @@
     <div class="row">
         <div class="col">
             <div class="c-users">
-                <p class="c-users__title">Formulario de creacion de usuario</p>
+                <p class="c-users__title">Formulario de creación de usuario</p>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="col">
-            <form action="" method="POST">
+            <form action="{{ url_for('routes.create_user') }}" method="POST">
                 <fieldset>
                     <legend>Crear usuario</legend>
                     <div class="mb-3">
-                        <label for="name" class="form-label">Nombre</label>
-                        <input type="text" class="c-form c-form__input" id="name" placeholder="">
+                        <label for="name" class="form-label">Nombre de usuario</label>
+                        <input type="text" class="c-form c-form__input" id="name" name="name" placeholder="">
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Contraseña</label>
-                        <input type="password" class="c-form c-form__input" id="password" placeholder="Contraseña">
+                        <input type="password" class="c-form c-form__input" id="password" name="password" placeholder="Contraseña">
                     </div>
                     <div class="mb-3">
-                        <label for="perfil" class="form-label">Perfil</label>
-                        <select name="perfil" class="c-form c-form__dropdown" aria-label="Default select example">
-                            <option selected>Abre este menú</option>
-                            <option value="1">Vendedor</option>
-                            <option value="2">Coordinador</option>
+                        <label for="role" class="form-label">Perfil</label>
+                        <select name="role" class="c-form c-form__dropdown" aria-label="role select">
+                            <option value="COORDINADOR">Coordinador</option>
+                            <option value="VENDEDOR">Vendedor</option>
                         </select>
                     </div>
-                </fieldset>
-                <fieldset>
-                    <legend>Valores maximos</legend>
                     <div class="mb-3">
-                        <label for="maxMoney" class="form-label">Maximo caja</label>
-                        <input type="text" class="c-form c-form__input" id="maxMoney" name="maxMoney" placeholder="">
+                        <label for="first_name" class="form-label">Nombre</label>
+                        <input type="first_name" class="c-form c-form__input" id="first_name" name="first_name" placeholder="Nombre">
                     </div>
                     <div class="mb-3">
-                        <label for="maxSale" class="form-label">Maximo venta</label>
-                        <input type="text" class="c-form c-form__input" id="maxSale" name="maxSale" placeholder="">
+                        <label for="last_name" class="form-label">Apellido</label>
+                        <input type="last_name" class="c-form c-form__input" id="last_name" name="last_name" placeholder="Apellido">
                     </div>
                     <div class="mb-3">
-                        <label for="maxCash" class="form-label">Maximo gastos</label>
-                        <input type="text" class="c-form c-form__input" id="maxCash" name="maxCash" placeholder="">
+                        <label for="cellphone" class="form-label">cellphone</label>
+                        <input type="cellphone" class="c-form c-form__input" id="cellphone" name="cellphone" placeholder="Celular">
                     </div>
                 </fieldset>
                 <fieldset>
-                    <legend>Parametros del usuario</legend>
+                    <legend>Valores máximos</legend>
                     <div class="mb-3">
-                        <label for="maxPays" class="form-label">Maximo cuotas</label>
-                        <input type="text" class="c-form c-form__input" id="maxPays" name="maxPays" placeholder="">
+                        <label for="maximum_cash" class="form-label">Máximo caja</label>
+                        <input type="text" class="c-form c-form__input" id="maximum_cash" name="maximum_cash" placeholder="">
                     </div>
                     <div class="mb-3">
-                        <label for="maxLoan" class="form-label">Minimo interes</label>
-                        <input type="text" class="c-form c-form__input" id="maxPays" name="maxLoan" placeholder="">
+                        <label for="maximum_sale" class="form-label">Máximo venta</label>
+                        <input type="text" class="c-form c-form__input" id="maximum_sale" name="maximum_sale" placeholder="">
                     </div>
-                </fieldset>
-                <fieldset>
-                    <legend>Solicitar Token</legend>
                     <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input c-form__checkbox" type="checkbox" value="" id="flexCheckDefault">
-                            <label class="form-check-label" for="flexCheckDefault">Borrar ventas</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input c-form__checkbox" type="checkbox" value="" id="flexCheckChecked" checked>
-                            <label class="form-check-label" for="flexCheckChecked">Modificar pagos</label>
-                        </div>
+                        <label for="maximum_expense" class="form-label">Máximo gastos</label>
+                        <input type="text" class="c-form c-form__input" id="maximum_expense" name="maximum_expense" placeholder="">
                     </div>
                 </fieldset>
                 <fieldset>
-                    <legend>Porcentajes de liquidacion</legend>
+                    <legend>Parámetros del usuario</legend>
                     <div class="mb-3">
-                        <label for="comition" class="form-label">Liquidacion porcentaje</label>
-                        <input type="text" class="c-form c-form__input" id="comition" name="comition" placeholder="">
+                        <label for="maximum_payment" class="form-label">Máximo cuotas</label>
+                        <input type="text" class="c-form c-form__input" id="maximum_payment" name="maximum_payment" placeholder="">
                     </div>
                     <div class="mb-3">
-                        <label for="defValue" class="form-label">Valor fijo</label>
-                        <input type="text" class="c-form c-form__input" id="maxPays" name="defValue" placeholder="">
+                        <label for="minimum_interest" class="form-label">Intereses mínimos</label>
+                        <input type="text" class="c-form c-form__input" id="minimum_interest" name="minimum_interest" placeholder="">
+                    </div>
+                    <div class="mb-3">
+                        <label for="percentage_interest" class="form-label">Porcentaje de comisión</label>
+                        <input type="text" class="c-form c-form__input" id="percentage_interest" name="percentage_interest" placeholder="">
+                    </div>
+                    <div class="mb-3">
+                        <label for="fix_value" class="form-label">Valor fijo</label>
+                        <input type="text" class="c-form c-form__input" id="fix_value" name="fix_value" placeholder="">
                     </div>
                 </fieldset>
-                <button class="c-btn c-btn-primary mb-4" type="submit">Crear Usuario</button>
+                <button type="submit" class="c-btn c-btn-primary">Crear usuario</button>
             </form>
         </div>
     </div>

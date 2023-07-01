@@ -5,9 +5,9 @@ from app import db
 
 # Definición de enumeración para el campo 'role' en User
 class Role(Enum):
-    ADMINISTRADOR = 1
-    COORDINADOR = 2
-    VENDEDOR = 3
+    ADMINISTRADOR = "ADMINISTRADOR"
+    COORDINADOR = "COORDINADOR"
+    VENDEDOR = "VENDEDOR"
 
     def to_json(self):
         return self.name
@@ -19,7 +19,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
-    role = db.Column(db.Enum(Role), nullable=False, doc='Rol')
+    role = db.Column(db.Enum(Role), nullable=False, doc='Role')
     first_name = db.Column(db.String(30), nullable=False, doc='Nombre')
     last_name = db.Column(db.String(30), nullable=False, doc='Apellido')
     cellphone = db.Column(db.String(20), nullable=False, doc='Celular')
