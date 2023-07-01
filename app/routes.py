@@ -1,9 +1,11 @@
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request
 from app.models import db
-from .models import User, Client, Loan
+from .models import User, Client, Loan, Employee
 
 # Crea una instancia de Blueprint
 routes = Blueprint('routes', __name__)
+
+# ruta para el home de la aplicación web
 
 @routes.route('/', methods=['GET', 'POST'])
 def home():
@@ -44,12 +46,15 @@ def home():
     return render_template('index.html')
 
 
+# ruta para el logout de la aplicación web
+
 @routes.route('/logout')
 def logout():
     # Limpiar la sesión
     session.clear()
     return redirect(url_for('routes.home'))
 
+# ruta para el menú del administrador
 
 @routes.route('/menu-manager')
 def menu_manager():
@@ -64,6 +69,7 @@ def menu_manager():
     # Mostrar el menú del administrador
     return render_template('menu-manager.html')
 
+# ruta para el menú del vendedor
 
 @routes.route('/menu-salesman')
 def menu_salesman():
@@ -77,6 +83,70 @@ def menu_salesman():
 
     # Mostrar el menú del vendedor
     return render_template('menu-salesman.html')
+
+# ruta para crear un usuario
+
+@routes.route('/create-user', methods=['GET', 'POST'])
+def create_user():
+    if 'user_id' in session and session['role'] == 'ADMINISTRADOR':
+        if request.method == 'POST':
+            # Obtener los datos enviados en el formulario
+            name = request.form['name']
+            password = request.form['password']
+            role = request.form['role']
+            first_name = request.form['first_name']
+            last_name = request.form['last_name']
+            cellphone = request.form['cellphone']
+            maximum_cash = request.form['maximum_cash']
+            maximum_sale = request.form['maximum_sale']
+            maximum_expense = request.form['maximum_expense']
+            maximum_payment = request.form['maximum_payment']
+            minimum_interest = request.form['minimum_interest']
+            percentage_interest = request.form['percentage_interest']
+            fix_value = request.form['fix_value']
+
+            # Crea un nuevo objeto User con los datos proporcionados
+            user = User(
+                username=name,
+                password=password,
+                role=role,
+                first_name=first_name,
+                last_name=last_name,
+                cellphone=cellphone
+            )
+
+            # Guarda el nuevo usuario en la base de datos
+            db.session.add(user)
+            db.session.commit()
+
+            # Crea un nuevo objeto Employee asociado al usuario
+            employee = Employee(
+                user_id=user.id,
+                maximum_cash=maximum_cash,
+                maximum_sale=maximum_sale,
+                maximum_expense=maximum_expense,
+                maximum_payment=maximum_payment,
+                minimum_interest=minimum_interest,
+                percentage_interest=percentage_interest,
+                fix_value=fix_value
+            )
+
+            # Guarda el nuevo empleado en la base de datos
+            db.session.add(employee)
+            db.session.commit()
+
+            # Redirecciona a la página de lista de usuarios o a donde corresponda
+            return redirect(url_for('routes.user_list'))
+
+        return render_template('create-user.html')
+    else:
+        abort(403)  # Acceso no autorizado
+
+
+@routes.route('/user-list')
+def user_list():
+    return render_template('user-list.html')
+
 
 @routes.route('/create-client',  methods=['GET', 'POST'])
 def create_client():
@@ -131,7 +201,7 @@ def create_client():
             db.session.add(loan)
             db.session.commit()
 
-            return redirect(url_for('credit_detail.html'))
+            return redirect(url_for('routes.credit_detail', id=loan.id))
 
         return render_template('create-client.html')
     else:
@@ -186,16 +256,6 @@ def wallet_detail():
 @routes.route('/credit-detail')
 def credit_detail():
     return render_template('credit-detail.html')
-
-
-@routes.route('/create-user')
-def create_user():
-    return render_template('create-user.html')
-
-
-@routes.route('/user-list')
-def user_list():
-    return render_template('user-list.html')
 
 
 @routes.route('/reports')

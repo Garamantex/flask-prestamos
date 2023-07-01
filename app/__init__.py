@@ -1,4 +1,5 @@
 from flask import Flask
+
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -18,11 +19,11 @@ def create_app():
     from app.routes import routes
     app.register_blueprint(routes)
 
-    with app.app_context():
-        # Importar y registrar los modelos
-        from app.models import User, Client, Loan
+    # Importar y registrar los modelos
+    from app.models import User, Client, Loan
 
-        # Crear las tablas en la base de datos
+    # Crear las tablas en la base de datos
+    with app.app_context():
         db.create_all()
 
     return app

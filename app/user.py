@@ -1,13 +1,16 @@
 from enum import Enum
 import datetime
 import json
-from app import db
+
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
 
 # Definición de enumeración para el campo 'role' en User
 class Role(Enum):
-    ADMINISTRADOR = "ADMINISTRADOR"
-    COORDINADOR = "COORDINADOR"
-    VENDEDOR = "VENDEDOR"
+    ADMINISTRADOR = 1
+    COORDINADOR = 2
+    VENDEDOR = 3
 
     def to_json(self):
         return self.name
@@ -19,9 +22,9 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
-    role = db.Column(db.Enum(Role), nullable=False, doc='Role')
+    role = db.Column(db.Enum(Role), nullable=False, doc='Rol')
     first_name = db.Column(db.String(30), nullable=False, doc='Nombre')
-    last_name = db.Column(db.String(30), nullable=False, doc='Apellido')
+    last_name = db.Column(db.String(30), nullable=True, doc='Apellido', server_default='')
     cellphone = db.Column(db.String(20), nullable=False, doc='Celular')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
@@ -270,3 +273,9 @@ class Transaction(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+
+
+def create_database(app):
+    """ Crea la base de datos si no existe """
+    with app.app_context():
+        db.create_all()
