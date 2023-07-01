@@ -270,9 +270,3 @@ class Transaction(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
-
-
-def create_database(app):
-    """ Crea la base de datos si no existe """
-    with app.app_context():
-        db.create_all()

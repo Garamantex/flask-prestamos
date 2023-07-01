@@ -24,7 +24,7 @@ class User(db.Model):
     password = db.Column(db.String(100), nullable=False)
     role = db.Column(db.Enum(Role), nullable=False, doc='Rol')
     first_name = db.Column(db.String(30), nullable=False, doc='Nombre')
-    last_name = db.Column(db.String(30), nullable=False, doc='Apellido')
+    last_name = db.Column(db.String(30), nullable=True, doc='Apellido', server_default='')
     cellphone = db.Column(db.String(20), nullable=False, doc='Celular')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
