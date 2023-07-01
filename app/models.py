@@ -1,10 +1,7 @@
 from enum import Enum
 import datetime
 import json
-
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from app import db
 
 # Definición de enumeración para el campo 'role' en User
 class Role(Enum):

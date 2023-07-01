@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request
-from app import db
+from app.models import db
 from .models import User, Client, Loan
 
 # Crea una instancia de Blueprint
@@ -10,9 +10,9 @@ def home():
     if 'user_id' in session:
         role = session.get('role')
         if role == 'ADMINISTRADOR' or role == 'COORDINADOR':
-            return redirect(url_for('menu_manager'))
+            return redirect(url_for('routes.menu_manager'))
         elif role == 'VENDEDOR':
-            return redirect(url_for('menu_salesman'))
+            return redirect(url_for('routes.menu_salesman'))
         else:
             abort(403)  # Acceso no autorizado
 
@@ -28,13 +28,13 @@ def home():
             # Guardar el usuario en la sesión
             session['user_id'] = user.id
             session['username'] = user.username
-            session['role'] = user.role
+            session['role'] = user.role.name  # Guardar solo el nombre del rol
 
             # Redireccionar según el rol del usuario
-            if user.role == 'ADMINISTRADOR':
-                return redirect(url_for('menu_manager'))
-            elif user.role == 'VENDEDOR':
-                return redirect(url_for('menu_salesman'))
+            if user.role.name == 'ADMINISTRADOR':
+                return redirect(url_for('routes.menu_manager'))
+            elif user.role.name == 'VENDEDOR':
+                return redirect(url_for('routes.menu_salesman'))
             else:
                 abort(403)  # Acceso no autorizado
 
@@ -48,14 +48,14 @@ def home():
 def logout():
     # Limpiar la sesión
     session.clear()
-    return redirect(url_for('home'))
+    return redirect(url_for('routes.home'))
 
 
 @routes.route('/menu-manager')
 def menu_manager():
     # Verificar si el usuario está logueado
     if 'user_id' not in session:
-        return redirect(url_for('home'))
+        return redirect(url_for('routes.home'))
 
     # Verificar si el usuario es administrador o coordinador
     if session.get('role') != 'ADMINISTRADOR' and session.get('role') != 'COORDINADOR':
@@ -69,7 +69,7 @@ def menu_manager():
 def menu_salesman():
     # Verificar si el usuario está logueado
     if 'user_id' not in session:
-        return redirect(url_for('home'))
+        return redirect(url_for('routes.home'))
 
     # Verificar si el usuario es vendedor
     if session.get('role') != 'VENDEDOR':
@@ -77,7 +77,6 @@ def menu_salesman():
 
     # Mostrar el menú del vendedor
     return render_template('menu-salesman.html')
-
 
 @routes.route('/create-client',  methods=['GET', 'POST'])
 def create_client():
