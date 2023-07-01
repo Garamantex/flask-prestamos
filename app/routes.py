@@ -150,36 +150,34 @@ def user_list():
 
 @routes.route('/create-client',  methods=['GET', 'POST'])
 def create_client():
-    if 'user_id' in session and session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR':
+    if 'user_id' in session and session['role'] == 'ADMINISTRADOR' or session['role'] == 'VENDEDOR':
         if request.method == 'POST':
             first_name = request.form.get('first_name')
             last_name = request.form.get('last_name')
             alias = request.form.get('alias')
             document = request.form.get('document')
-            gender = request.form.get('gender')
             cellphone = request.form.get('cellphone')
             address = request.form.get('address')
             neighborhood = request.form.get('neighborhood')
             amount = request.form.get('amount')
             dues = request.form.get('dues')
             interest = request.form.get('interest')
-            payment = request.form.get('payment')
-            employee_id = session.get('employee_id')
-
+            payment = request.form.get('amountPerPay')
+            employee_id = session['user_id']
             # Crea una instancia del cliente con los datos proporcionados
             client = Client(
                 first_name=first_name,
                 last_name=last_name,
                 alias=alias,
                 document=document,
-                gender=gender,
                 cellphone=cellphone,
                 address=address,
-                neighborhood=neighborhood,
+                neighborhood=neighborhood
             )
 
             # Guarda el cliente en la base de datos
             db.session.add(client)
+
             db.session.commit()
 
             # Obtiene el ID del cliente recién creado
@@ -205,7 +203,7 @@ def create_client():
 
         return render_template('create-client.html')
     else:
-        return redirect(url_for('routes.menu-manager'))
+        return redirect(url_for('routes.menu_salesman'))
 
 
 @routes.route('/renewal')

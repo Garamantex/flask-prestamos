@@ -122,13 +122,6 @@ class Salesman(db.Model):
         return json.dumps(self.to_json(), indent=4)
 
 
-class Gender(Enum):
-    HOMBRE = 1
-    MUJER = 2
-
-    def to_json(self):
-        return self.name
-
 
 class Client(db.Model):
     """ Modelo de Cliente """
@@ -138,7 +131,6 @@ class Client(db.Model):
     last_name = db.Column(db.String(30), nullable=False, doc='Apellido')
     alias = db.Column(db.String(100), nullable=False, doc='Alias')
     document = db.Column(db.String(20), unique=True, nullable=False, doc='Documento')
-    gender = db.Column(db.Enum(Gender), nullable=False, doc='Genero')
     cellphone = db.Column(db.String(20), nullable=False, doc='Celular')
     address = db.Column(db.String(100), nullable=False, doc='Dirección')
     neighborhood = db.Column(db.String(100), nullable=False, doc='Barrio')
@@ -158,7 +150,6 @@ class Client(db.Model):
             'last_name': self.last_name,
             'alias': self.alias,
             'document': self.document,
-            'gender': self.gender.toJSON(),
             'cellphone': self.cellphone,
             'address': self.address,
             'neighborhood': self.neighborhood,
