@@ -3,6 +3,8 @@ from app.models import db, InstallmentStatus
 from .models import User, Client, Loan, Employee, LoanInstallment
 from datetime import timedelta
 
+from .user import Concept
+
 # Crea una instancia de Blueprint
 routes = Blueprint('routes', __name__)
 
@@ -327,6 +329,50 @@ def obtener_detalles_prestamo(loan_id):
 
     return detalles_prestamo
 
+
+@routes.route('/concept', methods=['GET', 'POST'])
+def crear_concepto():
+    if 'user_id' in session and session['role'] == 'ADMINISTRADOR':
+        if request.method == 'POST':
+            name = request.form.get('name')
+            transaction_types = request.form.getlist('transaction_types')
+
+            concept = Concept(name=name, transaction_types=transaction_types)
+            db.session.add(concept)
+            db.session.commit()
+            return 'Concepto creado', 200
+        return render_template('create-concept.html', concept=Concept)
+
+
+@routes.route('/concept/<int:concept_id>', methods=['PUT'])
+def actualizar_concepto(concept_id):
+    concept = Concept.query.get(concept_id)
+
+    if not concept:
+        return jsonify({'message': 'Concepto no encontrado'}), 404
+
+    data = request.get_json()
+    name = data.get('name')
+    transaction_types = data.get('transaction_types')
+
+    concept.name = name
+    concept.transaction_types = transaction_types
+    db.session.commit()
+
+    return jsonify(concept.to_json())
+
+
+@routes.route('/conceptos/<int:concept_id>', methods=['DELETE'])
+def eliminar_concepto(concept_id):
+    concept = Concept.query.get(concept_id)
+
+    if not concept:
+        return jsonify({'message': 'Concepto no encontrado'}), 404
+
+    db.session.delete(concept)
+    db.session.commit()
+
+    return jsonify({'message': 'Concepto eliminado'}), 200
 
 @routes.route('/box')
 def box():

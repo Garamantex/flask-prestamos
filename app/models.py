@@ -240,9 +240,9 @@ class LoanInstallment(db.Model):
 
 
 class TransactionType(Enum):
-    GASTO = 1
-    INGRESO = 2
-    RETIRO = 3
+    GASTO = "GASTO"
+    INGRESO = "INGRESO"
+    RETIRO = "RETIRO"
 
     def to_json(self):
         return self.name
@@ -264,6 +264,8 @@ class Concept(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+
+
 
 
 class Transaction(db.Model):
