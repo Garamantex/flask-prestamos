@@ -38,7 +38,7 @@
                             <h5>Cuotas Pagadas:</h5>
                             {% set total_cuotas_pagadas = 0 %}
                             {% for installment in installments %}
-                                {% if installment.status == 'PAGADA' %}
+                                {% if installment.status.value == 'PAGADA' %}
                                     {% set total_cuotas_pagadas = total_cuotas_pagadas + 1 %}
                                 {% endif %}
                             {% endfor %}
@@ -98,6 +98,9 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                {% set counter = 0 %}
+                                {% set break = false %}
+                                {% set enable_next = false %}
                                 {% for installment in installments %}
                                     <tr>
                                         <th scope="row">{{ installment.installment_number }}</th>
@@ -106,21 +109,30 @@
                                         <td>${{ installment.amount }}</td>
                                         <td>${{ installment.balance }}</td>
                                         <td>
-                                            {% if loop.index == 1 and installment.status != 'PAGADA' %}
-                                                <select name="estado_cuota_{{ installment.id }}">
-                                                    <option value="PAGADA" selected>Pagada</option>
-                                                    <option value="PENDIENTE">Pendiente</option>
-                                                    <option value="MORA">Vencida</option>
-                                                </select>
+                                            {% set counter = counter + 1 %}
+                                            {% if installment.status.value == 'PENDIENTE' or installment.status.value == 'MORA' and break == false %}
+                                                {% if not enable_next %}
+                                                    {% set enable_next = true %}
+                                                    {% set break = true %}
+                                                        <select name="estado_cuota_{{ installment.id }}">
+                                                            <option value="PAGADA">PAGADA</option>
+                                                            <option value="PENDIENTE" selected>PENDIENTE</option>
+                                                            <option value="MORA">MORA</option>
+                                                        </select>
+                                                {% else %}
+                                                    <select name="estado_cuota_{{ installment.id }}" disabled>
+                                                        <option value="{{ installment.status.value }}">{{ installment.status.value }}</option>
+                                                    </select>
+                                                {% endif %}
                                             {% else %}
                                                 <select name="estado_cuota_{{ installment.id }}" disabled>
-                                                    <option value="PENDIENTE">Pendiente</option>
+                                                    <option value="{{ installment.status.value }}">{{ installment.status.value }}</option>
                                                 </select>
                                             {% endif %}
                                         </td>
                                     </tr>
                                 {% endfor %}
-                            </tbody>
+                            </tbody>                            
                         </table>
                         <button class="btn btn-primary" type="submit">Guardar Cambios</button>
                     </form>
