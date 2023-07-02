@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request
 from app.models import db
-from .models import User, Client, Loan, Employee
+from .models import User, Client, Loan, Employee, LoanInstallment
+from datetime import timedelta
 
 # Crea una instancia de Blueprint
 routes = Blueprint('routes', __name__)
@@ -221,6 +222,53 @@ def client_list():
 def renewal():
     return render_template('renewal.html')
 
+@routes.route('/credit-detail/<int:id>')
+def credit_detail(id):
+    loan = Loan.query.get(id)
+    client = Client.query.get(loan.client_id)
+    installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+    
+     # Verificar si ya se generaron las cuotas del préstamo
+    if not installments:
+        generar_cuotas_prestamo(loan)
+        installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+    
+    loans = Loan.query.all()  # Obtener todos los créditos
+    
+    return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments)
+
+def generar_cuotas_prestamo(loan):
+    amount = loan.amount
+    dues = loan.dues
+    interest = loan.interest
+    payment = loan.payment
+    creation_date = loan.creation_date.date()
+    client_id = loan.client_id
+    employee_id = loan.employee_id
+
+    installment_amount = (amount + (amount * interest / 100)) / dues
+    due_date = creation_date + timedelta(days=1)
+
+    installments = []
+    for installment_number in range(1, int(dues) + 1):
+        installment = LoanInstallment(
+            installment_number=installment_number,
+            due_date=due_date,
+            amount=installment_amount,
+            status='PENDIENTE',
+            loan_id=loan.id
+        )
+        installments.append(installment)
+
+        due_date += timedelta(days=1)
+
+    # Guardar las cuotas en la base de datos
+    db.session.bulk_save_objects(installments)
+    db.session.commit()
+
+
+
+
 
 @routes.route('/box')
 def box():
@@ -261,11 +309,6 @@ def wallet():
 @routes.route('/wallet-detail')
 def wallet_detail():
     return render_template('wallet-detail.html')
-
-
-@routes.route('/credit-detail')
-def credit_detail():
-    return render_template('credit-detail.html')
 
 
 @routes.route('/reports')

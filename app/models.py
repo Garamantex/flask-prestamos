@@ -142,6 +142,8 @@ class Client(db.Model):
                                   onupdate=datetime.datetime.utcnow)
 
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=True)
+    
+    loans = db.relationship('Loan', backref='client', lazy=True)
 
     def to_json(self):
         return {
@@ -180,6 +182,8 @@ class Loan(db.Model):
 
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    
+    installments = db.relationship('LoanInstallment', backref='loan', cascade='all, delete-orphan')
 
     def to_json(self):
         return {
@@ -198,7 +202,41 @@ class Loan(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+    
+class InstallmentStatus(Enum):
+    PENDIENTE = "PENDIENTE"
+    PAGADA = "PAGADA"
+    ABONADA = "ABONADA"
+    MORA = "MORA"
+    
 
+    def to_json(self):
+        return self.name
+
+class LoanInstallment(db.Model):
+    """ Modelo de Cuota de Préstamo """
+
+    id = db.Column(db.Integer, primary_key=True)
+    installment_number = db.Column(db.Integer, nullable=False, doc='Número de cuota')
+    due_date = db.Column(db.Date, nullable=False, doc='Fecha de vencimiento')
+    amount = db.Column(db.Numeric(10, 2), nullable=False, doc='Monto de la cuota')
+    status = db.Column(db.Enum(InstallmentStatus), default=InstallmentStatus.PENDIENTE, nullable=False, doc='status')
+    payment_date = db.Column(db.Date, nullable=True, doc='Fecha de pago')
+    loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=False)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'installment_number': self.installment_number,
+            'due_date': self.due_date.isoformat(),
+            'amount': str(self.amount),
+            'status': self.status,
+            'payment_date': self.payment_date.isoformat() if self.payment_date else None,
+            'loan_id': self.loan_id
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), indent=4)
 
 class TransactionType(Enum):
     GASTO = 1

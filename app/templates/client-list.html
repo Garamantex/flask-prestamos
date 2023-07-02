@@ -36,6 +36,7 @@
                         <th scope="col">Lista Negra</th>
                         <th scope="col">Fecha Creación</th>
                         <th scope="col">Fecha Modificación</th>
+                        <th scope="col">Acciones</th> <!-- Columna adicional para el botón -->
                     </tr>
                 </thead>
                 <tbody>
@@ -52,12 +53,14 @@
                         <td>{{ "Sí" if client.black_list else "No" }}</td>
                         <td>{{ client.creation_date }}</td>
                         <td>{{ client.modification_date }}</td>
+                        <td>
+                            <a class="btn btn-primary" href="{{ url_for('routes.credit_detail', id=client.loans[-1].id) }}">Ver detalle del crédito</a>
+                        </td> <!-- Botón para ver detalle del crédito -->
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-    
 </div>
 {% endblock %}
