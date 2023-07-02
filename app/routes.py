@@ -145,7 +145,11 @@ def create_user():
 
 @routes.route('/user-list')
 def user_list():
-    return render_template('user-list.html')
+    
+    users = User.query.all()
+    employees = Employee.query.all()
+    
+    return render_template('user-list.html', users=users, employees=employees)
 
 
 @routes.route('/create-client',  methods=['GET', 'POST'])
@@ -206,6 +210,13 @@ def create_client():
         return redirect(url_for('routes.menu_salesman'))
 
 
+@routes.route('/client-list')
+def client_list():
+    
+    clients = Client.query.all()
+    
+    return render_template('client-list.html', client_list=clients)
+
 @routes.route('/renewal')
 def renewal():
     return render_template('renewal.html')
@@ -213,6 +224,7 @@ def renewal():
 
 @routes.route('/box')
 def box():
+    
     return render_template('box.html')
 
 

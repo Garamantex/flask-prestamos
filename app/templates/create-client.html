@@ -4,13 +4,13 @@
 <div class="container c-bg c-bg__gray-400 pt-5">
     <div class="row">
         <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="./client-list">Ver Clientes</a>
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list') }}">Ver Clientes</a>
         </div>
         <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{ url_for('routes.menu_salesman') }}">Volver al menu</a>
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Volver al menu</a>
         </div>
         <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{ url_for('routes.logout') }}">Salir</a>
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
         </div>
     </div>
     <div class="row">
