@@ -4,9 +4,16 @@
     <div class="container">
         <div class="row justify-content-center align-items-center min-vh-100">
             <div class="col">
-                <form action="" method="post">
+                <form action="{{ url_for('routes.create_concept') }}" method="post">
                     <label for="transaction_types">Tipo de transaccion</label>
-                    selec
+                    <select name="transaction_types" id="transaction_types">
+                        <option value="GASTO">Gastos</option>
+                        <option value="INGRESO">Ingreso</option>
+                        <option value="RETIRO">Retiro</option>
+                    </select>
+                    <label for="concept">concepto</label>
+                    <input type="text" name="concept" id="concept">
+                    <button type="submit">Crear</button>
                 </form>
             </div>
         </div>

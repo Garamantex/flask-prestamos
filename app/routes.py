@@ -331,13 +331,14 @@ def obtener_detalles_prestamo(loan_id):
 
 
 @routes.route('/concept', methods=['GET', 'POST'])
-def crear_concepto():
+def create_concept():
     if 'user_id' in session and session['role'] == 'ADMINISTRADOR':
         if request.method == 'POST':
-            name = request.form.get('name')
+            name = request.form.get('concept')
             transaction_types = request.form.getlist('transaction_types')
+            transaction_types_str = ','.join(transaction_types)
 
-            concept = Concept(name=name, transaction_types=transaction_types)
+            concept = Concept(transaction_types=transaction_types_str, name=name)
             db.session.add(concept)
             db.session.commit()
             return 'Concepto creado', 200
