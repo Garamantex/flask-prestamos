@@ -4,8 +4,7 @@
 <div class="container c-bg c-bg__gray-400 pt-5">
     <div class="row">
         <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3"
-                href="./menu-manager">Volver al menu</a>
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Volver al menú</a>
         </div>
         <div class="col">
             <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
@@ -17,9 +16,9 @@
         </div>
         <div class="col">
             <div class="float-right">
-                <h5 class="mr-3">Nombre del Cliente: Cliente 1</h5>
+                <h5 class="mr-3">Nombre del Cliente: {{ client.first_name }} {{ client.last_name }} </h5>
                 <a href="#" class="btn btn-primary mr-3">Editar Datos Cliente</a>
-                <a href="#" class="btn btn-primary">estado de la cartera: Activa</a>
+                <a href="#" class="btn btn-primary">Estado de la cartera: Activa</a>
             </div>
         </div>
     </div>
@@ -32,28 +31,47 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col">
-                            <h5>Número de Cuotas Totales:</h5>
-                            <p>10</p>
+                            <h5>Cuotas Totales:</h5>
+                            <p>{{ loan.dues }}</p>
                         </div>
                         <div class="col">
-                            <h5>Número de Cuotas Pagadas:</h5>
-                            <p>3</p>
+                            <h5>Cuotas Pagadas:</h5>
+                            {% set total_cuotas_pagadas = 0 %}
+                            {% for installment in installments %}
+                                {% if installment.status == 'PAGADA' %}
+                                    {% set total_cuotas_pagadas = total_cuotas_pagadas + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                            <p>{{ total_cuotas_pagadas }}</p>
                         </div>
                         <div class="col">
-                            <h5>Número de Cuotas Abonadas:</h5>
-                            <p>1</p>
+                            <h5>Cuotas Abonadas:</h5>
+                            {% set total_cuotas_abonadas = 0 %}
+                            {% for installment in installments %}
+                                {% if installment.status == 'ABONADA' %}
+                                    {% set total_cuotas_abonadas = total_cuotas_abonadas + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                            <p>{{ total_cuotas_abonadas }}</p>
                         </div>
                         <div class="col">
-                            <h5>Número de Cuotas Vencidas:</h5>
-                            <p>5</p>
+                            <h5>Cuotas Vencidas:</h5>
+                            {% set total_cuotas_vencidas = 0 %}
+                            {% for installment in installments %}
+                                {% if installment.status == 'MORA' %}
+                                    {% set total_cuotas_vencidas = total_cuotas_vencidas + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                            <p>{{ total_cuotas_vencidas }}</p>
                         </div>
                         <div class="col">
-                            <h5>Valor Total del Crédito:</h5>
-                            <p>$1000</p>
+                            <h5>Valor Total:</h5>
+                            {% set total_prestamo = (loan.amount + (loan.amount * (loan.interest / 100)))  %}
+                            <p>${{ '{:.0f}'.format(total_prestamo) }}</p>
                         </div>
                         <div class="col">
                             <h5>Saldo Pendiente:</h5>
-                            <p>$500</p>
+                            <p>${{ loan.remaining_balance }}</p>
                         </div>
                     </div>
                 </div>
@@ -64,7 +82,7 @@
         <div class="col">
             <div class="card">
                 <div class="card-header">
-                    Listado de Cuotas
+                    Detalle de Cuotas
                 </div>
                 <div class="card-body">
                     <table class="table">
@@ -75,85 +93,32 @@
                                 <th scope="col">Fecha de Pago</th>
                                 <th scope="col">Valor de Cuota</th>
                                 <th scope="col">Saldo</th>
+                                <th scope="col">Modificar Estado</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <th scope="row">1</th>
-                                <td>Pagada</td>
-                                <td>01/06/2023</td>
-                                <td>$100</td>
-                                <td>$0</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">2</th>
-                                <td>Pagada</td>
-                                <td>08/06/2023</td>
-                                <td>$100</td>
-                                <td>$0</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">3</th>
-                                <td>Pagada</td>
-                                <td>15/06/2023</td>
-                                <td>$100</td>
-                                <td>$0</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">4</th>
-                                <td>Abonada</td>
-                                <td>22/06/2023</td>
-                                <td>$100</td>
-                                <td>$50</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">5</th>
-                                <td>Pendiente</td>
-                                <td>29/06/2023</td>
-                                <td>$100</td>
-                                <td>$100</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">6</th>
-                                <td>Pendiente</td>
-                                <td>06/07/2023</td>
-                                <td>$100</td>
-                                <td>$100</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">7</th>
-                                <td>Pendiente</td>
-                                <td>13/07/2023</td>
-                                <td>$100</td>
-                                <td>$100</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">8</th>
-                                <td>Pendiente</td>
-                                <td>20/07/2023</td>
-                                <td>$100</td>
-                                <td>$100</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">9</th>
-                                <td>Pendiente</td>
-                                <td>27/07/2023</td>
-                                <td>$100</td>
-                                <td>$100</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">10</th>
-                                <td>Vencida</td>
-                                <td>03/08/2023</td>
-                                <td>$100</td>
-                                <td>$100</td>
-                            </tr>
+                            {% for installment in installments %}
+                                <tr>
+                                    <th scope="row">{{ installment.installment_number }}</th>
+                                    <td>{{ installment.status.value }}</td>
+                                    <td>{{ installment.due_date.strftime('%d/%m/%Y') }}</td>
+                                    <td>${{ installment.amount }}</td>
+                                    <td>${{ installment.balance }}</td>
+                                    <td>
+                                        <select name="estado_cuota" id="estado_cuota">
+                                            <option value="PENDIENTE">Pendiente</option>
+                                            <option value="PAGADA">Pagada</option>
+                                            <option value="MORA">Vencida</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
+                    <button class="btn btn-primary">Guardar Cambios</button>
                 </div>
             </div>
         </div>
     </div>
-
 </div>
 {% endblock %}
