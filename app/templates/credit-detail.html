@@ -85,37 +85,39 @@
                     Detalle de Cuotas
                 </div>
                 <div class="card-body">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th scope="col">N° Cuota</th>
-                                <th scope="col">Estado</th>
-                                <th scope="col">Fecha de Pago</th>
-                                <th scope="col">Valor de Cuota</th>
-                                <th scope="col">Saldo</th>
-                                <th scope="col">Modificar Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for installment in installments %}
+                    <form method="post" action="{{ url_for('routes.modify_installments', loan_id=loan.id) }}">
+                        <table class="table">
+                            <thead>
                                 <tr>
-                                    <th scope="row">{{ installment.installment_number }}</th>
-                                    <td>{{ installment.status.value }}</td>
-                                    <td>{{ installment.due_date.strftime('%d/%m/%Y') }}</td>
-                                    <td>${{ installment.amount }}</td>
-                                    <td>${{ installment.balance }}</td>
-                                    <td>
-                                        <select name="estado_cuota" id="estado_cuota">
-                                            <option value="PENDIENTE">Pendiente</option>
-                                            <option value="PAGADA">Pagada</option>
-                                            <option value="MORA">Vencida</option>
-                                        </select>
-                                    </td>
+                                    <th scope="col">N° Cuota</th>
+                                    <th scope="col">Estado</th>
+                                    <th scope="col">Fecha de Pago</th>
+                                    <th scope="col">Valor de Cuota</th>
+                                    <th scope="col">Saldo</th>
+                                    <th scope="col">Modificar Estado</th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    <button class="btn btn-primary">Guardar Cambios</button>
+                            </thead>
+                            <tbody>
+                                {% for installment in installments %}
+                                    <tr>
+                                        <th scope="row">{{ installment.installment_number }}</th>
+                                        <td>{{ installment.status.value }}</td>
+                                        <td>{{ installment.due_date.strftime('%d/%m/%Y') }}</td>
+                                        <td>${{ installment.amount }}</td>
+                                        <td>${{ installment.balance }}</td>
+                                        <td>
+                                            <select name="estado_cuota_{{ installment.id }}">
+                                                <option value="PENDIENTE">Pendiente</option>
+                                                <option value="PAGADA">Pagada</option>
+                                                <option value="MORA">Vencida</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button class="btn btn-primary" type="submit">Guardar Cambios</button>
+                    </form>
                 </div>
             </div>
         </div>

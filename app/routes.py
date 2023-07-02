@@ -237,6 +237,24 @@ def credit_detail(id):
     
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments)
 
+
+@routes.route('/modify-installments/<int:loan_id>', methods=['POST'])
+def modify_installments(loan_id):
+    loan = Loan.query.get(loan_id)
+    installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+
+    for installment in installments:
+        installment_id = installment.id
+        new_status = request.form.get(f'estado_cuota_{installment_id}')
+
+        # Actualizar el estado de la cuota
+        installment.status = new_status
+
+    # Guardar los cambios en la base de datos
+    db.session.commit()
+
+    return redirect(url_for('routes.credit_detail', id=loan_id))
+
 def generar_cuotas_prestamo(loan):
     amount = loan.amount
     dues = loan.dues
