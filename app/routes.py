@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request
-from app.models import db
+from app.models import db, InstallmentStatus
 from .models import User, Client, Loan, Employee, LoanInstallment
 from datetime import timedelta
 
@@ -7,6 +7,7 @@ from datetime import timedelta
 routes = Blueprint('routes', __name__)
 
 # ruta para el home de la aplicación web
+
 
 @routes.route('/', methods=['GET', 'POST'])
 def home():
@@ -57,6 +58,7 @@ def logout():
 
 # ruta para el menú del administrador
 
+
 @routes.route('/menu-manager')
 def menu_manager():
     # Verificar si el usuario está logueado
@@ -72,6 +74,7 @@ def menu_manager():
 
 # ruta para el menú del vendedor
 
+
 @routes.route('/menu-salesman')
 def menu_salesman():
     # Verificar si el usuario está logueado
@@ -86,6 +89,7 @@ def menu_salesman():
     return render_template('menu-salesman.html')
 
 # ruta para crear un usuario
+
 
 @routes.route('/create-user', methods=['GET', 'POST'])
 def create_user():
@@ -218,9 +222,11 @@ def client_list():
     
     return render_template('client-list.html', client_list=clients)
 
+
 @routes.route('/renewal')
 def renewal():
     return render_template('renewal.html')
+
 
 @routes.route('/credit-detail/<int:id>')
 def credit_detail(id):
@@ -247,13 +253,16 @@ def modify_installments(loan_id):
         installment_id = installment.id
         new_status = request.form.get(f'estado_cuota_{installment_id}')
 
-        # Actualizar el estado de la cuota
-        installment.status = new_status
+        # Verificar si el estado seleccionado es válido
+        if new_status in [status.value for status in InstallmentStatus]:
+            # Actualizar el estado de la cuota
+            installment.status = InstallmentStatus(new_status)
 
     # Guardar los cambios en la base de datos
     db.session.commit()
 
     return redirect(url_for('routes.credit_detail', id=loan_id))
+
 
 def generar_cuotas_prestamo(loan):
     amount = loan.amount
@@ -283,9 +292,6 @@ def generar_cuotas_prestamo(loan):
     # Guardar las cuotas en la base de datos
     db.session.bulk_save_objects(installments)
     db.session.commit()
-
-
-
 
 
 @routes.route('/box')

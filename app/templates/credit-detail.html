@@ -106,11 +106,17 @@
                                         <td>${{ installment.amount }}</td>
                                         <td>${{ installment.balance }}</td>
                                         <td>
-                                            <select name="estado_cuota_{{ installment.id }}">
-                                                <option value="PENDIENTE">Pendiente</option>
-                                                <option value="PAGADA">Pagada</option>
-                                                <option value="MORA">Vencida</option>
-                                            </select>
+                                            {% if loop.index == 1 and installment.status != 'PAGADA' %}
+                                                <select name="estado_cuota_{{ installment.id }}">
+                                                    <option value="PAGADA" selected>Pagada</option>
+                                                    <option value="PENDIENTE">Pendiente</option>
+                                                    <option value="MORA">Vencida</option>
+                                                </select>
+                                            {% else %}
+                                                <select name="estado_cuota_{{ installment.id }}" disabled>
+                                                    <option value="PENDIENTE">Pendiente</option>
+                                                </select>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                 {% endfor %}

@@ -122,7 +122,6 @@ class Salesman(db.Model):
         return json.dumps(self.to_json(), indent=4)
 
 
-
 class Client(db.Model):
     """ Modelo de Cliente """
 
@@ -202,16 +201,17 @@ class Loan(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
-    
+
+
 class InstallmentStatus(Enum):
     PENDIENTE = "PENDIENTE"
     PAGADA = "PAGADA"
     ABONADA = "ABONADA"
     MORA = "MORA"
-    
 
     def to_json(self):
         return self.name
+
 
 class LoanInstallment(db.Model):
     """ Modelo de Cuota de Préstamo """
@@ -237,6 +237,7 @@ class LoanInstallment(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+
 
 class TransactionType(Enum):
     GASTO = 1
