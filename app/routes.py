@@ -1,9 +1,8 @@
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
-from app.models import db, InstallmentStatus
+from app.models import db, InstallmentStatus, Concept, Transaction
 from .models import User, Client, Loan, Employee, LoanInstallment
 from datetime import timedelta
 
-from .user import Concept
 
 # Crea una instancia de Blueprint
 routes = Blueprint('routes', __name__)
@@ -161,7 +160,7 @@ def user_list():
 
 @routes.route('/create-client',  methods=['GET', 'POST'])
 def create_client():
-    if 'user_id' in session and session['role'] == 'ADMINISTRADOR' or session['role'] == 'VENDEDOR':
+    if 'user_id' in session and session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR':
         if request.method == 'POST':
             first_name = request.form.get('first_name')
             last_name = request.form.get('last_name')
@@ -346,7 +345,7 @@ def create_concept():
 
 
 @routes.route('/concept/<int:concept_id>', methods=['PUT'])
-def actualizar_concepto(concept_id):
+def update_concept(concept_id):
     concept = Concept.query.get(concept_id)
 
     if not concept:
@@ -363,17 +362,45 @@ def actualizar_concepto(concept_id):
     return jsonify(concept.to_json())
 
 
-@routes.route('/conceptos/<int:concept_id>', methods=['DELETE'])
-def eliminar_concepto(concept_id):
-    concept = Concept.query.get(concept_id)
+@routes.route('/transaction', methods=['GET', 'POST'])
+def transactions():
+    if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
+        user_id = session['user_id']
 
-    if not concept:
-        return jsonify({'message': 'Concepto no encontrado'}), 404
+        # Obtener el empleado asociado al user_id
+        employee = Employee.query.filter_by(user_id=user_id).first()
 
-    db.session.delete(concept)
-    db.session.commit()
+        if request.method == 'POST':
+            transaction_type = request.form.get('transaction_type')
+            concept_id = request.form.get('concept_id')
+            description = request.form.get('description')
+            mount = request.form.get('mount')
+            attachment = request.form.get('attachment')
+            status = request.form.get('status')
 
-    return jsonify({'message': 'Concepto eliminado'}), 200
+            # Usar el employee_id obtenido para crear la transacción
+            transaction = Transaction(
+                transaction_types=transaction_type,
+                concept_id=concept_id,
+                description=description,
+                mount=mount,
+                attachment=attachment,
+                status=status,
+                employee_id=employee.id  # Usar el employee_id obtenido aquí
+            )
+
+            db.session.add(transaction)
+            db.session.commit()
+
+            return jsonify(transaction.to_json()), 201
+
+        else:
+            # Renderizar el formulario para crear una transacción
+            return render_template('transaction.html')
+    else:
+        # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
+        return "Acceso no autorizado."
+
 
 @routes.route('/box')
 def box():
