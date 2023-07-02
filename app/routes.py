@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, redirect, url_for, abort, request
+from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
 from app.models import db, InstallmentStatus
 from .models import User, Client, Loan, Employee, LoanInstallment
 from datetime import timedelta
@@ -240,8 +240,10 @@ def credit_detail(id):
         installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
     
     loans = Loan.query.all()  # Obtener todos los créditos
+    loan_detail = obtener_detalles_prestamo(id)
     
-    return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments)
+    return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
+                           loan_detail=loan_detail)
 
 
 @routes.route('/modify-installments/<int:loan_id>', methods=['POST'])
@@ -292,6 +294,38 @@ def generar_cuotas_prestamo(loan):
     # Guardar las cuotas en la base de datos
     db.session.bulk_save_objects(installments)
     db.session.commit()
+
+
+def obtener_detalles_prestamo(loan_id):
+    # Obtener el préstamo y el cliente asociado
+    loan = Loan.query.get(loan_id)
+    client = Client.query.get(loan.client_id)
+
+    # Obtener todas las cuotas del préstamo
+    installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+
+    # Calcular los datos requeridos
+    total_cuotas = len(installments)
+    cuotas_pagadas = sum(1 for installment in installments if installment.status == InstallmentStatus.PAGADA)
+    cuotas_vencidas = sum(1 for installment in installments if installment.status == InstallmentStatus.MORA)
+    valor_total = loan.amount + (loan.amount * loan.interest / 100)
+    saldo_pendiente = valor_total - sum(
+        installment.amount for installment in installments if installment.status == InstallmentStatus.PAGADA)
+
+    # Formatear los valores sin decimales
+    valor_total = int(valor_total)
+    saldo_pendiente = int(saldo_pendiente)
+
+    # Retornar los detalles del préstamo
+    detalles_prestamo = {
+        'cuotas_totales': total_cuotas,
+        'cuotas_pagadas': cuotas_pagadas,
+        'cuotas_vencidas': cuotas_vencidas,
+        'valor_total': valor_total,
+        'saldo_pendiente': saldo_pendiente
+    }
+
+    return detalles_prestamo
 
 
 @routes.route('/box')

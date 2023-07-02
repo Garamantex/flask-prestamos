@@ -32,46 +32,27 @@
                     <div class="row">
                         <div class="col">
                             <h5>Cuotas Totales:</h5>
-                            <p>{{ loan.dues }}</p>
+                            <p>{{ loan_detail.cuotas_totales }}</p>
                         </div>
                         <div class="col">
                             <h5>Cuotas Pagadas:</h5>
-                            {% set total_cuotas_pagadas = 0 %}
-                            {% for installment in installments %}
-                                {% if installment.status.value == 'PAGADA' %}
-                                    {% set total_cuotas_pagadas = total_cuotas_pagadas + 1 %}
-                                {% endif %}
-                            {% endfor %}
-                            <p>{{ total_cuotas_pagadas }}</p>
+                            <p>{{ loan_detail.cuotas_pagadas }}</p>
                         </div>
                         <div class="col">
                             <h5>Cuotas Abonadas:</h5>
-                            {% set total_cuotas_abonadas = 0 %}
-                            {% for installment in installments %}
-                                {% if installment.status == 'ABONADA' %}
-                                    {% set total_cuotas_abonadas = total_cuotas_abonadas + 1 %}
-                                {% endif %}
-                            {% endfor %}
-                            <p>{{ total_cuotas_abonadas }}</p>
+                            <p>Pendiente</p>
                         </div>
                         <div class="col">
-                            <h5>Cuotas Vencidas:</h5>
-                            {% set total_cuotas_vencidas = 0 %}
-                            {% for installment in installments %}
-                                {% if installment.status == 'MORA' %}
-                                    {% set total_cuotas_vencidas = total_cuotas_vencidas + 1 %}
-                                {% endif %}
-                            {% endfor %}
-                            <p>{{ total_cuotas_vencidas }}</p>
+                            <h5>Cuotas en mora:</h5>
+                            <p>{{ loan_detail.cuotas_vencidas }}</p>
                         </div>
                         <div class="col">
                             <h5>Valor Total:</h5>
-                            {% set total_prestamo = (loan.amount + (loan.amount * (loan.interest / 100)))  %}
-                            <p>${{ '{:.0f}'.format(total_prestamo) }}</p>
+                            <p>${{ loan_detail.valor_total }}</p>
                         </div>
                         <div class="col">
                             <h5>Saldo Pendiente:</h5>
-                            <p>${{ loan.remaining_balance }}</p>
+                            <p>${{ loan_detail.saldo_pendiente }}</p>
                         </div>
                     </div>
                 </div>
@@ -93,7 +74,6 @@
                                     <th scope="col">Estado</th>
                                     <th scope="col">Fecha de Pago</th>
                                     <th scope="col">Valor de Cuota</th>
-                                    <th scope="col">Saldo</th>
                                     <th scope="col">Modificar Estado</th>
                                 </tr>
                             </thead>
@@ -107,7 +87,6 @@
                                         <td>{{ installment.status.value }}</td>
                                         <td>{{ installment.due_date.strftime('%d/%m/%Y') }}</td>
                                         <td>${{ installment.amount }}</td>
-                                        <td>${{ installment.balance }}</td>
                                         <td>
                                             {% set counter = counter + 1 %}
                                             {% if installment.status.value == 'PENDIENTE' or installment.status.value == 'MORA' and break == false %}
