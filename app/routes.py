@@ -421,16 +421,7 @@ def reports():
     return render_template('reports.html')
 
 
-@routes.route('/bills')
+@routes.route('/transactions')
 def bills():
-    return render_template('bills.html')
+    return render_template('transactions.html')
 
-
-@routes.route('/income')
-def income():
-    return render_template('income.html')
-
-
-@routes.route('/outcome')
-def outcome():
-    return render_template('outcome.html')
