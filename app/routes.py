@@ -422,6 +422,6 @@ def reports():
 
 
 @routes.route('/transactions')
-def bills():
+def transactions():
     return render_template('transactions.html')
 
