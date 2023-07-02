@@ -266,8 +266,6 @@ class Concept(db.Model):
         return json.dumps(self.to_json(), indent=4)
 
 
-
-
 class Transaction(db.Model):
     """ Modelo de Transacción  """
 
