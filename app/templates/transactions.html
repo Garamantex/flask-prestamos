@@ -19,32 +19,31 @@
     </div>
     <div class="row">
         <div class="col">
-            <form action="">
+            <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data">
                 <fieldset>
                     <legend>Tipo de gasto</legend>
                     <div class="mb-3">
-                        <select name="perfil" class="c-form c-form__dropdown" aria-label="Default select example">
+                        <select id="transactionType" name="transaction_type" class="c-form c-form__dropdown" aria-label="Default select example">
                             <option selected></option>
                             <option value="GASTO">Gasto</option>
                             <option value="INGRESO">Ingreso</option>
                             <option value="RETIRO">Retiro</option>
-                        </selec
+                        </select>
                     </div>
                     <legend>Concepto</legend>
                     <div class="mb-3">
-                        <select name="perfil" class="c-form c-form__dropdown" aria-label="Default select example">
+                        <select id="concept" name="concept_id" class="c-form c-form__dropdown" aria-label="Default select example">
                             <option selected></option>
-                            <option value="1" name="concept">Concepto 1</option>
-                            <option value="2" name="concept">Concepto 2</option>
-                            <option value="3" name="concept">Concepto 3</option>
-                        </selec
+                            {% for concept in concepts %}
+                            <option value="{{ concept.id }}" data-transaction-type="{{ concept.transaction_types }}">{{ concept.name }}</option>
+                            {% endfor %}
+                          </select>                          
                     </div>
-                </fieldset>             
+                </fieldset>
                 <fieldset>
-                    <legend>Concepto</legend>
                     <div class="mb-3">
-                        <label for="phone" class="form-label">description</label>
-                        <textarea class="c-form c-form__textarea" name="concept" id="" cols="30" rows="10"></textarea>
+                        <label for="description" class="form-label">description</label>
+                        <textarea class="c-form c-form__textarea" name="description" id="" cols="30" rows="10"></textarea>
                     </div>
                 </fieldset>
                 <fieldset>
@@ -59,7 +58,7 @@
                     </div>
                 </fieldset>
                 <button class="c-btn c-btn-primary mb-4" type="submit">Enviar</button>
-            </form>
+            </form>    
         </div>
     </div>
 </div>

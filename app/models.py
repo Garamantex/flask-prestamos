@@ -259,7 +259,7 @@ class Concept(db.Model):
         return {
             'id': self.id,
             'name': self.name,
-            'transaction_types': self.transaction_types.toJSON()
+            'transaction_types': self.transaction_types.name
         }
 
     def __str__(self):
@@ -287,7 +287,7 @@ class Transaction(db.Model):
     def to_json(self):
         return {
             'id': self.id,
-            'transaction_types': self.transaction_types.toJSON(),
+            'transaction_types': self.transaction_types.name,
             'concept_id': self.concept_id,
             'description': self.description,
             'mount': str(self.mount),

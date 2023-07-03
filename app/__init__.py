@@ -1,5 +1,5 @@
 from flask import Flask
-
+import os
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -8,7 +8,7 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__)
     app.config.from_pyfile('config.py')
-
+    app.config['UPLOAD_FOLDER'] = app.config['UPLOAD_FOLDER']  # Agrega esta línea
     # Inicializar la instancia de SQLAlchemy
     db.init_app(app)
 

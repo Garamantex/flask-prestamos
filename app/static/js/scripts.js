@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
   // Función para calcular el monto por cuota automáticamente
   function calcularMontoPorCuota() {
     // Obtener los valores seleccionados por el usuario
@@ -21,3 +21,34 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("dues").addEventListener("change", calcularMontoPorCuota);
   document.getElementById("interest").addEventListener("change", calcularMontoPorCuota);
 });
+
+
+document.addEventListener("DOMContentLoaded", function () {
+  const transactionTypeSelect = document.getElementById('transactionType');
+  const conceptSelect = document.getElementById('concept');
+
+  transactionTypeSelect.addEventListener('change', loadConceptOptions);
+
+  function loadConceptOptions() {
+    const selectedTransactionType = transactionTypeSelect.value;
+    const conceptOptions = conceptSelect.options;
+
+    // Itera sobre las opciones de concepto y muestra u oculta según el tipo de transacción seleccionado
+    for (let i = 0; i < conceptOptions.length; i++) {
+      const conceptOption = conceptOptions[i];
+      const conceptTransactionType = conceptOption.getAttribute('data-transaction-type');
+
+      if (conceptTransactionType) {
+        const transactionType = conceptTransactionType.replace('TransactionType.', '');
+
+        if (transactionType === selectedTransactionType || selectedTransactionType === '') {
+          conceptOption.style.display = 'block';
+        } else {
+          conceptOption.style.display = 'none';
+        }
+      }
+    }
+  }
+});
+
+
