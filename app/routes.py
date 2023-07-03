@@ -1,7 +1,11 @@
+from datetime import timedelta
+import os
+import uuid
+from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
 from app.models import db, InstallmentStatus, Concept, Transaction
 from .models import User, Client, Loan, Employee, LoanInstallment
-from datetime import timedelta
+
 
 
 # Crea una instancia de Blueprint
@@ -363,7 +367,7 @@ def update_concept(concept_id):
 
 
 @routes.route('/transaction', methods=['GET', 'POST'])
-def transactions():
+def transactions(): 
     if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
         user_id = session['user_id']
 
@@ -371,20 +375,30 @@ def transactions():
         employee = Employee.query.filter_by(user_id=user_id).first()
 
         if request.method == 'POST':
+            # Manejar la creación de la transacción
             transaction_type = request.form.get('transaction_type')
             concept_id = request.form.get('concept_id')
             description = request.form.get('description')
-            mount = request.form.get('mount')
-            attachment = request.form.get('attachment')
+            mount = request.form.get('quantity')
+            attachment = request.files['photo']  # Obtener el archivo de imagen
             status = request.form.get('status')
-
+            concepts = Concept.query.all()
+            
+            basephant = os.path.abspath(os.path.dirname(__file__))
+            filename = secure_filename(attachment.filename)
+            extension = filename.split('.')[-1]
+            newfilename = str(uuid.uuid4()) + '.' + extension
+            attachment.save(os.path.join(basephant, 'static', 'images', newfilename))
+            
+            
+            
             # Usar el employee_id obtenido para crear la transacción
             transaction = Transaction(
                 transaction_types=transaction_type,
                 concept_id=concept_id,
                 description=description,
                 mount=mount,
-                attachment=attachment,
+                attachment=attachment.filename,
                 status=status,
                 employee_id=employee.id  # Usar el employee_id obtenido aquí
             )
@@ -392,14 +406,30 @@ def transactions():
             db.session.add(transaction)
             db.session.commit()
 
-            return jsonify(transaction.to_json()), 201
+            return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',concepts=concepts)
 
         else:
-            # Renderizar el formulario para crear una transacción
-            return render_template('transaction.html')
+            # Obtener todos los conceptos disponibles
+            concepts = Concept.query.all()
+
+            return render_template('transactions.html', concepts=concepts)
     else:
         # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
         return "Acceso no autorizado."
+    
+
+
+@routes.route('/get-concepts', methods=['GET'])
+def get_concepts():
+    transaction_type = request.args.get('transaction_type')
+
+    # Consultar los conceptos relacionados con el tipo de transacción
+    concepts = Concept.query.filter_by(transaction_types=transaction_type).all()
+
+    # Convertir los conceptos a formato JSON
+    concepts_json = [concept.to_json() for concept in concepts]
+
+    return jsonify(concepts_json)
 
 
 @routes.route('/box')
@@ -447,8 +477,4 @@ def wallet_detail():
 def reports():
     return render_template('reports.html')
 
-
-@routes.route('/transactions')
-def transactions():
-    return render_template('transactions.html')
 
