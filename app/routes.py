@@ -7,7 +7,6 @@ from app.models import db, InstallmentStatus, Concept, Transaction
 from .models import User, Client, Loan, Employee, LoanInstallment
 
 
-
 # Crea una instancia de Blueprint
 routes = Blueprint('routes', __name__)
 
@@ -40,7 +39,7 @@ def home():
             session['role'] = user.role.name  # Guardar solo el nombre del rol
 
             # Redireccionar según el rol del usuario
-            if user.role.name == 'ADMINISTRADOR':
+            if user.role.name == 'ADMINISTRADOR' or user.role.name == 'COORDINADOR':
                 return redirect(url_for('routes.menu_manager'))
             elif user.role.name == 'VENDEDOR':
                 return redirect(url_for('routes.menu_salesman'))
@@ -98,7 +97,32 @@ def menu_salesman():
 
 @routes.route('/create-user', methods=['GET', 'POST'])
 def create_user():
-    if 'user_id' in session and session['role'] == 'ADMINISTRADOR':
+    if 'user_id' in session and session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR':
+        # Verificar si el usuario es administrador o coordinador
+        if request.method == 'POST':
+            # Obtener los datos enviados en el formulario
+            name = request.form['name']
+            password = request.form['password']
+            role = request.form['role']
+            first_name = request.form['first_name']
+            last_name = request.form['last_name']
+            cellphone = request.form['cellphone']
+
+            # Crea un nuevo objeto User con los datos proporcionados
+            user = User(
+                username=name,
+                password=password,
+                role=role,
+                first_name=first_name,
+                last_name=last_name,
+                cellphone=cellphone
+            )
+
+            # Guarda el nuevo usuario en la base de datos
+            db.session.add(user)
+            db.session.commit()
+
+            # Redirecciona a la página de lista de usuarios o a donde corresponda
         if request.method == 'POST':
             # Obtener los datos enviados en el formulario
             name = request.form['name']
