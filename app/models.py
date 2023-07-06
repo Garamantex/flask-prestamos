@@ -4,6 +4,8 @@ import json
 from app import db
 
 # Definición de enumeración para el campo 'role' en User
+
+
 class Role(Enum):
     ADMINISTRADOR = "ADMINISTRADOR"
     COORDINADOR = "COORDINADOR"
