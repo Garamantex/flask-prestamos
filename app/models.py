@@ -175,6 +175,7 @@ class Loan(db.Model):
     payment = db.Column(db.Numeric(10, 2), nullable=False, doc='Pago')
     status = db.Column(db.Boolean, default=True, nullable=False, doc='Estado')
     up_to_date = db.Column(db.Boolean, default=False, nullable=False, doc='Al día')
+    is_renewal = db.Column(db.Boolean, default=False, nullable=False, doc='Renovación')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
                                   onupdate=datetime.datetime.utcnow)
