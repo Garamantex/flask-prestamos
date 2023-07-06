@@ -1,0 +1,60 @@
+.c-users {
+    background-color: $primary;
+    padding: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    @media (max-width: 768px) {
+        padding: 1;
+    }
+    &__inactive {
+        background-color: red;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        color: white;
+        font-weight: bold;
+        @media (max-width: 768px) {
+            padding: 1;
+        }
+    }
+    &__active {
+        color: white;
+        font-weight: bold;
+        background-color: green;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        @media (max-width: 768px) {
+            padding: 1;
+        }
+    }
+    &__icon {
+        width: 100%;
+        height: auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        & i {
+            font-size: 5rem;
+        }
+    }
+    &__title {
+        text-align: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.6rem;
+        font-family: "Montserrat", sans-serif;
+        width: 100%;
+    }
+}

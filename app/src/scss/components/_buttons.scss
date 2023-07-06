@@ -1,0 +1,45 @@
+.c-btn {
+    text-decoration: none;
+    text-align: center;
+    border: 0;
+    outline: 0;
+    font-size: 1rem;
+    border-radius: 1rem*20;
+    padding: 1rem;
+    background-color: $primary;
+    color: $white-100;
+    font-weight: bold;
+    font-family: $montserrat;
+    box-shadow: -5px -5px 20px $white-100, 5px 5px 20px $gray-300;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    font-weight: 600;
+    width: 100%;
+    &:hover {
+        box-shadow: -2px -2px 5px $white-100, 2px 2px 5px $gray-300;
+        color: $warning;
+    }
+    &:active {
+        box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
+    }
+    .icon {
+        margin-right: 1rem/2;
+    }
+    &.unit {
+        border-radius: 1rem/2;
+        line-height: 0;
+        width: 1rem*3;
+        height: 1rem*3;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0 1rem/2;
+        font-size: 1rem*1.2;
+        .icon {
+            margin-right: 0;
+        }
+    }
+    &-block {
+        display: block;
+    }
+}

@@ -1,0 +1,26 @@
+.c-morosos {
+    background-color: $primary;
+    padding: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    @media (max-width: 768px) {
+        padding: 1;
+    }
+    &--evenly {
+        justify-content: space-evenly;
+    }
+    &__item {
+        color: white;
+        font-weight: bold;
+        font-size: 1.6rem;
+        font-family: $montserrat;
+        width: 50%;
+        text-align: center;
+        @media (max-width: 768px) {
+            width: 100%;
+        }
+    }
+}

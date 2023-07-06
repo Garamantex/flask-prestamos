@@ -1,0 +1,52 @@
+.c-cajas {
+    padding: 2rem;
+    @media (max-width: 768px) {
+        padding: 0;
+    }
+    &__item {
+        list-style: none;
+    }
+    &__item__body {
+        padding: 1rem;
+        border: 1px solid $gray-300;
+        border-radius: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        &--top {
+            margin-top: 6rem;
+            @media (max-width: 768px) {
+                margin-top: 1rem;
+            }
+        }
+        &--small {
+            margin-top: 3rem;
+            @media (max-width: 768px) {
+                margin-top: 1rem;
+            }
+        }
+    }
+    &__item__body__item {
+        width: 50%;
+        padding: 1rem;
+        @media (max-width: 768px) {
+            width: 100%;
+        }
+        &--100 {
+            width: 100%;
+        }
+        &--30 {
+            width: 30%;
+            @media (max-width: 768px) {
+                width: 50%;
+            }
+        }
+    }
+    &__item__body__item__label {
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    &__item__body__item__value {
+        font-size: 1.2rem;
+    }
+}

@@ -1,0 +1,114 @@
+.c-form {
+    border: 0;
+    outline: 0;
+    font-size: 1rem;
+    border-radius: 1rem*20;
+    padding: 1rem;
+    background-color: $gray-400;
+    text-shadow: 1px 1px 0 $white-100;
+    &__label {
+        display: block;
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: $gray-200;
+        &--white {
+            color: $white-100;
+        }
+    }
+    &__input,
+    input {
+        display: block;
+        margin-right: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
+        width: 100%;
+        box-sizing: border-box;
+        transition: all 0.2s ease-in-out;
+        appearance: none;
+        -webkit-appearance: none;
+        &:focus {
+            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
+        }
+    }
+    &__textarea {
+        display: block;
+        margin-right: 1rem;
+        margin-bottom: 1rem;
+        border: none;
+        border-radius: 1rem;
+        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
+        width: 100%;
+        box-sizing: border-box;
+        transition: all 0.2s ease-in-out;
+        appearance: none;
+        -webkit-appearance: none;
+        &:focus {
+            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
+            outline: none;
+        }
+    }
+    &__dropdown {
+        display: block;
+        margin-right: 1rem;
+        margin-bottom: 1rem;
+        border: none;
+        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
+        width: 100%;
+        box-sizing: border-box;
+        transition: all 0.2s ease-in-out;
+        appearance: none;
+        -webkit-appearance: none;
+        &:focus {
+            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
+            outline: none;
+        }
+    }
+    &__dropdown-menu {
+        display: block;
+        margin-right: 1rem;
+        margin-bottom: 1rem;
+        border: none;
+        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
+        width: 100%;
+        box-sizing: border-box;
+        transition: all 0.2s ease-in-out;
+        appearance: none;
+        -webkit-appearance: none;
+        &:focus {
+            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
+            outline: none;
+        }
+    }
+    &__dropdown-item {
+        display: block;
+        margin-right: 1rem;
+        margin-bottom: 1rem;
+        border: none;
+        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
+        width: 100%;
+        box-sizing: border-box;
+        transition: all 0.2s ease-in-out;
+        appearance: none;
+        -webkit-appearance: none;
+        &:focus {
+            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
+            outline: none;
+        }
+    }
+    &__checkbox {
+        display: block;
+        margin-bottom: 1rem;
+        border: none;
+        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
+        width: 100%;
+        box-sizing: border-box;
+        transition: all 0.2s ease-in-out;
+        appearance: none;
+        -webkit-appearance: none;
+        &:focus {
+            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
+            outline: none;
+        }
+    }
+}

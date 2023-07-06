@@ -1,0 +1,38 @@
+.c-bg {
+    &__primary {
+        background-color: $primary;
+    }
+    &__secondary {
+        background-color: $secondary;
+    }
+    &__success {
+        background-color: $success;
+    }
+    &__info {
+        background-color: $info;
+    }
+    &__warning {
+        background-color: $warning;
+    }
+    &__danger {
+        background-color: $danger;
+    }
+    &__gray-100 {
+        background-color: $gray-100;
+    }
+    &__gray-200 {
+        background-color: $gray-200;
+    }
+    &__gray-300 {
+        background-color: $gray-300;
+    }
+    &__gray-400 {
+        background-color: $gray-400;
+    }
+    &__black-100 {
+        background-color: $black-100;
+    }
+    &__white-100 {
+        background-color: $white-100;
+    }
+}

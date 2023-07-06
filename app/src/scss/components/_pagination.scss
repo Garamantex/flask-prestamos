@@ -1,0 +1,23 @@
+.c-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem 0;
+    &__page-item {
+        display: inline-block;
+        margin: 0 0.5rem;
+        border: none;
+        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
+        width: 100%;
+        box-sizing: border-box;
+        transition: all 0.2s ease-in-out;
+        appearance: none;
+        -webkit-appearance: none;
+        &--active {
+            color: $primary;
+        }
+        &--disabled {
+            color: $gray-300;
+        }
+    }
+}
