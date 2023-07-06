@@ -319,6 +319,12 @@ def modify_installments(loan_id):
     # Guardar los cambios en la base de datos
     db.session.commit()
 
+    # Verificar si el cliente ya no tiene más cuotas pendientes del préstamo
+    pending_installments = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PENDIENTE).count()
+    if pending_installments == 0:
+        loan.status = False
+        db.session.commit()
+
     return redirect(url_for('routes.credit_detail', id=loan_id))
 
 
