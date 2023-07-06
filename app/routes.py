@@ -229,9 +229,59 @@ def client_list():
     return render_template('client-list.html', client_list=clients)
 
 
-@routes.route('/renewal')
+@routes.route('/renewal', methods=['GET', 'POST'])
 def renewal():
-    return render_template('renewal.html')
+    if 'user_id' in session and (session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
+        user_id = session['user_id']
+        employee = Employee.query.filter_by(user_id=user_id).first()
+
+        if employee is None:
+            return "Error: No se encontró el empleado correspondiente al usuario."
+
+        if request.method == 'POST':
+            # Obtener el número de documento del cliente desde el formulario
+            document_number = request.form.get('document_number')
+
+            # Buscar el cliente por número de documento
+            client = Client.query.filter_by(document=document_number).first()
+
+            if client is None:
+                return "Error: No se encontró un cliente con ese número de documento."
+
+            # Verificar si el cliente tiene préstamos activos
+            active_loans = Loan.query.filter_by(client_id=client.id, status=True).count()
+
+            if active_loans > 0:
+                return "Error: El cliente ya tiene préstamos activos y no puede realizar una renovación."
+
+            # Obtener los datos del formulario
+            amount = float(request.form.get('amount'))
+            dues = float(request.form.get('dues'))
+            interest = float(request.form.get('interest'))
+            payment = float(request.form.get('payment'))
+
+            # Crear la instancia de renovación de préstamo
+            renewal_loan = Loan(
+                amount=amount,
+                dues=dues,
+                interest=interest,
+                payment=payment,
+                status=True,
+                up_to_date=False,
+                is_renewal=True,
+                client_id=client.id,
+                employee_id=employee.id
+            )
+
+            # Guardar la renovación de préstamo en la base de datos
+            db.session.add(renewal_loan)
+            db.session.commit()
+
+            return redirect(url_for('routes.credit_detail', id=renewal_loan.id))
+
+        return render_template('renewal.html')
+    else:
+        return redirect(url_for('routes.menu_salesman'))
 
 
 @routes.route('/credit-detail/<int:id>')
