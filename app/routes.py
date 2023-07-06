@@ -3,16 +3,14 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
-from app.models import db, InstallmentStatus, Concept, Transaction
+from app.models import db, InstallmentStatus, Concept, Transaction, Role
 from .models import User, Client, Loan, Employee, LoanInstallment
-
 
 # Crea una instancia de Blueprint
 routes = Blueprint('routes', __name__)
 
+
 # ruta para el home de la aplicación web
-
-
 @routes.route('/', methods=['GET', 'POST'])
 def home():
     if 'user_id' in session:
@@ -53,19 +51,17 @@ def home():
 
 
 # ruta para el logout de la aplicación web
-
 @routes.route('/logout')
 def logout():
     # Limpiar la sesión
     session.clear()
     return redirect(url_for('routes.home'))
 
+
 # ruta para el menú del administrador
-
-
 @routes.route('/menu-manager')
 def menu_manager():
-    # Verificar si el usuario está logueado
+    # Verificar si el usuario está logueado es administrador o coordinador
     if 'user_id' not in session:
         return redirect(url_for('routes.home'))
 
@@ -76,12 +72,11 @@ def menu_manager():
     # Mostrar el menú del administrador
     return render_template('menu-manager.html')
 
+
 # ruta para el menú del vendedor
-
-
 @routes.route('/menu-salesman')
 def menu_salesman():
-    # Verificar si el usuario está logueado
+    # Verificar si el usuario está logueado es un vendedor
     if 'user_id' not in session:
         return redirect(url_for('routes.home'))
 
@@ -92,37 +87,14 @@ def menu_salesman():
     # Mostrar el menú del vendedor
     return render_template('menu-salesman.html')
 
+
 # ruta para crear un usuario
-
-
 @routes.route('/create-user', methods=['GET', 'POST'])
 def create_user():
     if 'user_id' in session and session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR':
         # Verificar si el usuario es administrador o coordinador
-        if request.method == 'POST':
-            # Obtener los datos enviados en el formulario
-            name = request.form['name']
-            password = request.form['password']
-            role = request.form['role']
-            first_name = request.form['first_name']
-            last_name = request.form['last_name']
-            cellphone = request.form['cellphone']
 
-            # Crea un nuevo objeto User con los datos proporcionados
-            user = User(
-                username=name,
-                password=password,
-                role=role,
-                first_name=first_name,
-                last_name=last_name,
-                cellphone=cellphone
-            )
-
-            # Guarda el nuevo usuario en la base de datos
-            db.session.add(user)
-            db.session.commit()
-
-            # Redirecciona a la página de lista de usuarios o a donde corresponda
+        # Redirecciona a la página de lista de usuarios o a donde corresponda
         if request.method == 'POST':
             # Obtener los datos enviados en el formulario
             name = request.form['name']
@@ -179,17 +151,23 @@ def create_user():
 
 @routes.route('/user-list')
 def user_list():
-    
     users = User.query.all()
     employees = Employee.query.all()
-    
+
     return render_template('user-list.html', users=users, employees=employees)
 
 
-@routes.route('/create-client',  methods=['GET', 'POST'])
+@routes.route('/create-client', methods=['GET', 'POST'])
 def create_client():
-    if 'user_id' in session and session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR':
+    if 'user_id' in session and (session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
         if request.method == 'POST':
+            # Obtener el ID del empleado desde la sesión
+            user_id = session['user_id']
+            employee = Employee.query.filter_by(user_id=user_id).first()
+
+            if employee is None:
+                return "Error: No se encontró el empleado correspondiente al usuario."
+
             first_name = request.form.get('first_name')
             last_name = request.form.get('last_name')
             alias = request.form.get('alias')
@@ -201,7 +179,7 @@ def create_client():
             dues = request.form.get('dues')
             interest = request.form.get('interest')
             payment = request.form.get('amountPerPay')
-            employee_id = session['user_id']
+
             # Crea una instancia del cliente con los datos proporcionados
             client = Client(
                 first_name=first_name,
@@ -210,12 +188,12 @@ def create_client():
                 document=document,
                 cellphone=cellphone,
                 address=address,
-                neighborhood=neighborhood
+                neighborhood=neighborhood,
+                employee_id=employee.id
             )
 
             # Guarda el cliente en la base de datos
             db.session.add(client)
-
             db.session.commit()
 
             # Obtiene el ID del cliente recién creado
@@ -230,7 +208,7 @@ def create_client():
                 status=True,
                 up_to_date=False,
                 client_id=client_id,
-                employee_id=employee_id
+                employee_id=employee.id
             )
 
             # Guarda el préstamo en la base de datos
@@ -246,9 +224,8 @@ def create_client():
 
 @routes.route('/client-list')
 def client_list():
-    
     clients = Client.query.all()
-    
+
     return render_template('client-list.html', client_list=clients)
 
 
@@ -262,15 +239,15 @@ def credit_detail(id):
     loan = Loan.query.get(id)
     client = Client.query.get(loan.client_id)
     installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
-    
-     # Verificar si ya se generaron las cuotas del préstamo
+
+    # Verificar si ya se generaron las cuotas del préstamo
     if not installments:
         generar_cuotas_prestamo(loan)
         installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
-    
+
     loans = Loan.query.all()  # Obtener todos los créditos
     loan_detail = obtener_detalles_prestamo(id)
-    
+
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
                            loan_detail=loan_detail)
 
@@ -391,7 +368,7 @@ def update_concept(concept_id):
 
 
 @routes.route('/transaction', methods=['GET', 'POST'])
-def transactions(): 
+def transactions():
     if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
         user_id = session['user_id']
 
@@ -407,15 +384,13 @@ def transactions():
             attachment = request.files['photo']  # Obtener el archivo de imagen
             status = request.form.get('status')
             concepts = Concept.query.all()
-            
+
             basephant = os.path.abspath(os.path.dirname(__file__))
             filename = secure_filename(attachment.filename)
             extension = filename.split('.')[-1]
             newfilename = str(uuid.uuid4()) + '.' + extension
             attachment.save(os.path.join(basephant, 'static', 'images', newfilename))
-            
-            
-            
+
             # Usar el employee_id obtenido para crear la transacción
             transaction = Transaction(
                 transaction_types=transaction_type,
@@ -430,7 +405,8 @@ def transactions():
             db.session.add(transaction)
             db.session.commit()
 
-            return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',concepts=concepts)
+            return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',
+                                   concepts=concepts)
 
         else:
             # Obtener todos los conceptos disponibles
@@ -440,7 +416,6 @@ def transactions():
     else:
         # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
         return "Acceso no autorizado."
-    
 
 
 @routes.route('/get-concepts', methods=['GET'])
@@ -458,7 +433,6 @@ def get_concepts():
 
 @routes.route('/box')
 def box():
-    
     return render_template('box.html')
 
 
@@ -500,5 +474,3 @@ def wallet_detail():
 @routes.route('/reports')
 def reports():
     return render_template('reports.html')
-
-
