@@ -157,6 +157,46 @@ def user_list():
     return render_template('user-list.html', users=users, employees=employees)
 
 
+@routes.route('/maximum-values-loan', methods=['GET'])
+def get_maximum_values_loan():
+    # Obtenemos el ID del empleado desde la sesión
+    user_id = session['user_id']
+    employee = Employee.query.filter_by(user_id=user_id).first()
+
+    if employee is None:
+        return "Error: No se encontrón los valores máximos para el préstamo."
+
+    # Obtenemos los valores máximos establecidos para el préstamo
+    maximum_sale = employee.maximum_sale
+    maximum_installments = employee.maximum_installments
+    minimum_interest = employee.minimum_interest
+
+    # Devolvemos los valores como una respuesta JSON
+    return jsonify({
+        'maximum_sale': str(maximum_sale),
+        'maximum_installments': str(maximum_installments),
+        'minimum_interest': str(minimum_interest)
+    })
+    # Obtenemos el ID del empleado desde la sesión
+    user_id = session['user_id']
+    employee = Employee.query.filter_by(user_id=user_id).first()
+
+    if employee is None:
+        return "Error: No se encontró el empleado correspondiente al usuario."
+
+    # Obtenemos los valores máximos establecidos para el préstamo
+    maximum_sale = employee.maximum_sale
+    maximum_installments = employee.maximum_installments
+    minimum_interest = employee.minimum_interest
+
+    # Devolvemos los valores como una respuesta JSON
+    return jsonify({
+        'maximum_sale': str(maximum_sale),
+        'maximum_installments': str(maximum_installments),
+        'minimum_interest': str(minimum_interest)
+    })
+
+
 @routes.route('/create-client', methods=['GET', 'POST'])
 def create_client():
     if 'user_id' in session and (session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
