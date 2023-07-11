@@ -26,3 +26,27 @@ db.session.execute(stmt, {
 })
 db.session.commit()
 
+**Delete database**
+
+delete folder 
+    - instance
+    - migrations
+
+open console python
+
+from app import create_app
+app = create_app()
+app.app_context().push()
+from sqlalchemy import text
+from app import db
+stmt = text('DROP TABLE client')
+db.session.execute(stmt)
+tmt = text('DROP TABLE loan')
+db.session.execute(stmt)
+tmt = text('DROP TABLE loan_installment')
+db.session.execute(stmt)
+db.session.commit()
+
+flask db init
+flask db migrate
+flask db upgrade

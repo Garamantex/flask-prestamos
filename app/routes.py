@@ -3,7 +3,7 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
-from app.models import db, InstallmentStatus, Concept, Transaction, Role
+from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Salesman
 from .models import User, Client, Loan, Employee, LoanInstallment
 
 # Crea una instancia de Blueprint
@@ -91,7 +91,7 @@ def menu_salesman():
 # ruta para crear un usuario
 @routes.route('/create-user', methods=['GET', 'POST'])
 def create_user():
-    if 'user_id' in session and session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR':
+    if 'user_id' in session and (session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR'):
         # Verificar si el usuario es administrador o coordinador
 
         # Redirecciona a la página de lista de usuarios o a donde corresponda
@@ -106,7 +106,7 @@ def create_user():
             maximum_cash = request.form['maximum_cash']
             maximum_sale = request.form['maximum_sale']
             maximum_expense = request.form['maximum_expense']
-            maximum_payment = request.form['maximum_payment']
+            maximum_installments = request.form['maximum_installments']
             minimum_interest = request.form['minimum_interest']
             percentage_interest = request.form['percentage_interest']
             fix_value = request.form['fix_value']
@@ -131,7 +131,7 @@ def create_user():
                 maximum_cash=maximum_cash,
                 maximum_sale=maximum_sale,
                 maximum_expense=maximum_expense,
-                maximum_payment=maximum_payment,
+                maximum_installments=maximum_installments,
                 minimum_interest=minimum_interest,
                 percentage_interest=percentage_interest,
                 fix_value=fix_value
@@ -141,12 +141,56 @@ def create_user():
             db.session.add(employee)
             db.session.commit()
 
+            # Verificar si se seleccionó el rol "Coordinador"
+            if role == 'COORDINADOR':
+                # Obtén el ID del empleado recién creado
+                employee_id = employee.id
+
+                # Crea un nuevo objeto Manager asociado al empleado
+                manager = Manager(
+                    employee_id=employee_id
+                )
+
+                # Guarda el nuevo coordinador en la base de datos
+                db.session.add(manager)
+                db.session.commit()
+
+            # Verificar si se seleccionó el rol "Vendedor"
+            if role == 'VENDEDOR':
+                # Obtén el user_id de la sesión
+                user_id = session['user_id']
+
+                # Busca el ID del empleado en la tabla Employee
+                employee = Employee.query.filter_by(user_id=user_id).first()
+
+                if employee:
+                    # Si se encuentra el empleado, obtén su ID
+                    employee_id = employee.id
+
+                    # Busca el gerente en la tabla Manager utilizando el ID del empleado
+                    manager = Manager.query.filter_by(employee_id=employee_id).first()
+
+                    if manager:
+                        # Si se encuentra el gerente, obtén su ID
+                        manager_id = manager.id
+
+                        # Crea un nuevo objeto Salesman asociado al empleado y al gerente
+                        salesman = Salesman(
+                            employee_id=employee.id,
+                            manager_id=manager_id
+                        )
+
+                        # Guarda el nuevo vendedor en la base de datos
+                        db.session.add(salesman)
+                        db.session.commit()
+
             # Redirecciona a la página de lista de usuarios o a donde corresponda
             return redirect(url_for('routes.user_list'))
 
         return render_template('create-user.html')
     else:
         abort(403)  # Acceso no autorizado
+
 
 
 @routes.route('/user-list')
