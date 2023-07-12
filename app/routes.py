@@ -192,13 +192,46 @@ def create_user():
         abort(403)  # Acceso no autorizado
 
 
-
 @routes.route('/user-list')
 def user_list():
     users = User.query.all()
     employees = Employee.query.all()
 
     return render_template('user-list.html', users=users, employees=employees)
+
+
+@routes.route('/get_maximum_values_create_salesman/<int:manager_id>', methods=['GET'])
+def get_maximum_values_create_salesman(manager_id):
+    if 'user_id' in session and session['role'] == 'COORDINADOR':
+        # Verificar si el usuario tiene el rol de "Coordinador"
+
+        # Buscar el coordinador en la tabla Manager
+        manager = Manager.query.get(manager_id)
+
+        if manager:
+            # Obtener la suma de maximum_cash de los vendedores asociados al coordinador
+            total_cash = db.session.query(db.func.sum(Employee.maximum_cash)).join(Salesman). \
+                filter(Salesman.manager_id == manager_id).scalar()
+
+            if total_cash is None:
+                total_cash = 0
+
+            # Obtener el valor máximo de maximum_cash para el coordinador
+            maximum_cash_coordinator = manager.employee.maximum_cash
+
+            # Calcular el valor máximo que se puede parametrizar a un nuevo vendedor
+            maximum_cash_salesman = maximum_cash_coordinator - total_cash
+
+            return {
+                'maximum_cash_coordinator': str(maximum_cash_coordinator),
+                'total_cash_salesman': str(total_cash),
+                'maximum_cash_salesman': str(maximum_cash_salesman)
+            }
+        else:
+            abort(404)  # Coordinador no encontrado
+
+    else:
+        abort(403)  # Acceso no autorizado
 
 
 @routes.route('/maximum-values-loan', methods=['GET'])
@@ -209,24 +242,6 @@ def get_maximum_values_loan():
 
     if employee is None:
         return "Error: No se encontrón los valores máximos para el préstamo."
-
-    # Obtenemos los valores máximos establecidos para el préstamo
-    maximum_sale = employee.maximum_sale
-    maximum_installments = employee.maximum_installments
-    minimum_interest = employee.minimum_interest
-
-    # Devolvemos los valores como una respuesta JSON
-    return jsonify({
-        'maximum_sale': str(maximum_sale),
-        'maximum_installments': str(maximum_installments),
-        'minimum_interest': str(minimum_interest)
-    })
-    # Obtenemos el ID del empleado desde la sesión
-    user_id = session['user_id']
-    employee = Employee.query.filter_by(user_id=user_id).first()
-
-    if employee is None:
-        return "Error: No se encontró el empleado correspondiente al usuario."
 
     # Obtenemos los valores máximos establecidos para el préstamo
     maximum_sale = employee.maximum_sale
