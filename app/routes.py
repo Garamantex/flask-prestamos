@@ -323,9 +323,25 @@ def create_client():
 
 @routes.route('/client-list')
 def client_list():
-    clients = Client.query.all()
+    if 'user_id' in session and (session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
+        user_id = session['user_id']
+        employee = Employee.query.filter_by(user_id=user_id).first()
 
-    return render_template('client-list.html', client_list=clients)
+        if employee is None:
+            return "Error: No se encontró el empleado correspondiente al usuario."
+
+        # Obtener la lista de clientes asociados al empleado actual
+        if session['role'] == Role.COORDINADOR.value:
+            clients = Client.query.filter_by(employee_id=employee.id).all()
+        else:  # Si es vendedor, obtener solo los clientes asociados al vendedor
+            clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
+
+        # Ordenar los clientes según los préstamos activos
+        clients.sort(key=lambda x: x.has_active_loan(), reverse=True)
+
+        return render_template('client-list.html', client_list=clients)
+    else:
+        return redirect(url_for('routes.menu_salesman'))
 
 
 @routes.route('/renewal', methods=['GET', 'POST'])
@@ -391,11 +407,11 @@ def credit_detail(id):
 
     # Verificar si ya se generaron las cuotas del préstamo
     if not installments:
-        generar_cuotas_prestamo(loan)
+        generate_loan_installments(loan)
         installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
 
     loans = Loan.query.all()  # Obtener todos los créditos
-    loan_detail = obtener_detalles_prestamo(id)
+    loan_detail = get_loan_details(id)
 
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
                            loan_detail=loan_detail)
@@ -427,7 +443,7 @@ def modify_installments(loan_id):
     return redirect(url_for('routes.credit_detail', id=loan_id))
 
 
-def generar_cuotas_prestamo(loan):
+def generate_loan_installments(loan):
     amount = loan.amount
     dues = loan.dues
     interest = loan.interest
@@ -457,7 +473,7 @@ def generar_cuotas_prestamo(loan):
     db.session.commit()
 
 
-def obtener_detalles_prestamo(loan_id):
+def get_loan_details(loan_id):
     # Obtener el préstamo y el cliente asociado
     loan = Loan.query.get(loan_id)
     client = Client.query.get(loan.client_id)
