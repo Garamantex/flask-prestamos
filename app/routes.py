@@ -3,7 +3,7 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
-from app.models import db, InstallmentStatus, Concept, Transaction, Role
+from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Salesman
 from .models import User, Client, Loan, Employee, LoanInstallment
 
 # Crea una instancia de Blueprint
@@ -91,7 +91,7 @@ def menu_salesman():
 # ruta para crear un usuario
 @routes.route('/create-user', methods=['GET', 'POST'])
 def create_user():
-    if 'user_id' in session and session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR':
+    if 'user_id' in session and (session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR'):
         # Verificar si el usuario es administrador o coordinador
 
         # Redirecciona a la página de lista de usuarios o a donde corresponda
@@ -106,7 +106,7 @@ def create_user():
             maximum_cash = request.form['maximum_cash']
             maximum_sale = request.form['maximum_sale']
             maximum_expense = request.form['maximum_expense']
-            maximum_payment = request.form['maximum_payment']
+            maximum_installments = request.form['maximum_installments']
             minimum_interest = request.form['minimum_interest']
             percentage_interest = request.form['percentage_interest']
             fix_value = request.form['fix_value']
@@ -131,7 +131,7 @@ def create_user():
                 maximum_cash=maximum_cash,
                 maximum_sale=maximum_sale,
                 maximum_expense=maximum_expense,
-                maximum_payment=maximum_payment,
+                maximum_installments=maximum_installments,
                 minimum_interest=minimum_interest,
                 percentage_interest=percentage_interest,
                 fix_value=fix_value
@@ -140,6 +140,49 @@ def create_user():
             # Guarda el nuevo empleado en la base de datos
             db.session.add(employee)
             db.session.commit()
+
+            # Verificar si se seleccionó el rol "Coordinador"
+            if role == 'COORDINADOR':
+                # Obtén el ID del empleado recién creado
+                employee_id = employee.id
+
+                # Crea un nuevo objeto Manager asociado al empleado
+                manager = Manager(
+                    employee_id=employee_id
+                )
+
+                # Guarda el nuevo coordinador en la base de datos
+                db.session.add(manager)
+                db.session.commit()
+
+            # Verificar si se seleccionó el rol "Vendedor"
+            if role == 'VENDEDOR':
+                # Obtén el user_id de la sesión
+                user_id = session['user_id']
+
+                # Busca el ID del empleado en la tabla Employee
+                employee = Employee.query.filter_by(user_id=user_id).first()
+
+                if employee:
+                    # Si se encuentra el empleado, obtén su ID
+                    employee_id = employee.id
+
+                    # Busca el gerente en la tabla Manager utilizando el ID del empleado
+                    manager = Manager.query.filter_by(employee_id=employee_id).first()
+
+                    if manager:
+                        # Si se encuentra el gerente, obtén su ID
+                        manager_id = manager.id
+
+                        # Crea un nuevo objeto Salesman asociado al empleado y al gerente
+                        salesman = Salesman(
+                            employee_id=employee.id,
+                            manager_id=manager_id
+                        )
+
+                        # Guarda el nuevo vendedor en la base de datos
+                        db.session.add(salesman)
+                        db.session.commit()
 
             # Redirecciona a la página de lista de usuarios o a donde corresponda
             return redirect(url_for('routes.user_list'))
@@ -155,6 +198,62 @@ def user_list():
     employees = Employee.query.all()
 
     return render_template('user-list.html', users=users, employees=employees)
+
+
+@routes.route('/get_maximum_values_create_salesman/<int:manager_id>', methods=['GET'])
+def get_maximum_values_create_salesman(manager_id):
+    if 'user_id' in session and session['role'] == 'COORDINADOR':
+        # Verificar si el usuario tiene el rol de "Coordinador"
+
+        # Buscar el coordinador en la tabla Manager
+        manager = Manager.query.get(manager_id)
+
+        if manager:
+            # Obtener la suma de maximum_cash de los vendedores asociados al coordinador
+            total_cash = db.session.query(db.func.sum(Employee.maximum_cash)).join(Salesman). \
+                filter(Salesman.manager_id == manager_id).scalar()
+
+            if total_cash is None:
+                total_cash = 0
+
+            # Obtener el valor máximo de maximum_cash para el coordinador
+            maximum_cash_coordinator = manager.employee.maximum_cash
+
+            # Calcular el valor máximo que se puede parametrizar a un nuevo vendedor
+            maximum_cash_salesman = maximum_cash_coordinator - total_cash
+
+            return {
+                'maximum_cash_coordinator': str(maximum_cash_coordinator),
+                'total_cash_salesman': str(total_cash),
+                'maximum_cash_salesman': str(maximum_cash_salesman)
+            }
+        else:
+            abort(404)  # Coordinador no encontrado
+
+    else:
+        abort(403)  # Acceso no autorizado
+
+
+@routes.route('/maximum-values-loan', methods=['GET'])
+def get_maximum_values_loan():
+    # Obtenemos el ID del empleado desde la sesión
+    user_id = session['user_id']
+    employee = Employee.query.filter_by(user_id=user_id).first()
+
+    if employee is None:
+        return "Error: No se encontrón los valores máximos para el préstamo."
+
+    # Obtenemos los valores máximos establecidos para el préstamo
+    maximum_sale = employee.maximum_sale
+    maximum_installments = employee.maximum_installments
+    minimum_interest = employee.minimum_interest
+
+    # Devolvemos los valores como una respuesta JSON
+    return jsonify({
+        'maximum_sale': str(maximum_sale),
+        'maximum_installments': str(maximum_installments),
+        'minimum_interest': str(minimum_interest)
+    })
 
 
 @routes.route('/create-client', methods=['GET', 'POST'])
@@ -224,9 +323,25 @@ def create_client():
 
 @routes.route('/client-list')
 def client_list():
-    clients = Client.query.all()
+    if 'user_id' in session and (session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
+        user_id = session['user_id']
+        employee = Employee.query.filter_by(user_id=user_id).first()
 
-    return render_template('client-list.html', client_list=clients)
+        if employee is None:
+            return "Error: No se encontró el empleado correspondiente al usuario."
+
+        # Obtener la lista de clientes asociados al empleado actual
+        if session['role'] == Role.COORDINADOR.value:
+            clients = Client.query.filter_by(employee_id=employee.id).all()
+        else:  # Si es vendedor, obtener solo los clientes asociados al vendedor
+            clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
+
+        # Ordenar los clientes según los préstamos activos
+        clients.sort(key=lambda x: x.has_active_loan(), reverse=True)
+
+        return render_template('client-list.html', client_list=clients)
+    else:
+        return redirect(url_for('routes.menu_salesman'))
 
 
 @routes.route('/renewal', methods=['GET', 'POST'])
@@ -292,11 +407,11 @@ def credit_detail(id):
 
     # Verificar si ya se generaron las cuotas del préstamo
     if not installments:
-        generar_cuotas_prestamo(loan)
+        generate_loan_installments(loan)
         installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
 
     loans = Loan.query.all()  # Obtener todos los créditos
-    loan_detail = obtener_detalles_prestamo(id)
+    loan_detail = get_loan_details(id)
 
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
                            loan_detail=loan_detail)
@@ -328,7 +443,7 @@ def modify_installments(loan_id):
     return redirect(url_for('routes.credit_detail', id=loan_id))
 
 
-def generar_cuotas_prestamo(loan):
+def generate_loan_installments(loan):
     amount = loan.amount
     dues = loan.dues
     interest = loan.interest
@@ -358,7 +473,7 @@ def generar_cuotas_prestamo(loan):
     db.session.commit()
 
 
-def obtener_detalles_prestamo(loan_id):
+def get_loan_details(loan_id):
     # Obtener el préstamo y el cliente asociado
     loan = Loan.query.get(loan_id)
     client = Client.query.get(loan.client_id)

@@ -54,7 +54,7 @@ class Employee(db.Model):
     maximum_cash = db.Column(db.Numeric(10, 2), nullable=False, doc='Máxima caja')
     maximum_sale = db.Column(db.Numeric(10, 2), nullable=False, doc='Máxima venta')
     maximum_expense = db.Column(db.Numeric(10, 2), nullable=False, doc='Límite gasto')
-    maximum_payment = db.Column(db.Numeric(10, 2), nullable=False, doc='Máximo pago')
+    maximum_installments = db.Column(db.Numeric(10, 2), nullable=False, doc='Máximo de cuotas')
     minimum_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Mínimo interés')
     percentage_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Porcentaje interés')
     fix_value = db.Column(db.Numeric(10, 2), nullable=False, doc='Valor fijo')
@@ -73,7 +73,7 @@ class Employee(db.Model):
             'maximum_cash': str(self.maximum_cash),
             'maximum_sale': str(self.maximum_sale),
             'maximum_expense': str(self.maximum_expense),
-            'maximum_payment': str(self.maximum_payment),
+            'maximum_installments': str(self.maximum_installments),
             'minimum_interest': str(self.minimum_interest),
             'percentage_interest': str(self.percentage_interest),
             'fix_value': str(self.fix_value),
