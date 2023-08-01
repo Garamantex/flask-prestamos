@@ -336,9 +336,6 @@ def client_list():
         else:  # Si es vendedor, obtener solo los clientes asociados al vendedor
             clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
 
-        # Ordenar los clientes según los préstamos activos
-        clients.sort(key=lambda x: x.has_active_loan(), reverse=True)
-
         return render_template('client-list.html', client_list=clients)
     else:
         return redirect(url_for('routes.menu_salesman'))

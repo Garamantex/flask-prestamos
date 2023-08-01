@@ -7,7 +7,10 @@
             <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Volver al menú</a>
         </div>
         <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list') }}">Lista de Clientes</a>
+        </div>
+        <div class="col">
+            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
         </div>
     </div>
     <div class="row mt-4">
