@@ -1,9 +1,11 @@
 from datetime import timedelta
 import os
 import uuid
+
+from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
-from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Salesman
+from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Salesman, TransactionType
 from .models import User, Client, Loan, Employee, LoanInstallment
 
 # Crea una instancia de Blueprint
@@ -597,6 +599,88 @@ def get_concepts():
     concepts_json = [concept.to_json() for concept in concepts]
 
     return jsonify(concepts_json)
+
+
+@routes.route('/manager/<int:manager_id>/salesmen', methods=['GET'])
+def get_salesmen_info(manager_id):
+    try:
+        # Get the manager by ID
+        manager = Manager.query.get(manager_id)
+        if not manager:
+            return jsonify({'message': 'Manager not found'}), 404
+
+        # Get the salesmen associated with that manager
+        salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
+
+        # Initialize variables to collect statistics
+        projected_collections = 0
+        new_loans = 0
+        daily_expenses = 0
+        daily_withdrawals = 0
+        daily_collection = 0
+        daily_renewals = 0
+        completed_collections = 0
+        total_customers = 0
+        customers_in_arrears = 0
+
+        # Iterate over the salesmen
+        for salesman in salesmen:
+            # Perform calculations based on daily transactions
+            sales_today = Transaction.query.filter_by(
+                employee_id=salesman.employee_id,
+                creation_date=func.current_date(),
+                transaction_types=TransactionType.INGRESO
+            ).all()
+
+            loans_today = Transaction.query.filter_by(
+                employee_id=salesman.employee_id,
+                creation_date=func.current_date(),
+                transaction_types=TransactionType.GASTO
+            ).all()
+
+            daily_withdrawals += Transaction.query.filter_by(
+                employee_id=salesman.employee_id,
+                creation_date=func.current_date(),
+                transaction_types=TransactionType.RETIRO
+            ).sum('mount')
+
+            daily_collection += Transaction.query.filter_by(
+                employee_id=salesman.employee_id,
+                creation_date=func.current_date(),
+                transaction_types=TransactionType.INGRESO
+            ).sum('mount')
+
+            completed_collections += len([sale for sale in sales_today if sale.status])
+
+            total_customers += salesman.employee.loans.count()
+
+            customers_in_arrears += salesman.employee.loans.filter_by(
+                up_to_date=False,
+                status=True
+            ).count()
+
+        # Calculate projected collections for the day
+        projected_collections = completed_collections / total_customers * daily_collection
+
+        # Create a dictionary with the results
+        result = {
+            'manager_name': manager.employee.user.username,
+            'salesman_name': [salesman.employee.user.username for salesman in salesmen],
+            'projected_collections_for_the_day': projected_collections,
+            'new_loans_made_today': new_loans,
+            'daily_expenses': daily_expenses,
+            'daily_withdrawals': daily_withdrawals,
+            'daily_collection_made': daily_collection,
+            'how_many_renewals_have_been_made_today': daily_renewals,
+            'how_many_collections_of_the_day_have_been_completed': completed_collections,
+            'total_number_of_customers': total_customers,
+            'customers_in_arrears_for_the_day': customers_in_arrears
+        }
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
 
 
 @routes.route('/box')
