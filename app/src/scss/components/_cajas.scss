@@ -1,10 +1,14 @@
 .c-cajas {
-    padding: 2rem;
-    @media (max-width: 768px) {
-        padding: 0;
-    }
+    padding: 0;
+    background: rgba(20, 40, 40, 0.8);
+    color: white;
+
     &__item {
         list-style: none;
+
+        &--action {
+            color: white;
+        }
     }
     &__item__body {
         padding: 1rem;
@@ -14,13 +18,10 @@
         display: flex;
         flex-wrap: wrap;
         &--top {
-            margin-top: 6rem;
-            @media (max-width: 768px) {
-                margin-top: 1rem;
-            }
+            margin-top: 2rem;
         }
         &--small {
-            margin-top: 3rem;
+            margin-top: 1rem;
             @media (max-width: 768px) {
                 margin-top: 1rem;
             }
@@ -45,8 +46,10 @@
     &__item__body__item__label {
         font-weight: bold;
         font-size: 1.2rem;
+        color: white;
     }
     &__item__body__item__value {
         font-size: 1.2rem;
+        color: white;
     }
 }

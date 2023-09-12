@@ -1,26 +1,19 @@
 .c-btn {
-    text-decoration: none;
+    margin: 0 auto;
+    display: block;
+    border: 1px solid rgba(10, 180, 180, 1);
+    background: rgba(20, 20, 20, .6);
+    font-size: 18px;
     text-align: center;
-    border: 0;
-    outline: 0;
-    font-size: 1rem;
-    border-radius: 1rem*20;
-    padding: 1rem;
-    background-color: $primary;
-    color: $white-100;
-    font-weight: bold;
-    font-family: $montserrat;
-    box-shadow: -5px -5px 20px $white-100, 5px 5px 20px $gray-300;
-    transition: all 0.2s ease-in-out;
-    cursor: pointer;
-    font-weight: 600;
+    color: white;
     width: 100%;
+    margin-top: 20px;
+    padding: 10px 50px;
+    cursor: pointer;
+    transition: .4s;
     &:hover {
-        box-shadow: -2px -2px 5px $white-100, 2px 2px 5px $gray-300;
-        color: $warning;
-    }
-    &:active {
-        box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
+        background: rgba(20, 20, 20, .8);
+        border-color: white;
     }
     .icon {
         margin-right: 1rem/2;
@@ -41,5 +34,9 @@
     }
     &-block {
         display: block;
+    }
+
+    &-primary {
+        text-decoration: none;
     }
 }

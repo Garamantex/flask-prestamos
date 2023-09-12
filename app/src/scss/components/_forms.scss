@@ -1,11 +1,10 @@
 .c-form {
-    border: 0;
-    outline: 0;
-    font-size: 1rem;
-    border-radius: 1rem*20;
-    padding: 1rem;
-    background-color: $gray-400;
-    text-shadow: 1px 1px 0 $white-100;
+    max-width: 420px;
+    margin: 0 auto;
+    padding:  40px 10px;
+    box-shadow: 3px 10px 20px 5px rgba(0, 0, 0, .5);
+    background: rgba(20, 40, 40, 0.8);
+    border-radius: 20px;
     &__label {
         display: block;
         margin-bottom: 1rem;
@@ -19,16 +18,24 @@
     &__input,
     input {
         display: block;
-        margin-right: 1rem;
-        margin-bottom: 1rem;
-        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
+        margin: 15px 0;
+        font-size: 16px;
+        padding: 10px;
         width: 100%;
-        box-sizing: border-box;
-        transition: all 0.2s ease-in-out;
-        appearance: none;
-        -webkit-appearance: none;
+        border: 1px solid rgba(10, 180, 180, 1);
+        border-top: none;
+        border-left: none;
+        border-right: none;
+        background: rgba(20, 20, 20, .2);
+        color: white;
+        outline: none;
+
+        &:active {
+            border-color: white;
+        }
+
         &:focus {
-            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
+            border-color: white;
         }
     }
     &__textarea {
