@@ -1,3 +1,4 @@
+import datetime
 from datetime import timedelta
 import os
 import uuid
@@ -683,9 +684,34 @@ def get_salesmen_info(manager_id):
         return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
 
 
-@routes.route('/box')
-def box():
-    return render_template('box.html')
+# Define the endpoint route to list clients in arrears
+@routes.route('/clients_in_arrears', methods=['GET'])
+def list_clients_in_arrears():
+    # Get the current date
+    current_date = datetime.now().date()
+
+    # Query clients in arrears and their data
+    clients_in_arrears = db.session.query(Client, Loan, LoanInstallment) \
+        .join(Loan, Loan.client_id == Client.id) \
+        .join(LoanInstallment, LoanInstallment.loan_id == Loan.id) \
+        .filter(LoanInstallment.status == InstallmentStatus.MORA, LoanInstallment.due_date <= current_date) \
+        .all()
+
+    # Prepare response data
+    response_data = []
+    for client, loan, installment in clients_in_arrears:
+        arrears_balance = float(loan.amount) - float(installment.payment)
+        remaining_amount_to_pay = float(loan.amount) - float(installment.payment)
+        client_data = {
+            'client_name': f'{client.first_name} {client.last_name}',
+            'arrears_balance': str(arrears_balance),
+            'number_of_installments_in_arrears': installment.installment_number,
+            'remaining_amount_to_pay': str(remaining_amount_to_pay)
+        }
+        response_data.append(client_data)
+
+    # Return the list of clients in arrears as JSON
+    return jsonify(response_data)
 
 
 @routes.route('/create-box')
