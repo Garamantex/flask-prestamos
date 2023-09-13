@@ -601,7 +601,7 @@ def get_concepts():
     return jsonify(concepts_json)
 
 
-@routes.route('/manager/<int:manager_id>/salesmen', methods=['GET'])
+@routes.route('/box/<int:manager_id>', methods=['GET'])
 def get_salesmen_info(manager_id):
     try:
         # Get the manager by ID
