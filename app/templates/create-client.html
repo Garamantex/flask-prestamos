@@ -1,85 +1,87 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container c-bg c-bg__gray-400 pt-5">
-    <div class="row">
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list') }}">Ver Clientes</a>
-        </div>
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Volver al menú</a>
-        </div>
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <div class="c-users">
-                <p class="c-users__title">Formulario de creación de Cliente</p>
+<div class="c-form">
+    <div class="container c-bg c-bg__gray-400 pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list') }}">Ver Clientes</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Volver al menú</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
             </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <form action="{{ url_for('routes.create_client') }}" method="POST">
-                <fieldset>
-                    <legend>Crear usuario</legend>
-                    <div class="mb-3">
-                        <label for="first_name" class="form-label">Nombre</label>
-                        <input type="text" class="c-form c-form__input" name="first_name" id="first_name" placeholder="">
-                    </div>
-                    <div class="mb-3">
-                        <label for="last_name" class="form-label">Apellido</label>
-                        <input type="text" class="c-form c-form__input" name="last_name" id="last_name" placeholder="Apellido">
-                    </div>
-                    <div class="mb-3">
-                        <label for="alias" class="form-label">Alias</label>
-                        <input type="text" class="c-form c-form__input" name="alias" id="alias" placeholder="Alias">
-                    <div class="mb-3">
-                        <label for="document" class="form-label">DNI</label>
-                        <input type="text" class="c-form c-form__input" name="document" id="document" placeholder="Documento">
-                    </div>
-                    <div class="mb-3">
-                        <label for="cellphone" class="form-label">Teléfono</label>
-                        <input type="text" class="c-form c-form__input" name="cellphone" id="cellphone" placeholder="Teléfono"> 
-                    </div>
-                    <div class="mb-3">
-                        <label for="address" class="form-label">Dirección</label>
-                        <input type="text" class="c-form c-form__input" name="address" id="address" placeholder="Dirección">
-                    </div>
-                    <div class="mb-3">
-                        <label for="neighborhood" class="form-label">Barrio</label>
-                        <input type="text" class="c-form c-form__input" name="neighborhood" id="neighborhood" placeholder="Barrio">
-                    </div>
-                </fieldset>
-                
-                <fieldset>
-                    <legend>Datos del préstamo</legend>
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Monto</label>
-                        <input type="text" class="c-form c-form__input" name="amount" id="amount" placeholder="Monto">
-                    </div>
-                    <div class="mb-3">
-                        <label for="dues" class="form-label">Cuotas</label>
-                        <select class="form-select c-form__select" name="dues" id="dues" aria-label="dues">
-                            <option selected>Seleccionar</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="interest" class="form-label">Interés</label>
-                        <select class="form-select c-form__select" name="interest" id="interest" aria-label="interest">
-                            <option selected>Seleccionar</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="amountPerPay" class="form-label">Monto por cuota</label>
-                        <input type="text" class="c-form c-form__input" name="amountPerPay"  id="amountPerPay" placeholder="Monto por cuota" readonly>
-                    </div>
-                </fieldset>
-                
-                <button class="c-btn c-btn-primary mb-4" type="submit">Crear Cliente</button>
-            </form>
+        <div class="row">
+            <div class="col">
+                <div class="c-users">
+                    <p class="c-users__title">Formulario de creación de Cliente</p>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <form action="{{ url_for('routes.create_client') }}" method="POST">
+                    <fieldset>
+                        <legend>Crear usuario</legend>
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label">Nombre</label>
+                            <input type="text" class="c-form c-form__input" name="first_name" id="first_name" placeholder="">
+                        </div>
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">Apellido</label>
+                            <input type="text" class="c-form c-form__input" name="last_name" id="last_name" placeholder="Apellido">
+                        </div>
+                        <div class="mb-3">
+                            <label for="alias" class="form-label">Alias</label>
+                            <input type="text" class="c-form c-form__input" name="alias" id="alias" placeholder="Alias">
+                        <div class="mb-3">
+                            <label for="document" class="form-label">DNI</label>
+                            <input type="text" class="c-form c-form__input" name="document" id="document" placeholder="Documento">
+                        </div>
+                        <div class="mb-3">
+                            <label for="cellphone" class="form-label">Teléfono</label>
+                            <input type="text" class="c-form c-form__input" name="cellphone" id="cellphone" placeholder="Teléfono"> 
+                        </div>
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Dirección</label>
+                            <input type="text" class="c-form c-form__input" name="address" id="address" placeholder="Dirección">
+                        </div>
+                        <div class="mb-3">
+                            <label for="neighborhood" class="form-label">Barrio</label>
+                            <input type="text" class="c-form c-form__input" name="neighborhood" id="neighborhood" placeholder="Barrio">
+                        </div>
+                    </fieldset>
+                    
+                    <fieldset>
+                        <legend>Datos del préstamo</legend>
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Monto</label>
+                            <input type="text" class="c-form c-form__input" name="amount" id="amount" placeholder="Monto">
+                        </div>
+                        <div class="mb-3">
+                            <label for="dues" class="form-label">Cuotas</label>
+                            <select class="form-select c-form__select" name="dues" id="dues" aria-label="dues">
+                                <option selected>Seleccionar</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="interest" class="form-label">Interés</label>
+                            <select class="form-select c-form__select" name="interest" id="interest" aria-label="interest">
+                                <option selected>Seleccionar</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amountPerPay" class="form-label">Monto por cuota</label>
+                            <input type="text" class="c-form c-form__input" name="amountPerPay"  id="amountPerPay" placeholder="Monto por cuota" readonly>
+                        </div>
+                    </fieldset>
+                    
+                    <button class="c-btn c-btn-primary mb-4" type="submit">Crear Cliente</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>

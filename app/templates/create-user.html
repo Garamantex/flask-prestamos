@@ -1,94 +1,96 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container c-bg c-bg__gray-400 pt-5">
-    <div class="row">
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="./user-list">Ver usuarios</a>
-        </div>
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Volver al menu</a>
-        </div>
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <div class="c-users">
-                <p class="c-users__title">Formulario de creación de usuario</p>
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./user-list">Ver usuarios</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Volver al menu</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
             </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <form action="{{ url_for('routes.create_user') }}" method="POST">
-                <fieldset>
-                    <legend>Crear usuario</legend>
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Nombre de usuario</label>
-                        <input type="text" class="c-form c-form__input" id="name" name="name" placeholder="">
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Contraseña</label>
-                        <input type="password" class="c-form c-form__input" id="password" name="password" placeholder="Contraseña">
-                    </div>
-                    <div class="mb-3">
-                        <label for="role" class="form-label">Perfil</label>
-                        <select name="role" class="c-form c-form__dropdown" aria-label="role select">
-                            <option value="COORDINADOR">Coordinador</option>
-                            <option value="VENDEDOR">Vendedor</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="first_name" class="form-label">Nombre</label>
-                        <input type="first_name" class="c-form c-form__input" id="first_name" name="first_name" placeholder="Nombre">
-                    </div>
-                    <div class="mb-3">
-                        <label for="last_name" class="form-label">Apellido</label>
-                        <input type="last_name" class="c-form c-form__input" id="last_name" name="last_name" placeholder="Apellido">
-                    </div>
-                    <div class="mb-3">
-                        <label for="cellphone" class="form-label">cellphone</label>
-                        <input type="cellphone" class="c-form c-form__input" id="cellphone" name="cellphone" placeholder="Celular">
-                    </div>
-                </fieldset>
-                <fieldset>
-                    <legend>Valores máximos</legend>
-                    <div class="mb-3">
-                        <label for="maximum_cash" class="form-label">Máximo caja</label>
-                        <input type="text" class="c-form c-form__input" id="maximum_cash" name="maximum_cash" placeholder="">
-                    </div>
-                    <div class="mb-3">
-                        <label for="maximum_sale" class="form-label">Máximo venta</label>
-                        <input type="text" class="c-form c-form__input" id="maximum_sale" name="maximum_sale" placeholder="">
-                    </div>
-                    <div class="mb-3">
-                        <label for="maximum_expense" class="form-label">Máximo gastos</label>
-                        <input type="text" class="c-form c-form__input" id="maximum_expense" name="maximum_expense" placeholder="">
-                    </div>
-                </fieldset>
-                <fieldset>
-                    <legend>Parámetros del usuario</legend>
-                    <div class="mb-3">
-                        <label for="maximum_installments" class="form-label">Máximo cuotas</label>
-                        <input type="text" class="c-form c-form__input" id="maximum_installments" name="maximum_installments" placeholder="">
-                    </div>
-                    <div class="mb-3">
-                        <label for="minimum_interest" class="form-label">Intereses mínimos</label>
-                        <input type="text" class="c-form c-form__input" id="minimum_interest" name="minimum_interest" placeholder="">
-                    </div>
-                    <div class="mb-3">
-                        <label for="percentage_interest" class="form-label">Porcentaje de comisión</label>
-                        <input type="text" class="c-form c-form__input" id="percentage_interest" name="percentage_interest" placeholder="">
-                    </div>
-                    <div class="mb-3">
-                        <label for="fix_value" class="form-label">Valor fijo</label>
-                        <input type="text" class="c-form c-form__input" id="fix_value" name="fix_value" placeholder="">
-                    </div>
-                </fieldset>
-                <button type="submit" class="c-btn c-btn-primary">Crear usuario</button>
-            </form>
+        <div class="row">
+            <div class="col">
+                <div class="c-users">
+                    <p class="c-users__title">Formulario de creación de usuario</p>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <form action="{{ url_for('routes.create_user') }}" method="POST">
+                    <fieldset>
+                        <legend class="c-form__label form-label">Crear usuario</legend>
+                        <div class="mb-3">
+                            <label for="name" class="c-form__label form-label">Nombre de usuario</label>
+                            <input type="text" class="c-form c-form__input" id="name" name="name" placeholder="">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="c-form__label form-label">Contraseña</label>
+                            <input type="password" class="c-form c-form__input" id="password" name="password" placeholder="Contraseña">
+                        </div>
+                        <div class="mb-3">
+                            <label for="role" class="c-form__label form-label">Perfil</label>
+                            <select name="role" class="c-form c-form__dropdown" aria-label="role select">
+                                <option value="COORDINADOR">Coordinador</option>
+                                <option value="VENDEDOR">Vendedor</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="first_name" class="c-form__label form-label">Nombre</label>
+                            <input type="first_name" class="c-form c-form__input" id="first_name" name="first_name" placeholder="Nombre">
+                        </div>
+                        <div class="mb-3">
+                            <label for="last_name" class="c-form__label form-label">Apellido</label>
+                            <input type="last_name" class="c-form c-form__input" id="last_name" name="last_name" placeholder="Apellido">
+                        </div>
+                        <div class="mb-3">
+                            <label for="cellphone" class="c-form__label form-label">cellphone</label>
+                            <input type="cellphone" class="c-form c-form__input" id="cellphone" name="cellphone" placeholder="Celular">
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <legend>Valores máximos</legend>
+                        <div class="mb-3">
+                            <label for="maximum_cash" class="c-form__label form-label">Máximo caja</label>
+                            <input type="text" class="c-form c-form__input" id="maximum_cash" name="maximum_cash" placeholder="">
+                        </div>
+                        <div class="mb-3">
+                            <label for="maximum_sale" class="c-form__label form-label">Máximo venta</label>
+                            <input type="text" class="c-form c-form__input" id="maximum_sale" name="maximum_sale" placeholder="">
+                        </div>
+                        <div class="mb-3">
+                            <label for="maximum_expense" class="c-form__label form-label">Máximo gastos</label>
+                            <input type="text" class="c-form c-form__input" id="maximum_expense" name="maximum_expense" placeholder="">
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <legend>Parámetros del usuario</legend>
+                        <div class="mb-3">
+                            <label for="maximum_installments" class="c-form__label form-label">Máximo cuotas</label>
+                            <input type="text" class="c-form c-form__input" id="maximum_installments" name="maximum_installments" placeholder="">
+                        </div>
+                        <div class="mb-3">
+                            <label for="minimum_interest" class="c-form__label form-label">Intereses mínimos</label>
+                            <input type="text" class="c-form c-form__input" id="minimum_interest" name="minimum_interest" placeholder="">
+                        </div>
+                        <div class="mb-3">
+                            <label for="percentage_interest" class="c-form__label form-label">Porcentaje de comisión</label>
+                            <input type="text" class="c-form c-form__input" id="percentage_interest" name="percentage_interest" placeholder="">
+                        </div>
+                        <div class="mb-3">
+                            <label for="fix_value" class="c-form__label form-label">Valor fijo</label>
+                            <input type="text" class="c-form c-form__input" id="fix_value" name="fix_value" placeholder="">
+                        </div>
+                    </fieldset>
+                    <button type="submit" class="c-btn c-btn-primary">Crear usuario</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
