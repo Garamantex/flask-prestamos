@@ -602,16 +602,18 @@ def get_concepts():
     return jsonify(concepts_json)
 
 
-@routes.route('/box/<int:manager_id>', methods=['GET'])
-def get_salesmen_info(manager_id):
+@routes.route('/box', methods=['GET'])
+def box():
     try:
-        # Get the manager by ID
-        manager = Manager.query.get(manager_id)
+        user_id = session['user_id']
+        employee_id = Employee.query.filter_by(user_id=user_id).first()
+        manager = Manager.query.filter_by(employee_id=employee_id.id).first()
+
         if not manager:
             return jsonify({'message': 'Manager not found'}), 404
 
         # Get the salesmen associated with that manager
-        salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
+        salesmen = Salesman.query.filter_by(manager_id=manager).all()
 
         # Initialize variables to collect statistics
         projected_collections = 0
