@@ -642,30 +642,32 @@ def box():
 
         # Iterar sobre los vendedores
         for salesman in salesmen:
-            # Realizar cálculos basados en las transacciones diarias
+            # Realizar cálculos basados en las transacciones diarias de RETIRO
+            daily_withdrawals += Transaction.query.filter_by(
+                employee_id=salesman.employee_id,
+                creation_date=func.current_date(),
+                transaction_types=TransactionType.RETIRO
+            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+
+            # Realizar cálculos basados en las transacciones diarias de INGRESO
+            daily_collection += Transaction.query.filter_by(
+                employee_id=salesman.employee_id,
+                creation_date=func.current_date(),
+                transaction_types=TransactionType.INGRESO
+            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+
+            # Realizar cálculos basados en otras transacciones (ventas, gastos, etc.)
+            # Agrega el código correspondiente aquí
+
+            # Calcular otras estadísticas (nuevos préstamos, renovaciones, etc.)
+            # Agrega el código correspondiente aquí
+
+            # Calcular las colecciones completadas para el día
             sales_today = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.INGRESO
             ).all()
-
-            loans_today = Transaction.query.filter_by(
-                employee_id=salesman.employee_id,
-                creation_date=func.current_date(),
-                transaction_types=TransactionType.GASTO
-            ).all()
-
-            daily_withdrawals += Transaction.query.filter_by(
-                employee_id=salesman.employee_id,
-                creation_date=func.current_date(),
-                transaction_types=TransactionType.RETIRO
-            ).sum('mount')
-
-            daily_collection += Transaction.query.filter_by(
-                employee_id=salesman.employee_id,
-                creation_date=func.current_date(),
-                transaction_types=TransactionType.INGRESO
-            ).sum('mount')
 
             completed_collections += len([sale for sale in sales_today if sale.status])
 
@@ -698,7 +700,6 @@ def box():
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
-
 
 
 # Define the endpoint route to list clients in arrears
