@@ -605,21 +605,31 @@ def get_concepts():
 @routes.route('/box', methods=['GET'])
 def box():
     try:
-        user_id = session['user_id']
-        employee_id = Employee.query.filter_by(user_id=user_id).first()
+        # Obtener el user_id de la sesión
+        user_id = session.get('user_id')
 
-        if not employee_id:
-            return jsonify({'message': 'Employee not found'}), 404
+        # Verificar si el user_id existe
+        if user_id is None:
+            return jsonify({'message': 'Usuario no encontrado'}), 404
 
-        manager = Manager.query.filter_by(employee_id=employee_id.id).first()
+        # Obtener el empleado correspondiente al user_id
+        employee = Employee.query.filter_by(user_id=user_id).first()
 
-        if not manager:
-            return jsonify({'message': 'Manager not found'}), 404
+        # Verificar si el empleado existe
+        if employee is None:
+            return jsonify({'message': 'Empleado no encontrado'}), 404
 
-        # Get the salesmen associated with that manager
-        salesmen = Salesman.query.filter_by(manager_id=manager).all()
+        # Obtener el manager correspondiente al empleado
+        manager = Manager.query.filter_by(employee_id=employee.id).first()
 
-        # Initialize variables to collect statistics
+        # Verificar si el manager existe
+        if manager is None:
+            return jsonify({'message': 'Manager no encontrado'}), 404
+
+        # Obtener los vendedores asociados a ese manager
+        salesmen = Salesman.query.filter_by(manager_id=manager.id).all()
+
+        # Inicializar variables para recopilar estadísticas
         projected_collections = 0
         new_loans = 0
         daily_expenses = 0
@@ -630,9 +640,9 @@ def box():
         total_customers = 0
         customers_in_arrears = 0
 
-        # Iterate over the salesmen
+        # Iterar sobre los vendedores
         for salesman in salesmen:
-            # Perform calculations based on daily transactions
+            # Realizar cálculos basados en las transacciones diarias
             sales_today = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
@@ -666,28 +676,29 @@ def box():
                 status=True
             ).count()
 
-        # Calculate projected collections for the day
+        # Calcular las colecciones proyectadas para el día
         projected_collections = completed_collections / total_customers * daily_collection
 
-        # Create a dictionary with the results
+        # Crear un diccionario con los resultados
         boxes_data = {
-            'manager_name': manager.employee.user.username,
-            'salesman_name': [salesman.employee.user.username for salesman in salesmen],
-            'projected_collections_for_the_day': projected_collections,
-            'new_loans_made_today': new_loans,
-            'daily_expenses': daily_expenses,
-            'daily_withdrawals': daily_withdrawals,
-            'daily_collection_made': daily_collection,
-            'how_many_renewals_have_been_made_today': daily_renewals,
-            'how_many_collections_of_the_day_have_been_completed': completed_collections,
-            'total_number_of_customers': total_customers,
-            'customers_in_arrears_for_the_day': customers_in_arrears
+            'nombre_del_manager': manager.employee.user.username,
+            'nombre_de_los_vendedores': [vendedor.employee.user.username for vendedor in salesmen],
+            'colecciones_proyectadas_para_el_dia': projected_collections,
+            'nuevos_prestamos_realizados_hoy': new_loans,
+            'gastos_diarios': daily_expenses,
+            'retiros_diarios': daily_withdrawals,
+            'colecciones_diarias_realizadas': daily_collection,
+            'cuántas_renovaciones_se_han_hecho_hoy': daily_renewals,
+            'cuántas_colecciones_del_día_se_han_completado': completed_collections,
+            'número_total_de_clientes': total_customers,
+            'clientes_en_morosidad_para_el_día': customers_in_arrears
         }
 
         return render_template('box.html', boxes_data=boxes_data)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+
 
 
 # Define the endpoint route to list clients in arrears
