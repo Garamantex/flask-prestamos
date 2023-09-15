@@ -671,9 +671,9 @@ def box():
 
             completed_collections += len([sale for sale in sales_today if sale.status])
 
-            total_customers += salesman.employee.loans.count()
+            total_customers += salesman.client.loans.count()
 
-            customers_in_arrears += salesman.employee.loans.filter_by(
+            customers_in_arrears += salesman.client.loans.filter_by(
                 up_to_date=False,
                 status=True
             ).count()
