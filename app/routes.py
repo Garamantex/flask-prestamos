@@ -664,7 +664,7 @@ def get_salesmen_info(manager_id):
         projected_collections = completed_collections / total_customers * daily_collection
 
         # Create a dictionary with the results
-        result = {
+        boxes_data = {
             'manager_name': manager.employee.user.username,
             'salesman_name': [salesman.employee.user.username for salesman in salesmen],
             'projected_collections_for_the_day': projected_collections,
@@ -678,14 +678,14 @@ def get_salesmen_info(manager_id):
             'customers_in_arrears_for_the_day': customers_in_arrears
         }
 
-        return jsonify(result)
+        return render_template('box.html', boxes_data=boxes_data)
 
     except Exception as e:
         return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
 
 
 # Define the endpoint route to list clients in arrears
-@routes.route('/clients_in_arrears', methods=['GET'])
+@routes.route('/debtor', methods=['GET'])
 def list_clients_in_arrears():
     # Get the current date
     current_date = datetime.now().date()
@@ -698,7 +698,7 @@ def list_clients_in_arrears():
         .all()
 
     # Prepare response data
-    response_data = []
+    debtors = []
     for client, loan, installment in clients_in_arrears:
         arrears_balance = float(loan.amount) - float(installment.payment)
         remaining_amount_to_pay = float(loan.amount) - float(installment.payment)
@@ -708,10 +708,10 @@ def list_clients_in_arrears():
             'number_of_installments_in_arrears': installment.installment_number,
             'remaining_amount_to_pay': str(remaining_amount_to_pay)
         }
-        response_data.append(client_data)
+        debtors.append(client_data)
 
     # Return the list of clients in arrears as JSON
-    return jsonify(response_data)
+    return render_template('debtor.html', debtors=debtors)
 
 
 @routes.route('/create-box')
