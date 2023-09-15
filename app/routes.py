@@ -671,12 +671,14 @@ def box():
 
             completed_collections += len([sale for sale in sales_today if sale.status])
 
-            total_customers += salesman.client.loans.count()
+            # Total de clientes del vendedor
+            total_customers += len(salesman.employee.client.loans)
 
-            customers_in_arrears += salesman.client.loans.filter_by(
-                up_to_date=False,
-                status=True
-            ).count()
+            # Clientes en morosidad para el día
+            customers_in_arrears += len([
+                client_loan for client_loan in salesman.employee.client.loans
+                if not client_loan.up_to_date and client_loan.status
+            ])
 
         # Calcular las colecciones proyectadas para el día
         projected_collections = completed_collections / total_customers * daily_collection
