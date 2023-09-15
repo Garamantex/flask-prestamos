@@ -607,6 +607,10 @@ def box():
     try:
         user_id = session['user_id']
         employee_id = Employee.query.filter_by(user_id=user_id).first()
+
+        if not employee_id:
+            return jsonify({'message': 'Employee not found'}), 404
+
         manager = Manager.query.filter_by(employee_id=employee_id.id).first()
 
         if not manager:
@@ -683,7 +687,7 @@ def box():
         return render_template('box.html', boxes_data=boxes_data)
 
     except Exception as e:
-        return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
 # Define the endpoint route to list clients in arrears
