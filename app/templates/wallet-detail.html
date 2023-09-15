@@ -1,153 +1,68 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container c-bg c-bg__gray-400 pt-5">
-    <div class="row">
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3"
-                href="./menu-manager">Volver al menu</a>
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3"
+                    href="./menu-manager">Volver al menu</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+            </div>
         </div>
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+        <div class="row mt-4">
+            <div class="col">
+                <h2 class="c-cajas__item__title c-headings c-headings__h2">Créditos Activos</h2>
+            </div>
         </div>
-    </div>
-    <div class="row mt-4">
-        <div class="col">
-            <h2>Créditos Activos</h2>
-        </div>
-        <div class="col">
-            <form class="form-inline float-right">
-                <div class="form-group mr-2">
-                    <label class="mr-2">Cartera:</label>
-                    <input type="checkbox" class="form-check-input">
-                </div>
-                <div class="form-group">
-                    <label class="mr-2">Usuarios Activos:</label>
-                    <input type="checkbox" class="form-check-input">
-                </div>
-                <div class="form-group ml-4">
-                    <input type="text" class="form-control" placeholder="Búsqueda">
-                </div>
-            </form>
-        </div>
-    </div>
-    <div class="row mt-4">
-        <div class="col">
-            <div class="card">
-                <div class="card-header">
-                    Total de Créditos y Valor Total de Créditos
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col">
-                            <h5>Total Créditos:</h5>
-                            <p>10</p>
-                        </div>
-                        <div class="col">
-                            <h5>Valor Total de Créditos:</h5>
-                            <p>$25,000</p>
+        <div class="row mt-4">
+            <div class="col">
+                <div class="c-card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col">
+                                <h5>Total Créditos:</h5>
+                                <p>10</p>
+                            </div>
+                            <div class="col">
+                                <h5>Valor Total de Créditos:</h5>
+                                <p>$25,000</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="row mt-4">
-        <div class="col">
-            <div class="card">
-                <div class="card-header">
-                    Crédito #1
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col">
-                            <h5>Nombre del Vendedor: Vendedor 1</h5>
-                            <p>Cliente: Cliente A</p>
-                        </div>
-                        <div class="col">
-                            <h5>Saldo Total</h5>
-                            <p>Saldo Inicial: $1000</p>
-                            <p>Saldo Vencido: $200</p>
-                        </div>
-                        <div class="col">
-                            <h5>Cuotas</h5>
-                            <p>Cuotas Vencidas: 2</p>
-                            <p>Total Cuotas Pagas: 5/10</p>
-                        </div>
-                        <div class="col">
-                            <h5>Fechas</h5>
-                            <p>Fecha de Creación: 2023-05-01</p>
-                            <p>Fecha de Finalización: 2023-12-31</p>
-                            <p>Último Pago: 2023-06-15</p>
-                            <a href="./credit-detail" class="btn btn-primary">Ver Detalle</a>
-                        </div>
+        <div class="row mt-4">
+            <div class="col">
+                <div class="c-card">
+                    <div class="card-header">
+                       <h4>Crédito #1</h4> 
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row mt-4">
-        <div class="col">
-            <div class="card">
-                <div class="card-header">
-                    Crédito #2
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col">
-                            <h5>Nombre del Vendedor: Vendedor 2</h5>
-                            <p>Cliente: Cliente B</p>
-                        </div>
-                        <div class="col">
-                            <h5>Saldo Total</h5>
-                            <p>Saldo Inicial: $1500</p>
-                            <p>Saldo Vencido: $0</p>
-                        </div>
-                        <div class="col">
-                            <h5>Cuotas</h5>
-                            <p>Cuotas Vencidas: 0</p>
-                            <p>Total Cuotas Pagas: 10/10</p>
-                        </div>
-                        <div class="col">
-                            <h5>Fechas</h5>
-                            <p>Fecha de Creación: 2023-06-01</p>
-                            <p>Fecha de Finalización: 2023-12-31</p>
-                            <p>Último Pago: 2023-06-20</p>
-                            <a href="./credit-detail" class="btn btn-primary">Ver Detalle</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row mt-4">
-        <div class="col">
-            <div class="card">
-                <div class="card-header">
-                    Crédito #3
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col">
-                            <h5>Nombre del Vendedor: Vendedor 3</h5>
-                            <p>Cliente: Cliente C</p>
-                        </div>
-                        <div class="col">
-                            <h5>Saldo Total</h5>
-                            <p>Saldo Inicial: $2000</p>
-                            <p>Saldo Vencido: $300</p>
-                        </div>
-                        <div class="col">
-                            <h5>Cuotas</h5>
-                            <p>Cuotas Vencidas: 3</p>
-                            <p>Total Cuotas Pagas: 7/10</p>
-                        </div>
-                        <div class="col">
-                            <h5>Fechas</h5>
-                            <p>Fecha de Creación: 2023-04-01</p>
-                            <p>Fecha de Finalización: 2023-11-30</p>
-                            <p>Último Pago: 2023-06-10</p>
-                            <a href="./credit-detail" class="btn btn-primary">Ver Detalle</a>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <p>Vendedor: Vendedor 1</p>
+                                <p>Cliente: Cliente A</p>
+                            </div>
+                            <div class="col-6">
+                                <p>Saldo Inicial: $1000</p>
+                                <p>Saldo Vencido: $200</p>
+                            </div>
+                            <div class="col-12">
+                                <h5>Cuotas</h5>
+                                <p>Cuotas Vencidas: 2</p>
+                                <p>Total Cuotas Pagas: 5/10</p>
+                            </div>
+                            <div class="col-12">
+                                <h5>Fechas</h5>
+                                <p>Fecha de Creación: 2023-05-01</p>
+                                <p>Fecha de Finalización: 2023-12-31</p>
+                                <p>Último Pago: 2023-06-15</p>
+                                <a href="./credit-detail" class="btn btn-primary">Ver Detalle</a>
+                            </div>
                         </div>
                     </div>
                 </div>
