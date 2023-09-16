@@ -710,58 +710,68 @@ def box():
 
 # Define the endpoint route to list clients in arrears
 @routes.route('/debtor', methods=['GET'])
-def list_clients_in_arrears():
+def list_mora_debtors():
     try:
-        # Obtener el user_id del vendedor desde la sesión (reemplaza esto con tu lógica de autenticación)
+        # Obtener el user_id de la sesión
         user_id = session.get('user_id')
 
-        # Buscar al vendedor (empleado) correspondiente al user_id
-        employee = Employee.query.filter_by(user_id=user_id).first()
+        if user_id is None:
+            return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
 
-        if not employee:
-            return jsonify({'message': 'Empleado no encontrado'}), 404
+        # Buscar al manager correspondiente al user_id de la sesión
+        manager = Manager.query.join(Employee).filter(Employee.user_id == user_id).first()
 
-        # Obtener todos los clientes asociados a este vendedor que tienen préstamos en estado "MORA"
-        clients_in_arrears = Client.query.filter(
-            Client.employee_id == employee.id,
-            Client.debtor == True,  # Asegúrate de que la columna se llame 'debtor' en tu modelo
-            Client.id == Loan.client_id,
-            Loan.id == LoanInstallment.loan_id,
-            LoanInstallment.status == InstallmentStatus.MORA
-        ).all()
+        if not manager:
+            return jsonify({'message': 'Manager no encontrado'}), 404
 
-        # Crear una lista para almacenar los detalles de los clientes en mora
-        clients_in_arrears_details = []
+        # Crear una lista para almacenar los detalles de los clientes en MORA
+        mora_debtors_details = []
 
-        for client in clients_in_arrears:
-            # Obtener todas las cuotas del préstamo del cliente
-            installments = LoanInstallment.query.filter_by(loan_id=client.loans[0].id).all()
+        # Obtener los vendedores asociados a este manager
+        salesmen = Employee.query.filter_by(manager_id=manager.id).all()
 
-            # Calcular los datos requeridos
-            cuotas_pagadas = sum(1 for installment in installments if installment.status == InstallmentStatus.PAGADA)
-            cuotas_vencidas = sum(1 for installment in installments if installment.status == InstallmentStatus.MORA)
-            valor_total = client.loans[0].amount + (client.loans[0].amount * client.loans[0].interest / 100)
-            saldo_pendiente = valor_total - sum(
-                installment.amount for installment in installments if installment.status == InstallmentStatus.PAGADA)
+        for salesman in salesmen:
+            # Obtener todos los clientes asociados a este vendedor que tienen préstamos en estado "MORA"
+            clients_in_mora = Client.query.filter(
+                Client.employee_id == salesman.id,
+                Client.debtor == True,  # Asegúrate de que la columna se llame 'debtor' en tu modelo
+            ).all()
 
-            # Formatear los valores sin decimales
-            valor_total = int(valor_total)
-            saldo_pendiente = int(saldo_pendiente)
+            for client in clients_in_mora:
+                # Obtener el préstamo del cliente
+                loan = Loan.query.filter_by(client_id=client.id).first()
 
-            # Crear un diccionario con los detalles del cliente
-            client_details = {
-                'nombre_vendedor': f'{employee.first_name} {employee.last_name}',
-                'nombre_cliente': f'{client.first_name} {client.last_name}',
-                'cuotas_pagadas': cuotas_pagadas,
-                'cuotas_vencidas': cuotas_vencidas,
-                'valor_total': valor_total,
-                'saldo_pendiente': saldo_pendiente
-            }
+                if loan is None:
+                    continue  # Si el cliente no tiene préstamo, continuar con el siguiente cliente
 
-            # Agregar los detalles del cliente a la lista
-            clients_in_arrears_details.append(client_details)
+                # Obtener todas las cuotas del préstamo del cliente
+                installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
 
-        return render_template('debtor.html', debtors=clients_in_arrears_details)
+                # Calcular los datos requeridos
+                cuotas_pagadas = sum(1 for installment in installments if installment.status == InstallmentStatus.PAGADA)
+                cuotas_vencidas = sum(1 for installment in installments if installment.status == InstallmentStatus.MORA)
+                valor_total = loan.amount + (loan.amount * loan.interest / 100)
+                saldo_pendiente = valor_total - sum(
+                    installment.amount for installment in installments if installment.status == InstallmentStatus.PAGADA)
+
+                # Formatear los valores sin decimales
+                valor_total = int(valor_total)
+                saldo_pendiente = int(saldo_pendiente)
+
+                # Crear un diccionario con los detalles del cliente en MORA
+                mora_debtor_details = {
+                    'nombre_vendedor': f'{salesman.user.first_name} {salesman.user.last_name}',
+                    'nombre_cliente': f'{client.first_name} {client.last_name}',
+                    'cuotas_pagadas': cuotas_pagadas,
+                    'cuotas_vencidas': cuotas_vencidas,
+                    'valor_total': valor_total,
+                    'saldo_pendiente': saldo_pendiente
+                }
+
+                # Agregar los detalles del cliente en MORA a la lista
+                mora_debtors_details.append(mora_debtor_details)
+
+        return jsonify({'clientes_en_mora': mora_debtors_details})
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
