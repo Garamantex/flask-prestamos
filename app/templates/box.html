@@ -16,7 +16,9 @@
         </div>
         <div class="row">
             <div class="col">
+                boxes_data
                 <ul class="c-cajas">
+                    {% for box_data in boxes_data %}
                     <li class="c-cajas__item">
                         <div class="c-cajas__item__header">
                             <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja 1</h3>
@@ -28,7 +30,7 @@
                         <div class="c-cajas__item__body">
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Nombre:</span>
-                                <span class="c-cajas__item__body__item__value">Vendedor 1</span>
+                                <span class="c-cajas__item__body__item__value">{{box_data.manager_name}}</span>
                             </div>
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Tipo de usuario:</span>
@@ -41,32 +43,26 @@
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Recaudo:</span>
                                 <span class="c-cajas__item__body__item__value">$0</span>
-                                <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
                             </div>
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Ventas:</span>
                                 <span class="c-cajas__item__body__item__value">$0</span>
-                                <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
                             </div>
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Renovacones:</span>
                                 <span class="c-cajas__item__body__item__value">$0</span>
-                                <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
                             </div>
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Gasto:</span>
                                 <span class="c-cajas__item__body__item__value">$0</span>
-                                <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
                             </div>
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Ingreso:</span>
                                 <span class="c-cajas__item__body__item__value">$0</span>
-                                <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
                             </div>
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Retiro:</span>
                                 <span class="c-cajas__item__body__item__value">$0</span>
-                                <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
                             </div>
                             <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
                                 <span class="c-cajas__item__body__item__label">% de cobros completado:</span>
@@ -82,6 +78,7 @@
                             </div>
                         </div>
                     </li>
+                    {% endfor %}
                 </ul>
             </div>
         </div>
