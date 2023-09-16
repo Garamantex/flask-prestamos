@@ -639,28 +639,31 @@ def box():
         # Get the salesmen associated with that manager
         salesmen = Salesman.query.filter_by(manager_id=manager.id).all()
 
-        # Initialize variables to collect statistics
-        projected_collections = 0
-        new_loans = 0
-        daily_expenses = 0
-        daily_withdrawals = 0
-        daily_collection = 0
-        daily_renewals = 0
-        completed_collections = 0
-        total_customers = 0
-        customers_in_arrears = 0
+        # Initialize a list to collect statistics for each salesman
+        salesmen_stats = []
 
         # Iterate over the salesmen
         for salesman in salesmen:
+            # Initialize variables to collect statistics for each salesman
+            projected_collections = 0
+            new_loans = 0
+            daily_expenses = 0
+            daily_withdrawals = 0
+            daily_collection = 0
+            daily_renewals = 0
+            completed_collections = 0
+            total_customers = 0
+            customers_in_arrears = 0
+
             # Calculate based on daily RETIRO transactions
-            daily_withdrawals += Transaction.query.filter_by(
+            daily_withdrawals = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.RETIRO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
             # Calculate based on daily INGRESO transactions
-            daily_collection += Transaction.query.filter_by(
+            daily_collection = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.INGRESO
@@ -679,42 +682,45 @@ def box():
                 transaction_types=TransactionType.INGRESO
             ).all()
 
-            completed_collections += len([sale for sale in sales_today if sale.status])
+            completed_collections = len([sale for sale in sales_today if sale.status])
 
             # Total customers of the salesman
-            total_customers += len(salesman.employee.clients)
+            total_customers = len(salesman.employee.clients)
 
             # Customers in arrears for the day
-            customers_in_arrears += len([
+            customers_in_arrears = len([
                 client for client in salesman.employee.clients
                 if any(loan.status and not loan.up_to_date for loan in client.loans)
             ])
 
-        # Calcular projected_collections para el día
-        if total_customers > 0:
-            projected_collections = completed_collections / total_customers * total_customers
-        else:
-            projected_collections = 0  # Si no hay clientes, establecer proyección en 0
+            # Calcular projected_collections para el día (mismo cálculo que antes)
+            if total_customers > 0:
+                projected_collections = completed_collections / total_customers * total_customers
+            else:
+                projected_collections = 0  # Si no hay clientes, establecer proyección en 0
 
-        # Create a dictionary with the results
-        boxes_data = {
-            'manager_name': manager.employee.user.username,
-            'salesmen_names': [salesman.employee.user.username for salesman in salesmen],
-            'projected_collections_for_the_day': projected_collections,
-            'new_loans_made_today': new_loans,
-            'daily_expenses': daily_expenses,
-            'daily_withdrawals': daily_withdrawals,
-            'daily_collections_made': daily_collection,
-            'how_many_renewals_have_been_made_today': daily_renewals,
-            'how_many_collections_of_the_day_have_been_completed': completed_collections,
-            'total_number_of_customers': total_customers,
-            'customers_in_arrears_for_the_day': customers_in_arrears
-        }
+            # Create a dictionary with the results for this salesman
+            salesman_data = {
+                'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
+                'projected_collections_for_the_day': projected_collections,
+                'new_loans_made_today': new_loans,
+                'daily_expenses': daily_expenses,
+                'daily_withdrawals': daily_withdrawals,
+                'daily_collections_made': daily_collection,
+                'how_many_renewals_have_been_made_today': daily_renewals,
+                'how_many_collections_of_the_day_have_been_completed': completed_collections,
+                'total_number_of_customers': total_customers,
+                'customers_in_arrears_for_the_day': customers_in_arrears
+            }
 
-        return render_template('box.html', boxes_data=boxes_data)
+            # Append the salesman's data to the list
+            salesmen_stats.append(salesman_data)
+
+        return jsonify({'manager_name': manager.employee.user.username, 'salesmen_stats': salesmen_stats})
 
     except Exception as e:
         return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
+
 
 
 # Define the endpoint route to list clients in arrears
