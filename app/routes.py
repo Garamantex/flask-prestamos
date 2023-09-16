@@ -722,7 +722,6 @@ def box():
         return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
 
 
-
 # Define the endpoint route to list clients in arrears
 @routes.route('/debtor', methods=['GET'])
 def list_clients_in_arrears():
