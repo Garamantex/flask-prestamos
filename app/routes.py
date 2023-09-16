@@ -91,11 +91,10 @@ def menu_salesman():
     return render_template('menu-salesman.html')
 
 
-# ruta para crear un usuario
 @routes.route('/create-user', methods=['GET', 'POST'])
 def create_user():
-    if 'user_id' in session and (session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR'):
-        # Verificar si el usuario es administrador o coordinador
+    if 'user_id' in session and (session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR' or session['role'] == 'GERENTE'):
+        # Verificar si el usuario es administrador, coordinador o gerente
 
         # Redirecciona a la página de lista de usuarios o a donde corresponda
         if request.method == 'POST':
@@ -160,32 +159,26 @@ def create_user():
 
             # Verificar si se seleccionó el rol "Vendedor"
             if role == 'VENDEDOR':
-                # Obtén el user_id de la sesión
+                # Obtén el ID del empleado recién creado (el empleado asociado al usuario que acaba de registrarse)
+                employee_id = employee.id
+
+                # Obtén el ID del gerente (manager) basado en el usuario que está logeado
                 user_id = session['user_id']
+                manager = Manager.query.filter_by(employee_id=user_id).first()
 
-                # Busca el ID del empleado en la tabla Employee
-                employee = Employee.query.filter_by(user_id=user_id).first()
+                if manager:
+                    # Si se encuentra el gerente, obtén su ID
+                    manager_id = manager.id
 
-                if employee:
-                    # Si se encuentra el empleado, obtén su ID
-                    employee_id = employee.id
+                    # Crea un nuevo objeto Salesman asociado al empleado y al gerente
+                    salesman = Salesman(
+                        employee_id=employee.id,
+                        manager_id=manager_id
+                    )
 
-                    # Busca el gerente en la tabla Manager utilizando el ID del empleado
-                    manager = Manager.query.filter_by(employee_id=employee_id).first()
-
-                    if manager:
-                        # Si se encuentra el gerente, obtén su ID
-                        manager_id = manager.id
-
-                        # Crea un nuevo objeto Salesman asociado al empleado y al gerente
-                        salesman = Salesman(
-                            employee_id=employee.id,
-                            manager_id=manager_id
-                        )
-
-                        # Guarda el nuevo vendedor en la base de datos
-                        db.session.add(salesman)
-                        db.session.commit()
+                    # Guarda el nuevo vendedor en la base de datos
+                    db.session.add(salesman)
+                    db.session.commit()
 
             # Redirecciona a la página de lista de usuarios o a donde corresponda
             return redirect(url_for('routes.user_list'))
@@ -193,6 +186,7 @@ def create_user():
         return render_template('create-user.html')
     else:
         abort(403)  # Acceso no autorizado
+
 
 
 @routes.route('/user-list')
