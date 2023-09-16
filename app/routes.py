@@ -2,6 +2,7 @@ import datetime
 from datetime import timedelta
 import os
 import uuid
+from operator import and_
 
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
@@ -667,11 +668,11 @@ def box():
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
             # Calculate pending collections for the current day excluding "PAGADA" status
-            projected_collections = LoanInstallment.query.join(Client).filter(
+            projected_collections = db.session.query(func.sum(LoanInstallment.amount)).join(Client, and_(
                 LoanInstallment.due_date == datetime.date.today(),
                 LoanInstallment.status != InstallmentStatus.PAGADA,
                 Client.employee_id == salesman.employee.id
-            ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
+            )).scalar() or 0
 
             # Calculate completed collections for the day
             sales_today = Transaction.query.filter_by(
