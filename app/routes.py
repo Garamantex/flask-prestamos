@@ -666,15 +666,11 @@ def box():
                 transaction_types=TransactionType.INGRESO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
-            # Obtén la fecha actual
-            fecha_actual = datetime.date.today()
-
-            # Calcula los cobros pendientes para el día actual excluyendo el estado "PAGADA" y asociados al mismo
-            # empleado
-            projected_collections = LoanInstallment.query.join(Client).join(Employee).filter(
-                LoanInstallment.due_date == fecha_actual,
+            # Calculate pending collections for the current day excluding "PAGADA" status
+            projected_collections = LoanInstallment.query.join(Client).filter(
+                LoanInstallment.due_date == datetime.date.today(),
                 LoanInstallment.status != InstallmentStatus.PAGADA,
-                Employee.id == salesman.employee_id
+                Client.employee_id == salesman.employee.id
             ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
 
             # Calculate completed collections for the day
