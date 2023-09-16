@@ -690,8 +690,11 @@ def box():
                 if any(loan.status and not loan.up_to_date for loan in client.loans)
             ])
 
-        # Calculate projected collections for the day
-        projected_collections = completed_collections / total_customers * daily_collection
+        # Calcular projected_collections para el día
+        if total_customers > 0:
+            projected_collections = completed_collections / total_customers * total_customers
+        else:
+            projected_collections = 0  # Si no hay clientes, establecer proyección en 0
 
         # Create a dictionary with the results
         boxes_data = {
