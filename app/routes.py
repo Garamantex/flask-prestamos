@@ -176,6 +176,10 @@ def create_user():
                         manager_id=manager_id
                     )
 
+                    # Establece las relaciones con Employee y Manager
+                    salesman.employee = employee
+                    salesman.manager = manager
+
                     # Guarda el nuevo vendedor en la base de datos
                     db.session.add(salesman)
                     db.session.commit()
@@ -186,6 +190,7 @@ def create_user():
         return render_template('create-user.html')
     else:
         abort(403)  # Acceso no autorizado
+
 
 
 
