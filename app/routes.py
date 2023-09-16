@@ -93,8 +93,8 @@ def menu_salesman():
 
 @routes.route('/create-user', methods=['GET', 'POST'])
 def create_user():
-    if 'user_id' in session and (session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR' or session['role'] == 'GERENTE'):
-        # Verificar si el usuario es administrador, coordinador o gerente
+    if 'user_id' in session and (session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR'):
+        # Verificar si el usuario es administrador o coordinador
 
         # Redirecciona a la página de lista de usuarios o a donde corresponda
         if request.method == 'POST':
@@ -159,15 +159,23 @@ def create_user():
 
             # Verificar si se seleccionó el rol "Vendedor"
             if role == 'VENDEDOR':
-                # Obtén el ID del gerente (manager) basado en el usuario que está logeado
-                user_id = session['user_id']
-                manager = Manager.query.filter_by(employee_id=user_id).first()
+                # Obtén el ID del empleado recién creado (el empleado asociado al usuario que acaba de registrarse)
+                employee_id_recien_creado = employee.id
+
+                # Obtén el ID del empleado de la sesión (el empleado que está logeado)
+                user_id_empleado_sesion = session['user_id']
+
+                # Busca el ID del gerente (manager) basado en el ID del empleado de la sesión
+                manager = Manager.query.filter_by(employee_id=user_id_empleado_sesion).first()
 
                 if manager:
-                    # Si se encuentra el gerente, crea un nuevo objeto Salesman asociado al empleado y al gerente
+                    # Si se encuentra el gerente, obtén su ID
+                    manager_id = manager.id
+
+                    # Crea un nuevo objeto Salesman asociado al empleado recién creado y al gerente
                     salesman = Salesman(
-                        employee_id=employee.id,
-                        manager_id=manager.id
+                        employee_id=employee_id_recien_creado,
+                        manager_id=manager_id
                     )
 
                     # Guarda el nuevo vendedor en la base de datos
@@ -180,8 +188,6 @@ def create_user():
         return render_template('create-user.html')
     else:
         abort(403)  # Acceso no autorizado
-
-
 
 
 @routes.route('/user-list')
