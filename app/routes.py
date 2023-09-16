@@ -667,13 +667,16 @@ def box():
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
             # Calcular cobros proyectados para el día (estado diferente de PAGADA)
-            projected_collections = db.session.query(func.sum(LoanInstallment.amount)).join(Client, Employee, Salesman,
-                                                                                            Manager).filter(
+            projected_collections = db.session.query(func.sum(LoanInstallment.amount)). \
+                                        join(Client). \
+                                        join(Employee). \
+                                        join(Salesman). \
+                                        join(Manager). \
+                                        filter(
                 Manager.id == manager.id,
                 LoanInstallment.status != InstallmentStatus.PAGADA,
                 LoanInstallment.due_date == func.current_date()
             ).scalar() or 0
-
 
             # Calculate completed collections for the day
             sales_today = Transaction.query.filter_by(
