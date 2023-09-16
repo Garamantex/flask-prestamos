@@ -258,7 +258,8 @@ def get_maximum_values_loan():
 @routes.route('/create-client', methods=['GET', 'POST'])
 def create_client():
     try:
-        if 'user_id' in session and (session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
+        if 'user_id' in session and (
+                session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
             if request.method == 'POST':
                 # Obtener el ID del empleado desde la sesión
                 user_id = session['user_id']
@@ -665,6 +666,14 @@ def box():
                 transaction_types=TransactionType.INGRESO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
+            # Calcular cobros proyectados para el día (estado diferente de PAGADA)
+            projected_collections = LoanInstallment.query.join(Client).join(Employee).join(Salesman).join(
+                Manager).filter(
+                Manager.id == manager.id,
+                LoanInstallment.status != InstallmentStatus.PAGADA,
+                LoanInstallment.due_date == func.current_date()
+            ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
+
             # Calculate based on other transactions (sales, expenses, etc.)
             # Add the corresponding code here
 
@@ -688,12 +697,6 @@ def box():
                 client for client in salesman.employee.clients
                 if any(loan.status and not loan.up_to_date for loan in client.loans)
             ])
-
-            # Calcular projected_collections para el día (mismo cálculo que antes)
-            if total_customers > 0:
-                projected_collections = completed_collections / total_customers * total_customers
-            else:
-                projected_collections = 0  # Si no hay clientes, establecer proyección en 0
 
             # Create a dictionary with the results for this salesman
             salesman_data = {
