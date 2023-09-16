@@ -763,9 +763,9 @@ def box_detail():
     return render_template('box-detail.html')
 
 
-@routes.route('/routesroval-expenses')
-def routesroval_expenses():
-    return render_template('routesroval-expenses.html')
+@routes.route('/approval-expenses')
+def approval_expenses():
+    return render_template('approval-expenses.html')
 
 
 @routes.route('/morosos')

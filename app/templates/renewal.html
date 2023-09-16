@@ -1,52 +1,58 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container c-bg c-bg__gray-400 pt-5">
-    <div class="row">
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3"
-                href="./menu-salesman">Volver al menu</a>
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3"
+                    href="./menu-salesman">Volver al menu</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+            </div>
         </div>
         <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+            <div class="c-users">
+                <p class="c-users__title">Renovacones</p>
+            </div>
         </div>
+        <form>
+            <div class="form-group">
+                <label for="usuarios">Usuarios:</label>
+                <select class="c-form c-form__input" id="usuarios">
+                    <option value>Seleccionar usuario</option>
+                    <option value="usuario1">Usuario 1</option>
+                    <option value="usuario2">Usuario 2</option>
+                    <option value="usuario3">Usuario 3</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="cuotas">Número de Cuotas:</label>
+                <select class="c-form c-form__input" id="cuotas">
+                    <option value>Seleccionar número de cuotas</option>
+                    <option value="6">6 cuotas</option>
+                    <option value="12">12 cuotas</option>
+                    <option value="18">18 cuotas</option>
+                    <option value="24">24 cuotas</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="interes">Interés del Préstamo:</label>
+                <select class="c-form c-form__input" id="interes">
+                    <option value>Seleccionar interés del préstamo</option>
+                    <option value="5">5%</option>
+                    <option value="10">10%</option>
+                    <option value="15">15%</option>
+                    <option value="20">20%</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="valor">Valor del Préstamo:</label>
+                <input type="text" class="c-form c-form__input" id="valor" placeholder="Ingrese el valor del préstamo">
+            </div>
+            <button type="submit" class="c-btn c-btn-primary mt-4">Crear Préstamo</button>
+        </form>
     </div>
-    <h2>Renovaciones</h2>
-    <form>
-        <div class="form-group">
-            <label for="usuarios">Usuarios:</label>
-            <select class="c-form c-form__input" id="usuarios">
-                <option value>Seleccionar usuario</option>
-                <option value="usuario1">Usuario 1</option>
-                <option value="usuario2">Usuario 2</option>
-                <option value="usuario3">Usuario 3</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="cuotas">Número de Cuotas:</label>
-            <select class="c-form c-form__input" id="cuotas">
-                <option value>Seleccionar número de cuotas</option>
-                <option value="6">6 cuotas</option>
-                <option value="12">12 cuotas</option>
-                <option value="18">18 cuotas</option>
-                <option value="24">24 cuotas</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="interes">Interés del Préstamo:</label>
-            <select class="c-form c-form__input" id="interes">
-                <option value>Seleccionar interés del préstamo</option>
-                <option value="5">5%</option>
-                <option value="10">10%</option>
-                <option value="15">15%</option>
-                <option value="20">20%</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="valor">Valor del Préstamo:</label>
-            <input type="text" class="c-form c-form__input" id="valor" placeholder="Ingrese el valor del préstamo">
-        </div>
-        <button type="submit" class="c-btn c-btn-primary mt-4">Crear Préstamo</button>
-    </form>
 </div>
 {% endblock %}

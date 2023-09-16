@@ -1,21 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="container c-bg c-bg__gray-400 vh-100 pt-5">
-        <div class="row">
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+    <div class="c-form">
+        <div class="container pt-5">
+            <div class="row">
+                <div class="col">
+                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col">
-                <nav class="c-menu d-flex flex-wrap justify-content-center justify-content-md-start align-items-center h-100">
-                    <a href="{{ url_for('routes.create_client') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i>Crear prestamo</a>
-                    <a href="{{ url_for('routes.client_list') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i> Listado de Clientes</a>
-                    <a href="{{ url_for('routes.renewal') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-person-vcard me-3"></i> Renovaciones</a>
-                    <a href="{{ url_for('routes.transactions') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock me-3"></i> transacciónes</a>
-                    <a href="#" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Pagos</a>
-                </nav>
+            <div class="row">
+                <div class="col">
+                    <nav class="c-menu d-flex flex-wrap justify-content-center justify-content-md-start align-items-center h-100">
+                        <a href="{{ url_for('routes.create_client') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i>Crear prestamo</a>
+                        <a href="{{ url_for('routes.client_list') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i> Listado de Clientes</a>
+                        <a href="{{ url_for('routes.renewal') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-person-vcard me-3"></i> Renovaciones</a>
+                        <a href="{{ url_for('routes.transactions') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock me-3"></i> transacciónes</a>
+                        <a href="#" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Pagos</a>
+                    </nav>
+                </div>
             </div>
         </div>
     </div>

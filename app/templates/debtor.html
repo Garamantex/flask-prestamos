@@ -5,8 +5,7 @@
     <div class="container pt-5">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3"
-                    href="./menu-manager">Volver al menu</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Volver al menu</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
@@ -15,78 +14,59 @@
         <div class="row">
             <div class="col">
                 <div class="c-morosos">
-                    <p class="c-morosos__item">Numero de morosos: 0</p>
-                    <p class="c-morosos__item">Total mora: $0</p>
+                    <p class="c-morosos__item">Numero de morosos: {{ debtors|length }}</p>
+                    <p class="c-morosos__item">Total mora: ${{ total_mora }}</p>
                 </div>
             </div>
         </div>
         <div class="row">
             <div class="col-lg-12">
                 <ul class="c-cajas">
+                    {% for debtor in debtors %}
                     <li class="c-cajas__item">
                         <div class="c-cajas__item__header">
-                            <h3
-                                class="c-cajas__item__title c-headings c-headings__h2">Deudor
-                                1</h3>
+                            <h3 class="c-cajas__item__title c-headings c-headings__h2">{{ debtor.client_name }}</h3>
                         </div>
                         <div class="c-cajas__item__body">
-                            <div
-                                class="c-cajas__item__body__item c-cajas__item__body__item--30">
+                            <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
                                 <span class="c-cajas__item__body__item__label">Vendedor:</span>
-                                <span class="c-cajas__item__body__item__value">Vendedor
-                                    1</span>
+                                <span class="c-cajas__item__body__item__value">{{ debtor.vendedor }}</span>
                             </div>
-                            <div
-                                class="c-cajas__item__body__item c-cajas__item__body__item--30">
-                                <span class="c-cajas__item__body__item__label">cliente:</span>
-                                <span class="c-cajas__item__body__item__value">cliente
-                                    1</span>
+                            <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
+                                <span class="c-cajas__item__body__item__label">Cliente:</span>
+                                <span class="c-cajas__item__body__item__value">{{ debtor.cliente }}</span>
                             </div>
-                            <div
-                                class="c-cajas__item__body__item c-cajas__item__body__item--30">
-                                <span class="c-cajas__item__body__item__label">Cuotas
-                                    pagadas:</span>
-                                <span class="c-cajas__item__body__item__value">0-100</span>
+                            <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
+                                <span class="c-cajas__item__body__item__label">Cuotas pagadas:</span>
+                                <span class="c-cajas__item__body__item__value">{{ debtor.number_of_installments_in_arrears }}</span>
                             </div>
-                            <div
-                                class="c-cajas__item__body__item c-cajas__item__body__item--30">
-                                <span class="c-cajas__item__body__item__label">Cuotas
-                                    vencidas:</span>
-                                <span class="c-cajas__item__body__item__value">0</span>
+                            <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
+                                <span class="c-cajas__item__body__item__label">Cuotas vencidas:</span>
+                                <span class="c-cajas__item__body__item__value">{{ debtor.number_of_installments_in_arrears }}</span>
                             </div>
-                            <div
-                                class="c-cajas__item__body__item c-cajas__item__body__item--30">
-                                <span class="c-cajas__item__body__item__label">Monto
-                                    deuda:</span>
+                            <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
+                                <span class="c-cajas__item__body__item__label">Monto deuda:</span>
+                                <span class="c-cajas__item__body__item__value">${{ debtor.arrears_balance }}</span>
+                            </div>
+                            <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
+                                <span class="c-cajas__item__body__item__label">Monto mora:</span>
+                                <span class="c-cajas__item__body__item__value">${{ debtor.arrears_balance }}</span>
+                            </div>
+                            <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
+                                <span class="c-cajas__item__body__item__label">Saldo vencido:</span>
                                 <span class="c-cajas__item__body__item__value">$0</span>
                             </div>
-                            <div
-                                class="c-cajas__item__body__item c-cajas__item__body__item--30">
-                                <span class="c-cajas__item__body__item__label">Monto
-                                    mora:</span>
-                                <span class="c-cajas__item__body__item__value">$0</span>
+                            <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
+                                <span class="c-cajas__item__body__item__label">Fecha de vencimiento:</span>
+                                <span class="c-cajas__item__body__item__value">{{ debtor.due_date }}</span>
                             </div>
-                            <div
-                                class="c-cajas__item__body__item c-cajas__item__body__item--30">
-                                <span class="c-cajas__item__body__item__label">Saldo
-                                    vencido:</span>
-                                <span class="c-cajas__item__body__item__value">$0</span>
+                            <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
+                                <span class="c-cajas__item__body__item__label">Ultimo pago:</span>
+                                <span class="c-cajas__item__body__item__value">{{ debtor.last_payment }}</span>
                             </div>
-                            <div
-                                class="c-cajas__item__body__item c-cajas__item__body__item--30">
-                                <span class="c-cajas__item__body__item__label">Fecha
-                                    de vencimiento:</span>
-                                <span class="c-cajas__item__body__item__value">00/00/0000</span>
-                            </div>
-                            <div
-                                class="c-cajas__item__body__item c-cajas__item__body__item--30">
-                                <span class="c-cajas__item__body__item__label">ultimo
-                                    pago:</span>
-                                <span class="c-cajas__item__body__item__value">00/00/0000</span>
-                            </div>
-    
                         </div>
                     </li>
+                    {% endfor %}
                 </ul>
             </div>
         </div>

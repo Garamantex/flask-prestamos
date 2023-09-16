@@ -2,16 +2,13 @@
 
 {% block content %}
 <div class="c-form">
-    <div class="container c-bg c-bg__gray-400 pt-5">
+    <div class="container pt-5">
         <div class="row">
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list') }}">Ver Clientes</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Volver al menú</a>
-            </div>
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
             </div>
         </div>
         <div class="row">
@@ -25,7 +22,6 @@
             <div class="col">
                 <form action="{{ url_for('routes.create_client') }}" method="POST">
                     <fieldset>
-                        <legend>Crear usuario</legend>
                         <div class="mb-3">
                             <label for="first_name" class="form-label">Nombre</label>
                             <input type="text" class="c-form c-form__input" name="first_name" id="first_name" placeholder="">

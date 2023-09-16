@@ -1,64 +1,65 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container c-bg c-bg__gray-400 pt-5">
-    <div class="row">
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-salesman">Volver al menu</a>
-        </div>
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <div class="c-users">
-                <p class="c-users__title">Registro de Gastos</p>
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-salesman">Volver al menu</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
             </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data">
-                <fieldset>
-                    <legend>Tipo de gasto</legend>
-                    <div class="mb-3">
-                        <select id="transactionType" name="transaction_type" class="c-form c-form__dropdown" aria-label="Default select example">
-                            <option selected></option>
-                            <option value="GASTO">Gasto</option>
-                            <option value="INGRESO">Ingreso</option>
-                            <option value="RETIRO">Retiro</option>
-                        </select>
-                    </div>
-                    <legend>Concepto</legend>
-                    <div class="mb-3">
-                        <select id="concept" name="concept_id" class="c-form c-form__dropdown" aria-label="Default select example">
-                            <option selected></option>
-                            {% for concept in concepts %}
-                            <option value="{{ concept.id }}" data-transaction-type="{{ concept.transaction_types }}">{{ concept.name }}</option>
-                            {% endfor %}
-                          </select>                          
-                    </div>
-                </fieldset>
-                <fieldset>
-                    <div class="mb-3">
-                        <label for="description" class="form-label">description</label>
-                        <textarea class="c-form c-form__textarea" name="description" id="" cols="30" rows="10"></textarea>
-                    </div>
-                </fieldset>
-                <fieldset>
-                    <legend>Valor</legend>
-                    <div class="mb-3">
-                        <label for="loan" class="form-label">Valor</label>
-                        <input type="text" class="c-form c-form__input" id="quantity" name="quantity" placeholder="">
-                    </div>
-                    <div class="mb-3">
-                        <label for="photo" class="form-label">Subir foto:</label>
-                        <input type="file" class="form-control" id="photo" accept="image/*" capture="user" name="photo">
-                    </div>
-                </fieldset>
-                <button class="c-btn c-btn-primary mb-4" type="submit">Enviar</button>
-            </form>    
+        <div class="row">
+            <div class="col">
+                <div class="c-users">
+                    <p class="c-users__title">Registro de Gastos</p>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-5">
+            <div class="col">
+                <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data">
+                    <fieldset>
+                        <legend style="color: white;">Tipo de gasto</legend>
+                        <div class="mb-3">
+                            <select id="transactionType" name="transaction_type" class="c-form c-form__dropdown" aria-label="Default select example">
+                                <option selected></option>
+                                <option value="GASTO">Gasto</option>
+                                <option value="INGRESO">Ingreso</option>
+                                <option value="RETIRO">Retiro</option>
+                            </select>
+                        </div>
+                        <legend style="color: white;">Concepto</legend>
+                        <div class="mb-3">
+                            <select id="concept" name="concept_id" class="c-form c-form__dropdown" aria-label="Default select example">
+                                <option selected></option>
+                                {% for concept in concepts %}
+                                <option value="{{ concept.id }}" data-transaction-type="{{ concept.transaction_types }}">{{ concept.name }}</option>
+                                {% endfor %}
+                              </select>                          
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <div class="mb-3">
+                            <legend for="description" style="color: white;" class="form-label">description</legend>
+                            <textarea class="c-form c-form__textarea" name="description" id="" cols="30" rows="10"></textarea>
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <div class="mb-3">
+                            <legend style="color: white;">Valor</legend>
+                            <input type="text" class="c-form c-form__input" id="quantity" name="quantity" placeholder="">
+                        </div>
+                        <div class="mb-3">
+                            <label for="photo" style="color: white;" class="form-label">Subir foto:</label>
+                            <input type="file" class="form-control" id="photo" accept="image/*" capture="user" name="photo">
+                        </div>
+                    </fieldset>
+                    <button class="c-btn c-btn-primary mb-4" type="submit">Enviar</button>
+                </form>    
+            </div>
         </div>
     </div>
 </div>
