@@ -18,7 +18,7 @@
             <div class="col">
                 boxes_data
                 <ul class="c-cajas">
-                    {% for box_data in boxes_data %}
+                    {% for salesman in salesmen_stats %}
                     <li class="c-cajas__item">
                         <div class="c-cajas__item__header">
                             <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja 1</h3>
@@ -30,7 +30,7 @@
                         <div class="c-cajas__item__body">
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Nombre:</span>
-                                <span class="c-cajas__item__body__item__value">{{box_data.manager_name}}</span>
+                                <span class="c-cajas__item__body__item__value">{{salesman.salesman_name}}</span>
                             </div>
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Tipo de usuario:</span>
