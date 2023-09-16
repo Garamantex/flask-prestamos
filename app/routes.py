@@ -716,7 +716,7 @@ def box():
             # Append the salesman's data to the list
             salesmen_stats.append(salesman_data)
 
-        return jsonify({'manager_name': manager.employee.user.username, 'salesmen_stats': salesmen_stats})
+        return render_template('box.html', manager_name=manager.employee.user.username, salesmen_stats=salesmen_stats)
 
     except Exception as e:
         return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
