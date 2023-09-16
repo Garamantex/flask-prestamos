@@ -167,18 +167,11 @@ def create_user():
                 manager = Manager.query.filter_by(employee_id=user_id).first()
 
                 if manager:
-                    # Si se encuentra el gerente, obtén su ID
-                    manager_id = manager.id
-
-                    # Crea un nuevo objeto Salesman asociado al empleado y al gerente
+                    # Si se encuentra el gerente, crea un nuevo objeto Salesman asociado al empleado y al gerente
                     salesman = Salesman(
-                        employee_id=employee.id,
-                        manager_id=manager_id
+                        employee=employee,
+                        manager=manager
                     )
-
-                    # Establece las relaciones con Employee y Manager
-                    salesman.employee = employee
-                    salesman.manager = manager
 
                     # Guarda el nuevo vendedor en la base de datos
                     db.session.add(salesman)
