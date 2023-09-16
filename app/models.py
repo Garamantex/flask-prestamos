@@ -66,6 +66,9 @@ class Employee(db.Model):
     manager = db.relationship('Manager', uselist=False, back_populates='employee')
     salesman = db.relationship('Salesman', uselist=False, back_populates='employee')
 
+    # Definir la relación inversa para acceder a los clientes de un empleado
+    clients = db.relationship('Client', backref='employee', lazy=True)
+
     def to_json(self):
         return {
             'id': self.id,
@@ -83,6 +86,7 @@ class Employee(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+
 
 
 class Manager(db.Model):

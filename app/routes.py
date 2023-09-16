@@ -261,67 +261,77 @@ def get_maximum_values_loan():
 
 @routes.route('/create-client', methods=['GET', 'POST'])
 def create_client():
-    if 'user_id' in session and (session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
-        if request.method == 'POST':
-            # Obtener el ID del empleado desde la sesión
-            user_id = session['user_id']
-            employee = Employee.query.filter_by(user_id=user_id).first()
+    try:
+        if 'user_id' in session and (session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
+            if request.method == 'POST':
+                # Obtener el ID del empleado desde la sesión
+                user_id = session['user_id']
+                employee = Employee.query.filter_by(user_id=user_id).first()
 
-            if employee is None:
-                return "Error: No se encontró el empleado correspondiente al usuario."
+                if not employee:
+                    raise Exception("Error: No se encontró el empleado correspondiente al usuario.")
 
-            first_name = request.form.get('first_name')
-            last_name = request.form.get('last_name')
-            alias = request.form.get('alias')
-            document = request.form.get('document')
-            cellphone = request.form.get('cellphone')
-            address = request.form.get('address')
-            neighborhood = request.form.get('neighborhood')
-            amount = request.form.get('amount')
-            dues = request.form.get('dues')
-            interest = request.form.get('interest')
-            payment = request.form.get('amountPerPay')
+                # Recopilar datos del formulario POST
+                first_name = request.form.get('first_name')
+                last_name = request.form.get('last_name')
+                alias = request.form.get('alias')
+                document = request.form.get('document')
+                cellphone = request.form.get('cellphone')
+                address = request.form.get('address')
+                neighborhood = request.form.get('neighborhood')
+                amount = request.form.get('amount')
+                dues = request.form.get('dues')
+                interest = request.form.get('interest')
+                payment = request.form.get('amountPerPay')
 
-            # Crea una instancia del cliente con los datos proporcionados
-            client = Client(
-                first_name=first_name,
-                last_name=last_name,
-                alias=alias,
-                document=document,
-                cellphone=cellphone,
-                address=address,
-                neighborhood=neighborhood,
-                employee_id=employee.id
-            )
+                # Validar que los campos obligatorios no estén vacíos
+                if not first_name or not last_name or not document or not cellphone:
+                    raise Exception("Error: Los campos obligatorios deben estar completos.")
 
-            # Guarda el cliente en la base de datos
-            db.session.add(client)
-            db.session.commit()
+                # Crear una instancia del cliente con los datos proporcionados
+                client = Client(
+                    first_name=first_name,
+                    last_name=last_name,
+                    alias=alias,
+                    document=document,
+                    cellphone=cellphone,
+                    address=address,
+                    neighborhood=neighborhood,
+                    employee_id=employee.id
+                )
 
-            # Obtiene el ID del cliente recién creado
-            client_id = client.id
+                # Guardar el cliente en la base de datos
+                db.session.add(client)
+                db.session.commit()
 
-            # Crea una instancia del préstamo con los datos proporcionados
-            loan = Loan(
-                amount=amount,
-                dues=dues,
-                interest=interest,
-                payment=payment,
-                status=True,
-                up_to_date=False,
-                client_id=client_id,
-                employee_id=employee.id
-            )
+                # Obtener el ID del cliente recién creado
+                client_id = client.id
 
-            # Guarda el préstamo en la base de datos
-            db.session.add(loan)
-            db.session.commit()
+                # Crear una instancia del préstamo con los datos proporcionados
+                loan = Loan(
+                    amount=amount,
+                    dues=dues,
+                    interest=interest,
+                    payment=payment,
+                    status=True,
+                    up_to_date=False,
+                    client_id=client_id,
+                    employee_id=employee.id
+                )
 
-            return redirect(url_for('routes.credit_detail', id=loan.id))
+                # Guardar el préstamo en la base de datos
+                db.session.add(loan)
+                db.session.commit()
 
-        return render_template('create-client.html')
-    else:
-        return redirect(url_for('routes.menu_salesman'))
+                return redirect(url_for('routes.credit_detail', id=loan.id))
+
+            return render_template('create-client.html')
+        else:
+            return redirect(url_for('routes.menu_salesman'))
+    except Exception as e:
+        # Manejo de excepciones: mostrar un mensaje de error y registrar la excepción
+        error_message = str(e)
+        return render_template('error.html', error_message=error_message), 500
 
 
 @routes.route('/client-list')
@@ -605,31 +615,31 @@ def get_concepts():
 @routes.route('/box', methods=['GET'])
 def box():
     try:
-        # Obtener el user_id de la sesión
+        # Get user_id from session
         user_id = session.get('user_id')
 
-        # Verificar si el user_id existe
+        # Check if user_id exists
         if user_id is None:
-            return jsonify({'message': 'Usuario no encontrado'}), 404
+            return jsonify({'message': 'User not found'}), 404
 
-        # Obtener el empleado correspondiente al user_id
+        # Get the employee corresponding to user_id
         employee = Employee.query.filter_by(user_id=user_id).first()
 
-        # Verificar si el empleado existe
+        # Check if employee exists
         if employee is None:
-            return jsonify({'message': 'Empleado no encontrado'}), 404
+            return jsonify({'message': 'Employee not found'}), 404
 
-        # Obtener el manager correspondiente al empleado
+        # Get the manager corresponding to the employee
         manager = Manager.query.filter_by(employee_id=employee.id).first()
 
-        # Verificar si el manager existe
+        # Check if manager exists
         if manager is None:
-            return jsonify({'message': 'Manager no encontrado'}), 404
+            return jsonify({'message': 'Manager not found'}), 404
 
-        # Obtener los vendedores asociados a ese manager
+        # Get the salesmen associated with that manager
         salesmen = Salesman.query.filter_by(manager_id=manager.id).all()
 
-        # Inicializar variables para recopilar estadísticas
+        # Initialize variables to collect statistics
         projected_collections = 0
         new_loans = 0
         daily_expenses = 0
@@ -640,29 +650,29 @@ def box():
         total_customers = 0
         customers_in_arrears = 0
 
-        # Iterar sobre los vendedores
+        # Iterate over the salesmen
         for salesman in salesmen:
-            # Realizar cálculos basados en las transacciones diarias de RETIRO
+            # Calculate based on daily RETIRO transactions
             daily_withdrawals += Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.RETIRO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
-            # Realizar cálculos basados en las transacciones diarias de INGRESO
+            # Calculate based on daily INGRESO transactions
             daily_collection += Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.INGRESO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
-            # Realizar cálculos basados en otras transacciones (ventas, gastos, etc.)
-            # Agrega el código correspondiente aquí
+            # Calculate based on other transactions (sales, expenses, etc.)
+            # Add the corresponding code here
 
-            # Calcular otras estadísticas (nuevos préstamos, renovaciones, etc.)
-            # Agrega el código correspondiente aquí
+            # Calculate other statistics (new loans, renewals, etc.)
+            # Add the corresponding code here
 
-            # Calcular las colecciones completadas para el día
+            # Calculate completed collections for the day
             sales_today = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
@@ -671,37 +681,37 @@ def box():
 
             completed_collections += len([sale for sale in sales_today if sale.status])
 
-            # Total de clientes del vendedor
-            total_customers += len(salesman.employee.client.loans)
+            # Total customers of the salesman
+            total_customers += len(salesman.employee.clients)
 
-            # Clientes en morosidad para el día
+            # Customers in arrears for the day
             customers_in_arrears += len([
-                client_loan for client_loan in salesman.employee.client.loans
-                if not client_loan.up_to_date and client_loan.status
+                client for client in salesman.employee.clients
+                if any(loan.status and not loan.up_to_date for loan in client.loans)
             ])
 
-        # Calcular las colecciones proyectadas para el día
+        # Calculate projected collections for the day
         projected_collections = completed_collections / total_customers * daily_collection
 
-        # Crear un diccionario con los resultados
+        # Create a dictionary with the results
         boxes_data = {
-            'nombre_del_manager': manager.employee.user.username,
-            'nombre_de_los_vendedores': [vendedor.employee.user.username for vendedor in salesmen],
-            'colecciones_proyectadas_para_el_dia': projected_collections,
-            'nuevos_prestamos_realizados_hoy': new_loans,
-            'gastos_diarios': daily_expenses,
-            'retiros_diarios': daily_withdrawals,
-            'colecciones_diarias_realizadas': daily_collection,
-            'cuántas_renovaciones_se_han_hecho_hoy': daily_renewals,
-            'cuántas_colecciones_del_día_se_han_completado': completed_collections,
-            'número_total_de_clientes': total_customers,
-            'clientes_en_morosidad_para_el_día': customers_in_arrears
+            'manager_name': manager.employee.user.username,
+            'salesmen_names': [salesman.employee.user.username for salesman in salesmen],
+            'projected_collections_for_the_day': projected_collections,
+            'new_loans_made_today': new_loans,
+            'daily_expenses': daily_expenses,
+            'daily_withdrawals': daily_withdrawals,
+            'daily_collections_made': daily_collection,
+            'how_many_renewals_have_been_made_today': daily_renewals,
+            'how_many_collections_of_the_day_have_been_completed': completed_collections,
+            'total_number_of_customers': total_customers,
+            'customers_in_arrears_for_the_day': customers_in_arrears
         }
 
         return render_template('box.html', boxes_data=boxes_data)
 
     except Exception as e:
-        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+        return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
 
 
 # Define the endpoint route to list clients in arrears
