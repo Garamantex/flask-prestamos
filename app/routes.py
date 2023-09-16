@@ -667,13 +667,6 @@ def box():
                 transaction_types=TransactionType.INGRESO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
-            # Calculate pending collections for the current day excluding "PAGADA" status
-            projected_collections = db.session.query(func.sum(LoanInstallment.amount)).join(Client, and_(
-                LoanInstallment.due_date == datetime.date.today(),
-                LoanInstallment.status != InstallmentStatus.PAGADA,
-                Client.employee_id == salesman.employee.id
-            )).scalar() or 0
-
             # Calculate completed collections for the day
             sales_today = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
