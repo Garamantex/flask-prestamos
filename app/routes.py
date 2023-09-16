@@ -667,18 +667,13 @@ def box():
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
             # Calcular cobros proyectados para el día (estado diferente de PAGADA)
-            projected_collections = LoanInstallment.query.join(Client).join(Employee).join(Salesman).join(
-                Manager).filter(
+            projected_collections = db.session.query(func.sum(LoanInstallment.amount)).join(Client, Employee, Salesman,
+                                                                                            Manager).filter(
                 Manager.id == manager.id,
                 LoanInstallment.status != InstallmentStatus.PAGADA,
                 LoanInstallment.due_date == func.current_date()
-            ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
+            ).scalar() or 0
 
-            # Calculate based on other transactions (sales, expenses, etc.)
-            # Add the corresponding code here
-
-            # Calculate other statistics (new loans, renewals, etc.)
-            # Add the corresponding code here
 
             # Calculate completed collections for the day
             sales_today = Transaction.query.filter_by(
