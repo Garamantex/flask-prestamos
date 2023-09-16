@@ -711,31 +711,60 @@ def box():
 # Define the endpoint route to list clients in arrears
 @routes.route('/debtor', methods=['GET'])
 def list_clients_in_arrears():
-    # Get the current date
-    current_date = datetime.now().date()
+    try:
+        # Obtener el user_id del vendedor desde la sesión (reemplaza esto con tu lógica de autenticación)
+        user_id = session.get('user_id')
 
-    # Query clients in arrears and their data
-    clients_in_arrears = db.session.query(Client, Loan, LoanInstallment) \
-        .join(Loan, Loan.client_id == Client.id) \
-        .join(LoanInstallment, LoanInstallment.loan_id == Loan.id) \
-        .filter(LoanInstallment.status == InstallmentStatus.MORA, LoanInstallment.due_date <= current_date) \
-        .all()
+        # Buscar al vendedor (empleado) correspondiente al user_id
+        employee = Employee.query.filter_by(user_id=user_id).first()
 
-    # Prepare response data
-    debtors = []
-    for client, loan, installment in clients_in_arrears:
-        arrears_balance = float(loan.amount) - float(installment.payment)
-        remaining_amount_to_pay = float(loan.amount) - float(installment.payment)
-        client_data = {
-            'client_name': f'{client.first_name} {client.last_name}',
-            'arrears_balance': str(arrears_balance),
-            'number_of_installments_in_arrears': installment.installment_number,
-            'remaining_amount_to_pay': str(remaining_amount_to_pay)
-        }
-        debtors.append(client_data)
+        if not employee:
+            return jsonify({'message': 'Empleado no encontrado'}), 404
 
-    # Return the list of clients in arrears as JSON
-    return render_template('debtor.html', debtors=debtors)
+        # Obtener todos los clientes asociados a este vendedor que tienen préstamos en estado "MORA"
+        clients_in_arrears = Client.query.filter(
+            Client.employee_id == employee.id,
+            Client.debtor == True,  # Asegúrate de que la columna se llame 'debtor' en tu modelo
+            Client.id == Loan.client_id,
+            Loan.id == LoanInstallment.loan_id,
+            LoanInstallment.status == InstallmentStatus.MORA
+        ).all()
+
+        # Crear una lista para almacenar los detalles de los clientes en mora
+        clients_in_arrears_details = []
+
+        for client in clients_in_arrears:
+            # Obtener todas las cuotas del préstamo del cliente
+            installments = LoanInstallment.query.filter_by(loan_id=client.loans[0].id).all()
+
+            # Calcular los datos requeridos
+            cuotas_pagadas = sum(1 for installment in installments if installment.status == InstallmentStatus.PAGADA)
+            cuotas_vencidas = sum(1 for installment in installments if installment.status == InstallmentStatus.MORA)
+            valor_total = client.loans[0].amount + (client.loans[0].amount * client.loans[0].interest / 100)
+            saldo_pendiente = valor_total - sum(
+                installment.amount for installment in installments if installment.status == InstallmentStatus.PAGADA)
+
+            # Formatear los valores sin decimales
+            valor_total = int(valor_total)
+            saldo_pendiente = int(saldo_pendiente)
+
+            # Crear un diccionario con los detalles del cliente
+            client_details = {
+                'nombre_vendedor': f'{employee.first_name} {employee.last_name}',
+                'nombre_cliente': f'{client.first_name} {client.last_name}',
+                'cuotas_pagadas': cuotas_pagadas,
+                'cuotas_vencidas': cuotas_vencidas,
+                'valor_total': valor_total,
+                'saldo_pendiente': saldo_pendiente
+            }
+
+            # Agregar los detalles del cliente a la lista
+            clients_in_arrears_details.append(client_details)
+
+        return render_template('debtor.html', debtors=clients_in_arrears_details)
+
+    except Exception as e:
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
 @routes.route('/create-box')
