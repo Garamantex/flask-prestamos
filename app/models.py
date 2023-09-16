@@ -88,7 +88,6 @@ class Employee(db.Model):
         return json.dumps(self.to_json(), indent=4)
 
 
-
 class Manager(db.Model):
     """ Modelo de Coordinador """
 

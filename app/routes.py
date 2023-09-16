@@ -164,9 +164,10 @@ def create_user():
 
                 # Obtén el ID del empleado de la sesión (el empleado que está logeado)
                 user_id_empleado_sesion = session['user_id']
+                employee_id_empleado_sesion = Employee.query.filter_by(user_id=user_id_empleado_sesion).first().id
 
-                # Busca el ID del gerente (manager) basado en el ID del empleado de la sesión
-                manager = Manager.query.filter_by(employee_id=user_id_empleado_sesion).first()
+                # Busca el ID del gerente (manager) a partir del  ID del empleado de la sesión
+                manager = Manager.query.filter_by(employee_id=employee_id_empleado_sesion).first()
 
                 if manager:
                     # Si se encuentra el gerente, obtén su ID
