@@ -159,9 +159,6 @@ def create_user():
 
             # Verificar si se seleccionó el rol "Vendedor"
             if role == 'VENDEDOR':
-                # Obtén el ID del empleado recién creado (el empleado asociado al usuario que acaba de registrarse)
-                employee_id = employee.id
-
                 # Obtén el ID del gerente (manager) basado en el usuario que está logeado
                 user_id = session['user_id']
                 manager = Manager.query.filter_by(employee_id=user_id).first()
@@ -169,8 +166,8 @@ def create_user():
                 if manager:
                     # Si se encuentra el gerente, crea un nuevo objeto Salesman asociado al empleado y al gerente
                     salesman = Salesman(
-                        employee=employee,
-                        manager=manager
+                        employee_id=employee.id,
+                        manager_id=manager.id
                     )
 
                     # Guarda el nuevo vendedor en la base de datos
