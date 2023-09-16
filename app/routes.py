@@ -710,7 +710,7 @@ def box():
 
 # Define the endpoint route to list clients in arrears
 @routes.route('/debtor', methods=['GET'])
-def list_mora_debtors():
+def debtor():
     try:
         # Obtener el user_id de la sesión
         user_id = session.get('user_id')
@@ -795,11 +795,6 @@ def box_detail():
 @routes.route('/approval-expenses')
 def approval_expenses():
     return render_template('approval-expenses.html')
-
-
-@routes.route('/morosos')
-def debtor():
-    return render_template('debtor.html')
 
 
 @routes.route('/wallet')
