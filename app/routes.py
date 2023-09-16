@@ -771,7 +771,7 @@ def list_mora_debtors():
                 # Agregar los detalles del cliente en MORA a la lista
                 mora_debtors_details.append(mora_debtor_details)
 
-        return jsonify({'clientes_en_mora': mora_debtors_details})
+        return render_template('debtor.html', mora_debtors_details=mora_debtors_details)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
