@@ -25,40 +25,36 @@
                     {% for debtor in debtors %}
                     <li class="c-cajas__item">
                         <div class="c-cajas__item__header">
-                            <h3 class="c-cajas__item__title c-headings c-headings__h2">{{ debtor.client_name }}</h3>
+                            <h3 class="c-cajas__item__title c-headings c-headings__h2">{{ debtor.nombre_cliente }}</h3>
                         </div>
                         <div class="c-cajas__item__body">
                             <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
                                 <span class="c-cajas__item__body__item__label">Vendedor:</span>
-                                <span class="c-cajas__item__body__item__value">{{ debtor.vendedor }}</span>
+                                <span class="c-cajas__item__body__item__value">{{ debtor.nombre_vendedor }}</span>
                             </div>
                             <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
                                 <span class="c-cajas__item__body__item__label">Cliente:</span>
-                                <span class="c-cajas__item__body__item__value">{{ debtor.cliente }}</span>
+                                <span class="c-cajas__item__body__item__value">{{ debtor.nombre_cliente }}</span>
                             </div>
                             <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
                                 <span class="c-cajas__item__body__item__label">Cuotas pagadas:</span>
-                                <span class="c-cajas__item__body__item__value">{{ debtor.number_of_installments_in_arrears }}</span>
+                                <span class="c-cajas__item__body__item__value">{{ debtor.cuotas_pagadas }}</span>
                             </div>
                             <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
                                 <span class="c-cajas__item__body__item__label">Cuotas vencidas:</span>
-                                <span class="c-cajas__item__body__item__value">{{ debtor.number_of_installments_in_arrears }}</span>
+                                <span class="c-cajas__item__body__item__value">{{ debtor.cuotas_vencidas }}</span>
                             </div>
                             <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
                                 <span class="c-cajas__item__body__item__label">Monto deuda:</span>
-                                <span class="c-cajas__item__body__item__value">${{ debtor.arrears_balance }}</span>
+                                <span class="c-cajas__item__body__item__value">${{ debtor.valor_total }}</span>
                             </div>
                             <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
                                 <span class="c-cajas__item__body__item__label">Monto mora:</span>
-                                <span class="c-cajas__item__body__item__value">${{ debtor.arrears_balance }}</span>
+                                <span class="c-cajas__item__body__item__value">${{ debtor.saldo_pendiente }}</span>
                             </div>
                             <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
                                 <span class="c-cajas__item__body__item__label">Saldo vencido:</span>
                                 <span class="c-cajas__item__body__item__value">$0</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
-                                <span class="c-cajas__item__body__item__label">Fecha de vencimiento:</span>
-                                <span class="c-cajas__item__body__item__value">{{ debtor.due_date }}</span>
                             </div>
                             <div class="c-cajas__item__body__item c-cajas__item__body__item--30">
                                 <span class="c-cajas__item__body__item__label">Ultimo pago:</span>
