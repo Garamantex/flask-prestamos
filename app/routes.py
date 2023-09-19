@@ -37,6 +37,8 @@ def home():
         if user:
             # Guardar el usuario en la sesión
             session['user_id'] = user.id
+            session['first_name'] = user.first_name
+            session['last_name'] = user.last_name
             session['username'] = user.username
             session['role'] = user.role.name  # Guardar solo el nombre del rol
 
@@ -225,7 +227,8 @@ def get_maximum_values_create_salesman(manager_id):
             return {
                 'maximum_cash_coordinator': str(maximum_cash_coordinator),
                 'total_cash_salesman': str(total_cash),
-                'maximum_cash_salesman': str(maximum_cash_salesman)
+                'maximum_cash_salesman': str(maximum_cash_salesman),
+                'manager_id': str(manager_id)
             }
         else:
             abort(404)  # Coordinador no encontrado
@@ -440,6 +443,18 @@ def modify_installments(loan_id):
             installment.status = InstallmentStatus(new_status)
 
     # Guardar los cambios en la base de datos
+    db.session.commit()
+
+    # Verificar si hay cuotas en estado "MORA"
+    mora_installments = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.MORA).count()
+    if mora_installments > 0:
+        # El cliente está en mora, cambiar el estado a True
+        client = Client.query.get(loan.client_id)
+        client.debtor = True
+    else:
+        # No hay cuotas en estado "MORA", cambiar el estado a False
+        client = Client.query.get(loan.client_id)
+        client.debtor = False
     db.session.commit()
 
     # Verificar si el cliente ya no tiene más cuotas pendientes del préstamo
@@ -727,9 +742,10 @@ def debtor():
         # Crear una lista para almacenar los detalles de los clientes en MORA
         mora_debtors_details = []
 
+
         # Obtener todos los clientes asociados a este empleado que tienen préstamos en estado "MORA"
         clientes_en_mora = Client.query.filter(
-            Client.employee_id == empleado.id,
+            Client.employee_id == empleado.id,  # Filtrar por el ID del empleado
             Client.debtor == True,
         ).all()
 
@@ -771,9 +787,6 @@ def debtor():
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
-
-
-
 
 
 @routes.route('/create-box')
