@@ -6,7 +6,7 @@
     <div class="container pt-5">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Volver al menú</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager') }}">Volver al menú</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
@@ -22,7 +22,8 @@
         <div class="row mt-4">
             <div class="col">
                 <ul class="request-list">
-                    <li class="request-item">
+                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
+                        <p>Solicitado por: <span>David Rocha</span></p>
                         <p>Tipo de Gasto: <span>Gasto</span></p> 
                         <p>Concepto: <span>Alquiler</span></p> 
                         <p>Descripción: <span>Pago del alquiler mensual</span></p> 
@@ -34,6 +35,58 @@
                         </select><br>
                         <a class="btn btn-primary" href="">Procesar Solicitud</a>
                     </li> 
+                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
+                        <p>Solicitado por: <span>David Rocha</span></p>
+                        <p>Tipo de Gasto: <span>Gasto</span></p> 
+                        <p>Concepto: <span>Alquiler</span></p> 
+                        <p>Descripción: <span>Pago del alquiler mensual</span></p> 
+                        <p>Valor: <span>$1000</span></p> 
+                        <p>Aprobar/Denegar:</p>
+                        <select class="request-dropdown mt-3 mb-3" name="approval_status">
+                            <option value="approve">Aprobar</option>
+                            <option value="deny">Denegar</option>
+                        </select><br>
+                        <a class="btn btn-primary" href="">Procesar Solicitud</a>
+                    </li>
+                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
+                        <p>Solicitado por: <span>David Rocha</span></p>
+                        <p>Tipo de Gasto: <span>Gasto</span></p> 
+                        <p>Concepto: <span>Alquiler</span></p> 
+                        <p>Descripción: <span>Pago del alquiler mensual</span></p> 
+                        <p>Valor: <span>$1000</span></p> 
+                        <p>Aprobar/Denegar:</p>
+                        <select class="request-dropdown mt-3 mb-3" name="approval_status">
+                            <option value="approve">Aprobar</option>
+                            <option value="deny">Denegar</option>
+                        </select><br>
+                        <a class="btn btn-primary" href="">Procesar Solicitud</a>
+                    </li>
+                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
+                        <p>Solicitado por: <span>David Rocha</span></p>
+                        <p>Tipo de Gasto: <span>Gasto</span></p> 
+                        <p>Concepto: <span>Alquiler</span></p> 
+                        <p>Descripción: <span>Pago del alquiler mensual</span></p> 
+                        <p>Valor: <span>$1000</span></p> 
+                        <p>Aprobar/Denegar:</p>
+                        <select class="request-dropdown mt-3 mb-3" name="approval_status">
+                            <option value="approve">Aprobar</option>
+                            <option value="deny">Denegar</option>
+                        </select><br>
+                        <a class="btn btn-primary" href="">Procesar Solicitud</a>
+                    </li>
+                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
+                        <p>Solicitado por: <span>David Rocha</span></p>
+                        <p>Tipo de Gasto: <span>Gasto</span></p> 
+                        <p>Concepto: <span>Alquiler</span></p> 
+                        <p>Descripción: <span>Pago del alquiler mensual</span></p> 
+                        <p>Valor: <span>$1000</span></p> 
+                        <p>Aprobar/Denegar:</p>
+                        <select class="request-dropdown mt-3 mb-3" name="approval_status">
+                            <option value="approve">Aprobar</option>
+                            <option value="deny">Denegar</option>
+                        </select><br>
+                        <a class="btn btn-primary" href="">Procesar Solicitud</a>
+                    </li>
                 </ul>
             </div>
         </div>

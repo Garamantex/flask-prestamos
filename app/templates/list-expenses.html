@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager') }}">Volver al menú</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="c-users">
+                    <p class="c-users__title">Listado de Solicitudes</p>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col">
+                <ul class="request-list">
+                    <!-- Solicitud 1 -->
+                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px; background-color: greenyellow; color: black;">
+                        <p>Solicitado por: <span>David Rocha</span></p>
+                        <p>Tipo de Gasto: <span>Gasto</span></p>
+                        <p>Concepto: <span>Alquiler</span></p>
+                        <p>Descripción: <span>Pago del alquiler mensual</span></p>
+                        <p>Valor: <span>$1000</span></p>
+                        <p>Estado: <span>Aprobado</span></p>
+                    </li>
+
+                    <!-- Solicitud 2 -->
+                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px; background-color: red;">
+                        <p>Solicitado por: <span>David Rocha</span></p>
+                        <p>Tipo de Gasto: <span>Gasto</span></p>
+                        <p>Concepto: <span>Comida</span></p>
+                        <p>Descripción: <span>Compra de víveres</span></p>
+                        <p>Valor: <span>$500</span></p>
+                        <p>Estado: <span>Denegado</span></p>
+                    </li>
+
+                    <!-- Solicitud 3 -->
+                    <!-- ... Repite la estructura para más solicitudes ... -->
+                    
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

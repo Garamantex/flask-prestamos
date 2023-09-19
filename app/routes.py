@@ -804,6 +804,14 @@ def debtor():
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
+@routes.route('/list-expenses')
+def list_expenses():
+    return render_template('list-expenses.html')
+
+@routes.route('/payments-route')
+def payments_route():
+    return render_template('payments-route.html')
+
 @routes.route('/create-box')
 def create_box():
     return render_template('create-box.html')
