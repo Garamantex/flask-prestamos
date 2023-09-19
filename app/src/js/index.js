@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         var cuota = prestamo / plazo;
         console.log(cuota);
+        console.log(sessionStorage)
         var cuotaInteres = cuota + (cuota * interes / 100);
         console.log(cuotaInteres);
         cuotaAproxInput.value = cuotaInteres.toFixed(2);
@@ -64,7 +65,6 @@ async function obtenerValoresMaximos() {
     try {
         const response = await fetch("/maximum-values-loan");
         const data = await response.json();
-        
         // Obtener elementos del formulario
         const montoInput = document.getElementById("amount");
         const cuotasSelect = document.getElementById("dues");
@@ -98,6 +98,54 @@ async function obtenerValoresMaximos() {
         console.error("Error al obtener los valores máximos del préstamo:", error);
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtén el ID del coordinador desde algún lugar (puede ser dinámico)
+    const coordinatorId = document.getElementById('user-id');
+
+    // Crea una instancia de XMLHttpRequest para realizar la solicitud AJAX
+    const xhr = new XMLHttpRequest();
+
+    // Configura la solicitud
+    xhr.open('GET', `/get_maximum_values_create_salesman/${coordinatorId}`, true);
+
+    // Configura el controlador de eventos para la carga exitosa
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+
+            // Establece los valores máximos en los campos de entrada correspondientes
+            document.getElementById('maximum_cash').setAttribute('max', data.maximum_cash_coordinator);
+            document.getElementById('maximum_sale').setAttribute('max', data.maximum_sale_coordinator);
+            document.getElementById('maximum_expense').setAttribute('max', data.maximum_expense_coordinator);
+            document.getElementById('maximum_installments').setAttribute('max', data.maximum_installments_coordinator);
+            document.getElementById('minimum_interest').setAttribute('min', data.minimum_interest_coordinator);
+
+            // Puedes agregar más campos aquí según sea necesario
+
+            // Maneja cambios en los campos de entrada si es necesario
+            document.getElementById('maximum_cash').addEventListener('input', function() {
+                if (parseFloat(this.value) > parseFloat(data.maximum_cash_coordinator)) {
+                    alert('El monto máximo permitido es de $' + data.maximum_cash_coordinator);
+                    this.value = data.maximum_cash_coordinator;
+                }
+            });
+
+            // Puedes hacer lo mismo para otros campos si es necesario
+
+        } else {
+            console.error('Error al obtener los valores máximos del coordinador');
+        }
+    };
+
+    // Maneja errores de la solicitud AJAX
+    xhr.onerror = function() {
+        console.error('Error de red al realizar la solicitud');
+    };
+
+    // Envía la solicitud AJAX
+    xhr.send();
+});
 
 // Ejecutar la función para obtener los valores máximos al cargar la página
 window.addEventListener("load", obtenerValoresMaximos);

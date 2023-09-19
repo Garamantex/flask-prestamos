@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div id="user-id" data-user-id="{{ session.get('user_id') }}"></div>
 <div class="c-form">
     <div class="container pt-5">
         <div class="row">
