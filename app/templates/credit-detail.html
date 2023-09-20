@@ -64,28 +64,30 @@
                     </div>
                     <div class="card-body">
                         <form method="post" action="{{ url_for('routes.modify_installments', loan_id=loan.id) }}">
-                            <ul class="request-list">
-                                {% for installment in installments %}
-                                <li class="request-item">
-                                    <p>N° Cuota: <span>{{ installment.installment_number }}</span></p>
-                                    <p>Estado: <span>{{ installment.status.value }}</span></p>
-                                    <p>Fecha de Pago: <span>{{ installment.due_date.strftime('%d/%m/%Y') }}</span></p>
-                                    <p>Valor de Cuota: <span>${{ installment.amount }}</span></p>
-                                    <p>
-                                        {% if installment.status.value == 'PENDIENTE' or installment.status.value == 'MORA' %}
-                                            <label for="estado_cuota_{{ installment.id }}">Modificar Estado:</label>
-                                            <select class="request-dropdown mt-3 mb-3" name="estado_cuota_{{ installment.id }}">
-                                                <option value="PAGADA">PAGADA</option>
-                                                <option value="PENDIENTE" selected>PENDIENTE</option>
-                                                <option value="MORA">MORA</option>
-                                            </select>
-                                        {% else %}
-                                            <span>Modificar Estado: {{ installment.status.value }}</span>
-                                        {% endif %}
-                                    </p>
-                                </li>
-                                {% endfor %}
-                            </ul>
+                            <div class="c-overflow">
+                                <ul class="request-list">
+                                    {% for installment in installments %}
+                                    <li class="request-item request-item--column">
+                                        <p>N° Cuota: <span>{{ installment.installment_number }}</span></p>
+                                        <p>Estado: <span>{{ installment.status.value }}</span></p>
+                                        <p>Fecha de Pago: <span>{{ installment.due_date.strftime('%d/%m/%Y') }}</span></p>
+                                        <p>Valor de Cuota: <span>${{ installment.amount }}</span></p>
+                                        <p>
+                                            {% if installment.status.value == 'PENDIENTE' or installment.status.value == 'MORA' %}
+                                                <label for="estado_cuota_{{ installment.id }}">Modificar Estado:</label>
+                                                <select class="request-dropdown mt-3 mb-3" name="estado_cuota_{{ installment.id }}">
+                                                    <option value="PAGADA">PAGADA</option>
+                                                    <option value="PENDIENTE" selected>PENDIENTE</option>
+                                                    <option value="MORA">MORA</option>
+                                                </select>
+                                            {% else %}
+                                                <span>Modificar Estado: {{ installment.status.value }}</span>
+                                            {% endif %}
+                                        </p>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
                             <button class="btn btn-primary" type="submit">Guardar Cambios</button>
                         </form>
                     </div>
