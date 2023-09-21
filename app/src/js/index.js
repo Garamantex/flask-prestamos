@@ -101,13 +101,18 @@ async function obtenerValoresMaximos() {
 
 document.addEventListener('DOMContentLoaded', function() {
     // Obtén el ID del coordinador desde algún lugar (puede ser dinámico)
-    const coordinatorId = document.getElementById('user-id');
+    const userIdElement = document.getElementById('user-id');
+    console.log(userIdElement)
+    if (userIdElement) {
+        const userId = userIdElement.getAttribute('data-user-id');
+        // Ahora, userId contiene el ID del usuario
+        console.log('ID del usuario:', userId);
 
-    // Crea una instancia de XMLHttpRequest para realizar la solicitud AJAX
+        // Crea una instancia de XMLHttpRequest para realizar la solicitud AJAX
     const xhr = new XMLHttpRequest();
 
     // Configura la solicitud
-    xhr.open('GET', `/get_maximum_values_create_salesman/${coordinatorId}`, true);
+    xhr.open('GET', `/get_maximum_values_create_salesman/${userId}`, true);
 
     // Configura el controlador de eventos para la carga exitosa
     xhr.onload = function() {
@@ -120,14 +125,16 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('maximum_expense').setAttribute('max', data.maximum_expense_coordinator);
             document.getElementById('maximum_installments').setAttribute('max', data.maximum_installments_coordinator);
             document.getElementById('minimum_interest').setAttribute('min', data.minimum_interest_coordinator);
+            document.getElementById('fix_value').setAttribute('min', data.fix_value_coordinator);
+
 
             // Puedes agregar más campos aquí según sea necesario
 
             // Maneja cambios en los campos de entrada si es necesario
             document.getElementById('maximum_cash').addEventListener('input', function() {
-                if (parseFloat(this.value) > parseFloat(data.maximum_cash_coordinator)) {
-                    alert('El monto máximo permitido es de $' + data.maximum_cash_coordinator);
-                    this.value = data.maximum_cash_coordinator;
+                if (parseFloat(this.value) > parseFloat(data.maximum_cash_salesman)) {
+                    alert('El monto máximo permitido es de $' + data.maximum_cash_salesman);
+                    this.value = data.maximum_cash_salesman;
                 }
             });
 
@@ -145,6 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Envía la solicitud AJAX
     xhr.send();
+    }
 });
 
 // Ejecutar la función para obtener los valores máximos al cargar la página
