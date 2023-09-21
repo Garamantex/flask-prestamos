@@ -230,12 +230,6 @@ def get_maximum_values_create_salesman(manager_id):
             # Obtener la cantidad maxima de cuotas
             maximum_installments_coordinator = manager.employee.maximum_installments
 
-            # Obtener el valor fijo del coordinado
-            fix_value_coordinator = manager.employee.fix_value
-
-            # Calcular el valor total de los gastos del coordinado
-            total_cash = total_cash + fix_value_coordinator
-
             # Calcular el valor máximo que se puede parametrizar a un nuevo vendedor
             maximum_cash_salesman = maximum_cash_coordinator - total_cash
 
@@ -250,7 +244,6 @@ def get_maximum_values_create_salesman(manager_id):
                 'maximum_expense_coordinator': str(maximum_expense_coordinator),
                 'maximum_installments_coordinator': str(maximum_installments_coordinator),
                 'minimum_interest_coordinator': str(minimum_interest),
-                'fix_value_coordinator': str(fix_value_coordinator)
             }
         else:
             abort(404)  # Coordinador no encontrado
