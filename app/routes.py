@@ -202,18 +202,24 @@ def user_list():
     return render_template('user-list.html', users=users, employees=employees)
 
 
-@routes.route('/get_maximum_values_create_salesman/<int:manager_id>', methods=['GET'])
-def get_maximum_values_create_salesman(manager_id):
-    if 'user_id' in session and session['role'] == 'COORDINADOR':
-        # Verificar si el usuario tiene el rol de "Coordinador"
+@routes.route('/get_maximum_values_create_salesman', methods=['GET'])
+def get_maximum_values_create_salesman():
+    # Buscar el empleado id a partir del user_id de la sesión
+    user_id = session['user_id']
+    print(f'user_id: {user_id}')
+    employee_id = Employee.query.filter_by(user_id=user_id).first()
 
-        # Buscar el coordinador en la tabla Manager
-        manager = Manager.query.get(manager_id)
+    if employee_id:
+        employee_id = employee_id.id
+        # Buscar el manager id a partir del employee_id
+        manager = Manager.query.filter_by(employee_id=employee_id).first()
 
         if manager:
+            manager_id = manager.id
             # Obtener la suma de maximum_cash de los vendedores asociados al coordinador
-            total_cash = db.session.query(db.func.sum(Employee.maximum_cash)).join(Salesman). \
-                filter(Salesman.manager_id == manager_id).scalar()
+            total_cash_query = db.session.query(db.func.sum(Employee.maximum_cash)).join(Salesman). \
+                filter(Salesman.manager_id == manager_id)
+            total_cash = total_cash_query.scalar()
 
             if total_cash is None:
                 total_cash = 0
@@ -221,19 +227,20 @@ def get_maximum_values_create_salesman(manager_id):
             # Obtener el valor máximo de maximum_cash para el coordinador
             maximum_cash_coordinator = manager.employee.maximum_cash
 
-            # Obtener el valor maximo de venta para el coordinado
+            # Obtener el valor máximo de venta para el coordinador
             maximum_sale_coordinator = manager.employee.maximum_sale
 
-            # Obtener el valor maximo de gastos
+            # Obtener el valor máximo de gastos
             maximum_expense_coordinator = manager.employee.maximum_expense
 
-            # Obtener la cantidad maxima de cuotas
+            # Obtener la cantidad máxima de cuotas
             maximum_installments_coordinator = manager.employee.maximum_installments
 
             # Calcular el valor máximo que se puede parametrizar a un nuevo vendedor
             maximum_cash_salesman = maximum_cash_coordinator - total_cash
+            print(maximum_cash_salesman)
 
-            # Obtener el minimo de interes
+            # Obtener el mínimo de interés
             minimum_interest = manager.employee.minimum_interest
 
             return {
@@ -247,9 +254,10 @@ def get_maximum_values_create_salesman(manager_id):
             }
         else:
             abort(404)  # Coordinador no encontrado
-
     else:
-        abort(403)  # Acceso no autorizado
+        abort(404)  # Empleado no encontrado
+
+
 
 
 @routes.route('/maximum-values-loan', methods=['GET'])
