@@ -238,7 +238,7 @@ def get_maximum_values_create_salesman():
 
             # Calcular el valor máximo que se puede parametrizar a un nuevo vendedor
             maximum_cash_salesman = maximum_cash_coordinator - total_cash
-            print(maximum_cash_salesman)
+            print(f'maximum_cash_salesman: {maximum_cash_salesman}')
 
             # Obtener el mínimo de interés
             minimum_interest = manager.employee.minimum_interest
