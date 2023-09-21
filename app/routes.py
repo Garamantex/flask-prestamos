@@ -812,6 +812,122 @@ def debtor():
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
+@routes.route('/get-debtors', methods=['GET'])
+def get_debtors():
+    # Obtener el ID del usuario desde la sesión
+    user_id = session.get('user_id')
+
+    # Buscar al empleado asociado al usuario
+    employee = Employee.query.filter_by(user_id=user_id).first()
+
+    if not employee:
+        return jsonify({"error": "No se encontró el empleado asociado al usuario."}), 404
+
+    # Inicializar la lista para almacenar la información de los vendedores y sus clientes
+    debtors_info = []
+
+    # Si el usuario es un COORDINADOR, puede ver a todos los vendedores y sus clientes
+    if employee.user.role == Role.COORDINADOR:
+        # Obtener todos los vendedores
+        salesmen = Salesman.query.all()
+
+        for salesman in salesmen:
+            # Obtener la información del empleado (vendedor)
+            salesman_info = {
+                "employee_name": salesman.employee.user.first_name + " " + salesman.employee.user.last_name,
+                "total_overdue_installments": 0,  # Inicializar el total de cuotas en mora en 0
+                "clients": []
+            }
+
+            # Obtener los clientes del vendedor
+            clients = Client.query.filter_by(employee_id=salesman.employee.id).all()
+
+            for client in clients:
+                # Calcular la información para cada cliente
+                client_info = {
+                    "client_name": client.first_name + " " + client.last_name,
+                    "paid_installments": 0,  # Inicializar el número de cuotas pagadas en 0
+                    "overdue_installments": 0,  # Inicializar el número de cuotas en mora en 0
+                    "remaining_debt": 0,  # Inicializar el monto pendiente en 0
+                    "total_overdue_amount": 0,  # Inicializar el monto total en mora en 0
+                    "last_paid_installment_date": None  # Inicializar la fecha de la última cuota pagada como None
+                }
+
+                # Obtener todas las cuotas del cliente
+                installments = LoanInstallment.query.filter_by(client_id=client.id).all()
+
+                for installment in installments:
+                    if installment.status == InstallmentStatus.PAGADA:
+                        client_info["paid_installments"] += 1
+                        client_info["last_paid_installment_date"] = installment.payment_date
+                    elif installment.status == InstallmentStatus.MORA:
+                        client_info["overdue_installments"] += 1
+                        client_info["total_overdue_amount"] += float(installment.amount)
+                    if installment.status != InstallmentStatus.PAGADA:
+                        client_info["remaining_debt"] += float(installment.amount)
+
+                # Agregar la información del cliente a la lista de clientes del vendedor
+                salesman_info["clients"].append(client_info)
+
+                # Actualizar el total de cuotas en mora del vendedor
+                salesman_info["total_overdue_installments"] += client_info["overdue_installments"]
+
+            # Agregar la información del vendedor a la lista principal
+            debtors_info.append(salesman_info)
+
+    # Si el usuario es un VENDEDOR, solo puede ver sus propios clientes morosos
+    elif employee.user.role == Role.VENDEDOR:
+        # Obtener al vendedor
+        salesman = Salesman.query.filter_by(employee_id=employee.id).first()
+
+        if not salesman:
+            return jsonify({"error": "No se encontró el vendedor asociado al empleado."}), 404
+
+        # Obtener la información del empleado (vendedor)
+        salesman_info = {
+            "employee_name": salesman.employee.user.first_name + " " + salesman.employee.user.last_name,
+            "total_overdue_installments": 0,  # Inicializar el total de cuotas en mora en 0
+            "clients": []
+        }
+
+        # Obtener los clientes del vendedor
+        clients = Client.query.filter_by(employee_id=salesman.employee.id).all()
+
+        for client in clients:
+            # Calcular la información para cada cliente
+            client_info = {
+                "client_name": client.first_name + " " + client.last_name,
+                "paid_installments": 0,  # Inicializar el número de cuotas pagadas en 0
+                "overdue_installments": 0,  # Inicializar el número de cuotas en mora en 0
+                "remaining_debt": 0,  # Inicializar el monto pendiente en 0
+                "total_overdue_amount": 0,  # Inicializar el monto total en mora en 0
+                "last_paid_installment_date": None  # Inicializar la fecha de la última cuota pagada como None
+            }
+
+            # Obtener todas las cuotas del cliente
+            installments = LoanInstallment.query.filter_by(client_id=client.id).all()
+
+            for installment in installments:
+                if installment.status == InstallmentStatus.PAGADA:
+                    client_info["paid_installments"] += 1
+                    client_info["last_paid_installment_date"] = installment.payment_date
+                elif installment.status == InstallmentStatus.MORA:
+                    client_info["overdue_installments"] += 1
+                    client_info["total_overdue_amount"] += float(installment.amount)
+                if installment.status != InstallmentStatus.PAGADA:
+                    client_info["remaining_debt"] += float(installment.amount)
+
+            # Agregar la información del cliente a la lista de clientes del vendedor
+            salesman_info["clients"].append(client_info)
+
+            # Actualizar el total de cuotas en mora del vendedor
+            salesman_info["total_overdue_installments"] += client_info["overdue_installments"]
+
+        # Agregar la información del vendedor a la lista principal
+        debtors_info.append(salesman_info)
+
+    return jsonify(debtors_info)
+
 @routes.route('/list-expenses')
 def list_expenses():
     return render_template('list-expenses.html')
