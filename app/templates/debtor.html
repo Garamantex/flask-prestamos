@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="c-form" data-debtors-info="{{ debtors_info | tojson | safe }}">
+<div class="c-form">
     <div class="container pt-5">
         <div class="row">
             <div class="col">
@@ -21,8 +21,8 @@
         </div>
         <div class="row">
             <div class="col-lg-12">
-                <ul class="c-cajas">
-                    <!-- Aquí se agregarán dinámicamente los elementos -->
+                <ul class="c-cajas" id="morosos-container">
+                    <!-- Los morosos se agregarán aquí dinámicamente usando JavaScript -->
                 </ul>
             </div>
         </div>

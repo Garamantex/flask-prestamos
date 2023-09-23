@@ -923,9 +923,8 @@ def get_debtors():
 
         # Agregar la información del vendedor a la lista principal
         debtors_info.append(salesman_info)
-
-    # Renderizar la plantilla HTML con la información de los deudores
-    return render_template('debtors.html', debtors_info=debtors_info)
+    print(debtors_info)
+    return jsonify(debtors_info)
 
 
 @routes.route('/payments-route', methods=['GET'])
