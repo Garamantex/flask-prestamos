@@ -258,8 +258,6 @@ def get_maximum_values_create_salesman():
         abort(404)  # Empleado no encontrado
 
 
-
-
 @routes.route('/maximum-values-loan', methods=['GET'])
 def get_maximum_values_loan():
     # Obtenemos el ID del empleado desde la sesión
@@ -926,7 +924,7 @@ def get_debtors():
         # Agregar la información del vendedor a la lista principal
         debtors_info.append(salesman_info)
 
-    return jsonify(debtors_info)
+    return render_template('debtors.html', debtors_info=debtors_info)
 
 @routes.route('/list-expenses')
 def list_expenses():
