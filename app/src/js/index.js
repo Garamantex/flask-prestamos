@@ -109,7 +109,7 @@ $(document).ready(function () {
             console.log('Respuesta AJAX:', data);
 
             // Actualizar los campos de entrada correspondientes con los valores máximos
-            $('#maximum_cash').val(data.maximum_cash_coordinator);
+            $('#maximum_cash').val(data.maximum_cash_salesman);
             $('#maximum_sale').val(data.maximum_sale_coordinator);
             $('#maximum_expense').val(data.maximum_expense_coordinator);
             $('#maximum_installments').val(data.maximum_installments_coordinator);
