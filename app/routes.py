@@ -763,7 +763,6 @@ def debtor():
         # Crear una lista para almacenar los detalles de los clientes en MORA
         mora_debtors_details = []
 
-
         # Obtener todos los clientes asociados a este empleado que tienen préstamos en estado "MORA"
         clientes_en_mora = Client.query.filter(
             Client.employee_id == empleado.id,  # Filtrar por el ID del empleado
@@ -924,15 +923,76 @@ def get_debtors():
         # Agregar la información del vendedor a la lista principal
         debtors_info.append(salesman_info)
 
+    # Renderizar la plantilla HTML con la información de los deudores
     return render_template('debtors.html', debtors_info=debtors_info)
+
+
+@routes.route('/payments-route', methods=['GET'])
+def payments_route():
+    # Obtén el ID de usuario desde la sesión
+    user_id = session.get('user_id')
+
+    # Busca al empleado asociado al usuario
+    employee = Employee.query.filter_by(user_id=user_id).first()
+
+    if not employee:
+        return jsonify({"error": "No se encontró el empleado asociado al usuario."}), 404
+
+    # Busca al vendedor correspondiente al empleado
+    salesman = Salesman.query.filter_by(employee_id=employee.id).first()
+
+    if not salesman:
+        return jsonify({"error": "No se encontró el vendedor asociado al empleado."}), 404
+
+    # Inicializa la lista para almacenar la información de los clientes
+    clients_information = []
+
+    # Obtiene los clientes del vendedor con préstamos activos
+    for client in salesman.clients:
+        for loan in client.loans:
+            if loan.status:
+                paid_installments = 0
+                overdue_installments = 0
+                total_outstanding_amount = 0
+                total_overdue_amount = 0
+                last_payment = None
+
+                for installment in loan.installments:
+                    if installment.status == InstallmentStatus.PAGADA:
+                        paid_installments += 1
+                    elif installment.status == InstallmentStatus.MORA:
+                        overdue_installments += 1
+                        total_overdue_amount += installment.amount
+                    else:
+                        total_outstanding_amount += installment.amount
+
+                    if installment.payment_date:
+                        last_payment = installment.payment_date
+
+                client_info = {
+                    'First Name': client.first_name,
+                    'Last Name': client.last_name,
+                    'Paid Installments': paid_installments,
+                    'Overdue Installments': overdue_installments,
+                    'Total Outstanding Amount': str(total_outstanding_amount),
+                    'Total Overdue Amount': str(total_overdue_amount),
+                    'Last Payment': str(last_payment) if last_payment else 'No payments recorded'
+                }
+                clients_information.append(client_info)
+
+    # Finalmente, renderiza la información como una respuesta JSON y también renderiza una plantilla
+    return render_template('payments-route.html', clients_information=clients_information)
+
 
 @routes.route('/list-expenses')
 def list_expenses():
     return render_template('list-expenses.html')
 
+
 @routes.route('/payments-route')
 def payments_route():
     return render_template('payments-route.html')
+
 
 @routes.route('/create-box')
 def create_box():
