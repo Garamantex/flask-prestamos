@@ -7,7 +7,8 @@ from operator import and_
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
-from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Salesman, TransactionType
+from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Salesman, TransactionType, \
+    ApprovalStatus
 from .models import User, Client, Loan, Employee, LoanInstallment
 
 # Crea una instancia de Blueprint
@@ -984,14 +985,87 @@ def payments_route():
     return render_template('payments-route.html', clients_information=clients_information)
 
 
+# Ruta para la página de aprobación de gastos
+@routes.route('/approval-expenses')
+def approval_expenses():
+    try:
+        # Obtener el user_id de la sesión
+        user_id = session.get('user_id')
+
+        if user_id is None:
+            return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
+
+        # Buscar al empleado correspondiente al user_id de la sesión
+        empleado = Employee.query.filter_by(user_id=user_id).first()
+
+        if not empleado:
+            return jsonify({'message': 'Empleado no encontrado'}), 404
+
+        # Obtener todas las transacciones asociadas a este empleado en estado "PENDIENTE"
+        transacciones_pendientes = Transaction.query.filter(
+            Transaction.employee_id == empleado.id,
+            Transaction.approval_status == ApprovalStatus.PENDIENTE
+        ).all()
+
+        # Crear una lista para almacenar los detalles de las transacciones pendientes
+        detalles_transacciones = []
+
+        for transaccion in transacciones_pendientes:
+            # Obtener el concepto de la transacción
+            concepto = Concept.query.get(transaccion.concept_id)
+
+            # Crear un diccionario con los detalles de la transacción pendiente
+            detalle_transaccion = {
+                'id': transaccion.id,
+                'tipo': transaccion.transaction_types.name,
+                'concepto': concepto.name,
+                'descripcion': transaccion.description,
+                'monto': transaccion.mount,
+                'attachment': transaccion.attachment,
+            }
+
+            # Agregar los detalles a la lista
+            detalles_transacciones.append(detalle_transaccion)
+
+        return render_template('approval-expenses.html', detalles_transacciones=detalles_transacciones)
+
+    except Exception as e:
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+
+
+# Ruta para modificar el estado de una transacción
+@routes.route('/modify-transaction/<int:transaction_id>', methods=['POST'])
+def modify_transaction(transaction_id):
+    try:
+        # Obtener la transacción
+        transaction = Transaction.query.get(transaction_id)
+
+        if not transaction:
+            return jsonify({'message': 'Transacción no encontrada'}), 404
+
+        # Obtener el nuevo estado de la transacción desde el formulario
+        new_status = request.form.get('new_status')
+
+        # Verificar si el nuevo estado es válido
+        if new_status not in [ApprovalStatus.APROBADA.value, ApprovalStatus.RECHAZADA.value]:
+            return jsonify({'message': 'Estado no válido'}), 400
+
+        # Actualizar el estado de la transacción
+        transaction.approval_status = ApprovalStatus(new_status)
+
+        # Guardar los cambios en la base de datos
+        db.session.commit()
+
+        # Redirigir al usuario a la página de solicitudes pendientes
+        return redirect('/approval-expenses')
+
+    except Exception as e:
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+
+
 @routes.route('/list-expenses')
 def list_expenses():
     return render_template('list-expenses.html')
-
-
-@routes.route('/payments-route')
-def payments_route():
-    return render_template('payments-route.html')
 
 
 @routes.route('/create-box')
