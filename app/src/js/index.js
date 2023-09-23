@@ -120,3 +120,54 @@ $(document).ready(function () {
         }
     });
 });
+
+$(document).ready(function() {
+    // Obtén la información enviada desde Flask desde el atributo data-debtors-info
+    var debtorsInfo = JSON.parse($('div').data('debtors-info'));
+
+    // Inicializa variables para el total de morosos y el total de mora
+    var totalMorosos = 0;
+    var totalMora = 0;
+
+    // Itera sobre la información y agrega dinámicamente elementos a la página
+    debtorsInfo.forEach(function(salesmanInfo) {
+        // Crea un elemento de lista para cada vendedor
+        var $salesmanList = $('<li class="c-cajas__item"></li>');
+
+        // Agrega el encabezado con el nombre del vendedor
+        $salesmanList.append('<div class="c-cajas__item__header"><h3 class="c-cajas__item__title c-headings c-headings__h2">' + salesmanInfo.employee_name + '</h3></div>');
+
+        // Crea una lista para los clientes del vendedor
+        var $clientsList = $('<ul class="c-cajas"></ul>');
+
+        // Itera sobre los clientes y agrega elementos para cada uno
+        salesmanInfo.clients.forEach(function(clientInfo) {
+            var $clientItem = $('<li class="c-cajas__item"></li>');
+
+            // Agrega información del cliente
+            $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Cliente:</span><span class="c-cajas__item__body__item__value">' + clientInfo.client_name + '</span></div>');
+            $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Cuotas pagadas:</span><span class="c-cajas__item__body__item__value">' + clientInfo.paid_installments + '</span></div>');
+            $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Cuotas vencidas:</span><span class="c-cajas__item__body__item__value">' + clientInfo.overdue_installments + '</span></div>');
+            $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Monto deuda:</span><span class="c-cajas__item__body__item__value">$' + clientInfo.remaining_debt + '</span></div>');
+            $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Monto mora:</span><span class="c-cajas__item__body__item__value">$' + clientInfo.total_overdue_amount + '</span></div>');
+            $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Ultimo pago:</span><span class="c-cajas__item__body__item__value">' + clientInfo.last_paid_installment_date + '</span></div>');
+
+            // Agrega el elemento del cliente a la lista de clientes del vendedor
+            $clientsList.append($clientItem);
+
+            // Actualiza el total de morosos y el total de mora
+            totalMorosos += parseInt(clientInfo.overdue_installments);
+            totalMora += parseFloat(clientInfo.total_overdue_amount);
+        });
+
+        // Agrega la lista de clientes al vendedor
+        $salesmanList.append($clientsList);
+
+        // Agrega el vendedor a la página
+        $('.c-cajas').append($salesmanList);
+    });
+
+    // Actualiza el total de morosos y el total de mora en la página
+    $('#totalMorosos').text(totalMorosos);
+    $('#totalMora').text(totalMora.toFixed(2));
+});

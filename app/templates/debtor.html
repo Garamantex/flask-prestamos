@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="c-form">
+<div class="c-form" data-debtors-info="{{ debtors_info | tojson | safe }}">
     <div class="container pt-5">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Volver al menu</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Volver al menú</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
@@ -14,107 +14,15 @@
         <div class="row">
             <div class="col">
                 <div class="c-morosos">
-                    <p class="c-morosos__item">Numero de morosos: 3</p>
-                    <p class="c-morosos__item">Total mora: $154500</p>
+                    <p class="c-morosos__item">Número de morosos: <span id="totalMorosos">0</span></p>
+                    <p class="c-morosos__item">Total mora: $<span id="totalMora">0</span></p>
                 </div>
             </div>
         </div>
         <div class="row">
             <div class="col-lg-12">
                 <ul class="c-cajas">
-                    <li class="c-cajas__item">
-                        <div class="c-cajas__item__header">
-                            <h3 class="c-cajas__item__title c-headings c-headings__h2">David Rocha</h3>
-                        </div>
-                        <div class="c-cajas__item__body">
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Cliente:</span>
-                                <span class="c-cajas__item__body__item__value">Camilo Cardona</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Cuotas pagadas:</span>
-                                <span class="c-cajas__item__body__item__value">3</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Cuotas vencidas:</span>
-                                <span class="c-cajas__item__body__item__value">7</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Monto deuda:</span>
-                                <span class="c-cajas__item__body__item__value">$10000</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Monto mora:</span>
-                                <span class="c-cajas__item__body__item__value">$3500</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Ultimo pago:</span>
-                                <span class="c-cajas__item__body__item__value">12/09/23</span>
-                            </div>
-                        </div>
-                    </li>
-                    <li class="c-cajas__item">
-                        <div class="c-cajas__item__header">
-                            <h3 class="c-cajas__item__title c-headings c-headings__h2">Alexander Acosta</h3>
-                        </div>
-                        <div class="c-cajas__item__body">
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Cliente:</span>
-                                <span class="c-cajas__item__body__item__value">Pedro Perez</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Cuotas pagadas:</span>
-                                <span class="c-cajas__item__body__item__value">3</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Cuotas vencidas:</span>
-                                <span class="c-cajas__item__body__item__value">7</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Monto deuda:</span>
-                                <span class="c-cajas__item__body__item__value">$10000</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Monto mora:</span>
-                                <span class="c-cajas__item__body__item__value">$3500</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Ultimo pago:</span>
-                                <span class="c-cajas__item__body__item__value">12/09/23</span>
-                            </div>
-                        </div>
-                    </li>
-                    <li class="c-cajas__item">
-                        <div class="c-cajas__item__header">
-                            <h3 class="c-cajas__item__title c-headings c-headings__h2">Vendedor 3</h3>
-                        </div>
-                        <div class="c-cajas__item__body">
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Cliente:</span>
-                                <span class="c-cajas__item__body__item__value">Claudia Gonzalez</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Cuotas pagadas:</span>
-                                <span class="c-cajas__item__body__item__value">3</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Cuotas vencidas:</span>
-                                <span class="c-cajas__item__body__item__value">7</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Monto deuda:</span>
-                                <span class="c-cajas__item__body__item__value">$10000</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Monto mora:</span>
-                                <span class="c-cajas__item__body__item__value">$3500</span>
-                            </div>
-                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                <span class="c-cajas__item__body__item__label">Ultimo pago:</span>
-                                <span class="c-cajas__item__body__item__value">12/09/23</span>
-                            </div>
-                        </div>
-                    </li>
+                    <!-- Aquí se agregarán dinámicamente los elementos -->
                 </ul>
             </div>
         </div>
