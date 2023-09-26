@@ -982,7 +982,7 @@ def payments_list():
                 clients_information.append(client_info)
 
     # Finalmente, renderiza la información como una respuesta JSON y también renderiza una plantilla
-    return render_template('payments-route.html', clients_information=clients_information)
+    return render_template('payments-route.html', clients=clients_information)
 
 
 # Ruta para la página de aprobación de gastos
