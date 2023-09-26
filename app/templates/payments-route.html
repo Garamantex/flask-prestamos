@@ -28,7 +28,7 @@
                         <p class="mb-1">Cuotas vencidas: {{ client_info['Overdue Installments'] }}</p>
                         <p class="mb-1">Monto deuda: ${{ client_info['Total Outstanding Amount'] }}</p>
                         <p class="mb-1">Monto mora: ${{ client_info['Total Overdue Amount'] }}</p>
-                        <p class="mb-1">Ultimo pago: {{ client_info['Last Payment'] }}</p>
+                        <p class="mb-1">Ultimo pago: {{ client_info['Last Payment Date'] }}</p>
                         <button class="c-btn c-btn-primary mb-4" type="submit">Ver detalle</button>
                     </li>
                     {% endfor %}

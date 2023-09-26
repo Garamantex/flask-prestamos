@@ -960,19 +960,19 @@ def payments_list():
                 overdue_installments = 0
                 total_outstanding_amount = 0
                 total_overdue_amount = 0
-                last_payment = None
+                last_payment_date = None
 
                 for installment in loan.installments:
                     if installment.status == InstallmentStatus.PAGADA:
                         paid_installments += 1
+                        # Si es un pago realizado, actualiza la fecha de la última cuota pagada
+                        if not last_payment_date or (installment.payment_date and installment.payment_date > last_payment_date):
+                            last_payment_date = installment.payment_date
                     elif installment.status == InstallmentStatus.MORA:
                         overdue_installments += 1
                         total_overdue_amount += installment.amount
                     else:
                         total_outstanding_amount += installment.amount
-
-                    if installment.payment_date:
-                        last_payment = installment.payment_date
 
                 client_info = {
                     'First Name': client.first_name,
@@ -981,7 +981,7 @@ def payments_list():
                     'Overdue Installments': overdue_installments,
                     'Total Outstanding Amount': str(total_outstanding_amount),
                     'Total Overdue Amount': str(total_overdue_amount),
-                    'Last Payment': str(last_payment) if last_payment else 'No payments recorded'
+                    'Last Payment Date': last_payment_date.isoformat() if last_payment_date else 'No payments recorded'
                 }
                 clients_information.append(client_info)
 
