@@ -1,21 +1,40 @@
-<!-- ... Código anterior ... -->
+{% extends "base.html" %}
 
-<div class="row mt-4">
-    <div class="col">
-        <ul class="list-group">
-            {% for client_info in clients_information %}
-            <li class="list-group-item mb-4" style="background-color: #111; border: 1px solid white; padding: 1.5rem; border-radius: 10px; color: white;">
-                <h5 class="mb-1">Cliente: {{ client_info['First Name'] }} {{ client_info['Last Name'] }}</h5>
-                <p class="mb-1">Cuotas pagadas: {{ client_info['Paid Installments'] }}</p>
-                <p class="mb-1">Cuotas vencidas: {{ client_info['Overdue Installments'] }}</p>
-                <p class="mb-1">Monto deuda: ${{ client_info['Total Outstanding Amount'] }}</p>
-                <p class="mb-1">Monto mora: ${{ client_info['Total Overdue Amount'] }}</p>
-                <p class="mb-1">Ultimo pago: {{ client_info['Last Payment'] }}</p>
-                <button class="c-btn c-btn-primary mb-4" type="submit">Ver detalle</button>
-            </li>
-            {% endfor %}
-        </ul>
+{% block content %}
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Volver al menú</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="c-users">
+                    <p class="c-users__title">Créditos del Día</p>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col">
+                <ul class="list-group">
+                    {% for client_info in clients_information %}
+                    <li class="list-group-item mb-4" style="background-color: #111; border: 1px solid white; padding: 1.5rem; border-radius: 10px; color: white;">
+                        <h5 class="mb-1">Cliente: {{ client_info['First Name'] }} {{ client_info['Last Name'] }}</h5>
+                        <p class="mb-1">Cuotas pagadas: {{ client_info['Paid Installments'] }}</p>
+                        <p class="mb-1">Cuotas vencidas: {{ client_info['Overdue Installments'] }}</p>
+                        <p class="mb-1">Monto deuda: ${{ client_info['Total Outstanding Amount'] }}</p>
+                        <p class="mb-1">Monto mora: ${{ client_info['Total Overdue Amount'] }}</p>
+                        <p class="mb-1">Ultimo pago: {{ client_info['Last Payment'] }}</p>
+                        <button class="c-btn c-btn-primary mb-4" type="submit">Ver detalle</button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
-
-<!-- ... Resto del código ... -->
+{% endblock %}
