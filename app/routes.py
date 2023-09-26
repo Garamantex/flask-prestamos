@@ -937,25 +937,6 @@ def payments_list():
     employee = Employee.query.filter_by(user_id=user_id).first()
 
     if not employee:
-        return jsonify({"error": "No se encontrón el empleado asociado al usuario."}), 404
-
-    # Busca al vendedor correspondiente al empleado
-    salesman = Salesman.query.filter_by(employee_id=employee.id).first()
-
-    if not salesman:
-        return jsonify({"error": "No se encontrón el vendedor asociado al empleado."}), 404
-
-    # Inicializa la lista para almacenar la información de los clientes
-    payment_list = []
-
-    return jsonify(payment_list)
-    # Obtiene el ID de usuario desde la sesión
-    user_id = session.get('user_id')
-
-    # Busca al empleado asociado al usuario
-    employee = Employee.query.filter_by(user_id=user_id).first()
-
-    if not employee:
         return jsonify({"error": "No se encontró el empleado asociado al usuario."}), 404
 
     # Busca al vendedor correspondiente al empleado
@@ -1000,8 +981,8 @@ def payments_list():
                 }
                 clients_information.append(client_info)
 
-                # Finalmente, renderiza la información como una respuesta JSON y también renderiza una plantilla
-            return render_template('payments-route.html', clients_information=clients_information)
+    # Finalmente, renderiza la información como una respuesta JSON y también renderiza una plantilla
+    return render_template('payments-route.html', clients_information=clients_information)
 
 
 # Ruta para la página de aprobación de gastos
