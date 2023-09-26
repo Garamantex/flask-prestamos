@@ -24,66 +24,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-$(document).ready(function() {
-    // Realizar una solicitud AJAX para obtener la información de los morosos desde Flask
-    $.ajax({
-        url: '/get-debtors',  // Reemplaza esto con la URL correcta de tu endpoint en Flask
-        method: 'GET',
-        success: function(response) {
-            console.log(response)
-            // La respuesta debe contener los datos de los morosos en formato JSON
-            
-            // Inicializa variables para el total de morosos y el total de mora
-            var totalMorosos = 0;
-            var totalMora = 0;
-
-            // Itera sobre los morosos y agrega elementos HTML dinámicamente
-            response.forEach(function(moroso) {
-                var $morosoItem = $('<li class="c-cajas__item"></li>');
-
-                // Agrega el encabezado con el nombre del moroso
-                $morosoItem.append('<div class="c-cajas__item__header"><h3 class="c-cajas__item__title c-headings c-headings__h2">' + moroso.employee_name + '</h3></div>');
-
-                // Crea una lista para los clientes del moroso
-                var $clientsList = $('<ul class="c-cajas"></ul>');
-
-                // Itera sobre los clientes y agrega elementos para cada uno
-                moroso.clients.forEach(function(client) {
-                    var $clientItem = $('<li class="c-cajas__item"></li>');
-
-                    // Agrega información del cliente
-                    $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Cliente:</span><span class="c-cajas__item__body__item__value">' + client.client_name + '</span></div>');
-                    $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Cuotas pagadas:</span><span class="c-cajas__item__body__item__value">' + client.paid_installments + '</span></div>');
-                    $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Cuotas vencidas:</span><span class="c-cajas__item__body__item__value">' + client.overdue_installments + '</span></div>');
-                    $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Monto deuda:</span><span class="c-cajas__item__body__item__value">$' + client.remaining_debt + '</span></div>');
-                    $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Monto mora:</span><span class="c-cajas__item__body__item__value">$' + client.total_overdue_amount + '</span></div>');
-                    $clientItem.append('<div class="c-cajas__item__body__item c-cajas__item__body__item--100"><span class="c-cajas__item__body__item__label">Ultimo pago:</span><span class="c-cajas__item__body__item__value">' + client.last_paid_installment_date + '</span></div>');
-
-                    // Agrega el elemento del cliente a la lista de clientes del moroso
-                    $clientsList.append($clientItem);
-
-                    // Actualiza el total de morosos y el total de mora
-                    totalMorosos += parseInt(client.overdue_installments);
-                    totalMora += parseFloat(client.total_overdue_amount);
-                });
-
-                // Agrega la lista de clientes al moroso
-                $morosoItem.append($clientsList);
-
-                // Agrega el moroso a la página
-                $('#morosos-container').append($morosoItem);
-            });
-
-            // Actualiza el total de morosos y el total de mora en la página
-            $('#totalMorosos').text(totalMorosos);
-            $('#totalMora').text(totalMora.toFixed(2));
-        },
-        error: function() {
-            console.error('Error al obtener los morosos.');
-        }
-    });
-});
-
 /* calcular interes */
 
 document.addEventListener('DOMContentLoaded', function() {

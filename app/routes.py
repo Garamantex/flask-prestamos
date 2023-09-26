@@ -927,8 +927,8 @@ def get_debtors():
     return jsonify(debtors_info)
 
 
-@routes.route('/payments-route', methods=['GET'])
-def payments_route():
+@routes.route('/payment-list', methods=['GET'])
+def payments_list():
     # Obtén el ID de usuario desde la sesión
     user_id = session.get('user_id')
 

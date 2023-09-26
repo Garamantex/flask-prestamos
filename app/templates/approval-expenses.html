@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 
 {% block content %}
-
 <div class="c-form">
     <div class="container pt-5">
         <div class="row">
@@ -22,25 +21,12 @@
         <div class="row mt-4">
             <div class="col">
                 <ul class="request-list">
+                    {% for detalle_transaccion in detalles_transacciones %}
                     <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
-                        <p>Solicitado por: <span>David Rocha</span></p>
-                        <p>Tipo de Gasto: <span>Gasto</span></p> 
-                        <p>Concepto: <span>Alquiler</span></p> 
-                        <p>Descripción: <span>Pago del alquiler mensual</span></p> 
-                        <p>Valor: <span>$1000</span></p> 
-                        <p>Aprobar/Denegar:</p>
-                        <select class="request-dropdown mt-3 mb-3" name="approval_status">
-                            <option value="approve">Aprobar</option>
-                            <option value="deny">Denegar</option>
-                        </select><br>
-                        <a class="btn btn-primary" href="">Procesar Solicitud</a>
-                    </li> 
-                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
-                        <p>Solicitado por: <span>David Rocha</span></p>
-                        <p>Tipo de Gasto: <span>Gasto</span></p> 
-                        <p>Concepto: <span>Alquiler</span></p> 
-                        <p>Descripción: <span>Pago del alquiler mensual</span></p> 
-                        <p>Valor: <span>$1000</span></p> 
+                        <p>Solicitado por: <span>{{ detalle_transaccion['tipo'] }}</span></p>
+                        <p>Tipo de Gasto: <span>{{ detalle_transaccion['concepto'] }}</span></p>
+                        <p>Descripción: <span>{{ detalle_transaccion['descripcion'] }}</span></p>
+                        <p>Valor: <span>${{ detalle_transaccion['monto'] }}</span></p>
                         <p>Aprobar/Denegar:</p>
                         <select class="request-dropdown mt-3 mb-3" name="approval_status">
                             <option value="approve">Aprobar</option>
@@ -48,45 +34,7 @@
                         </select><br>
                         <a class="btn btn-primary" href="">Procesar Solicitud</a>
                     </li>
-                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
-                        <p>Solicitado por: <span>David Rocha</span></p>
-                        <p>Tipo de Gasto: <span>Gasto</span></p> 
-                        <p>Concepto: <span>Alquiler</span></p> 
-                        <p>Descripción: <span>Pago del alquiler mensual</span></p> 
-                        <p>Valor: <span>$1000</span></p> 
-                        <p>Aprobar/Denegar:</p>
-                        <select class="request-dropdown mt-3 mb-3" name="approval_status">
-                            <option value="approve">Aprobar</option>
-                            <option value="deny">Denegar</option>
-                        </select><br>
-                        <a class="btn btn-primary" href="">Procesar Solicitud</a>
-                    </li>
-                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
-                        <p>Solicitado por: <span>David Rocha</span></p>
-                        <p>Tipo de Gasto: <span>Gasto</span></p> 
-                        <p>Concepto: <span>Alquiler</span></p> 
-                        <p>Descripción: <span>Pago del alquiler mensual</span></p> 
-                        <p>Valor: <span>$1000</span></p> 
-                        <p>Aprobar/Denegar:</p>
-                        <select class="request-dropdown mt-3 mb-3" name="approval_status">
-                            <option value="approve">Aprobar</option>
-                            <option value="deny">Denegar</option>
-                        </select><br>
-                        <a class="btn btn-primary" href="">Procesar Solicitud</a>
-                    </li>
-                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
-                        <p>Solicitado por: <span>David Rocha</span></p>
-                        <p>Tipo de Gasto: <span>Gasto</span></p> 
-                        <p>Concepto: <span>Alquiler</span></p> 
-                        <p>Descripción: <span>Pago del alquiler mensual</span></p> 
-                        <p>Valor: <span>$1000</span></p> 
-                        <p>Aprobar/Denegar:</p>
-                        <select class="request-dropdown mt-3 mb-3" name="approval_status">
-                            <option value="approve">Aprobar</option>
-                            <option value="deny">Denegar</option>
-                        </select><br>
-                        <a class="btn btn-primary" href="">Procesar Solicitud</a>
-                    </li>
+                    {% endfor %}
                 </ul>
             </div>
         </div>
