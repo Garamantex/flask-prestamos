@@ -603,8 +603,7 @@ def transactions():
             mount = request.form.get('quantity')
             attachment = request.files['photo']  # Obtener el archivo de imagen
             status = request.form.get('status')
-            concepts = Concept.query.all()
-
+            concepts = Concept.query.filter_by(transaction_types=transaction_type).all()
             basephant = os.path.abspath(os.path.dirname(__file__))
             filename = secure_filename(attachment.filename)
             extension = filename.split('.')[-1]
@@ -966,7 +965,8 @@ def payments_list():
                     if installment.status == InstallmentStatus.PAGADA:
                         paid_installments += 1
                         # Si es un pago realizado, actualiza la fecha de la última cuota pagada
-                        if not last_payment_date or (installment.payment_date and installment.payment_date > last_payment_date):
+                        if not last_payment_date or (
+                                installment.payment_date and installment.payment_date > last_payment_date):
                             last_payment_date = installment.payment_date
                     elif installment.status == InstallmentStatus.MORA:
                         overdue_installments += 1
@@ -1085,7 +1085,6 @@ def box_archive():
 @routes.route('/box-detail')
 def box_detail():
     return render_template('box-detail.html')
-
 
 
 @routes.route('/wallet')
