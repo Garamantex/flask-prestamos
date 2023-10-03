@@ -1,57 +1,40 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container c-bg c-bg__gray-400 pt-5">
-    <div class="row">
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager') }}">Volver al menu</a>
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager') }}">Volver al menu</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.create_user') }}">Crear usuario</a>
+            </div>
         </div>
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
-        </div>
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.create_user') }}">Crear usuario</a>
-        </div>
-    </div>
-    <div class="row mt-4">
-        <div class="col">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th scope="col">Nombre</th>
-                        <th scope="col">Rol</th>
-                        <th scope="col">Información Adicional</th>
-                        <th scope="col">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
+        <div class="row mt-4">
+            <div class="col">
+                <div class="request-list">
                     {% for user in users %}
-                    <tr>
-                        <td>{{ user.first_name }} {{ user.last_name }}</td>
-                        <td>{{ user.role.value }}</td>
-                        <td>
-                            {% for employee in employees %}
-                                {% if employee.user_id == user.id %}
-                                    Dinero Máximo de Caja: {{ employee.maximum_cash }}<br>
-                                    Dinero Máximo de Venta: {{ employee.maximum_sale }}<br>
-                                    Dinero Máximo de Gasto: {{ employee.maximum_expense }}<br>
-                                    Máximo de Cuotas: {{ employee.maximum_installments }}<br>
-                                    Mínimo Interés: {{ employee.minimum_interest }}%
-                                {% endif %}
-                            {% endfor %}
-                        </td>
-                        <td>
-                            <input type="checkbox" id="borrar-ventas-4" disabled> Borrar Ventas<br>
-                            <input type="checkbox" id="modificar-pagos-4" disabled> Modificar Pagos<br>
-                            Liquidación %: <span class="text-muted">N/A</span><br>
-                            Liquidación Valor Fijo: <span class="text-muted">N/A</span><br>
-                            <a href="#" class="">Editar Usuario</a> |
-                            <a href="#" class="">Inhabilitar Usuario</a>
-                        </td>
-                    </tr>
+                    <div class="request-item">
+                        <span class="list-item-title">Nombre:</span> {{ user.first_name }} {{ user.last_name }}<br>
+                        <span class="list-item-title">Rol:</span> {{ user.role.value }}<br>
+                        <span class="list-item-title">Información Adicional:</span><br>
+                        {% for employee in employees %}
+                            {% if employee.user_id == user.id %}
+                                - Dinero Máximo de Caja: {{ employee.maximum_cash }}<br>
+                                - Dinero Máximo de Venta: {{ employee.maximum_sale }}<br>
+                                - Dinero Máximo de Gasto: {{ employee.maximum_expense }}<br>
+                                - Máximo de Cuotas: {{ employee.maximum_installments }}<br>
+                                - Mínimo Interés: {{ employee.minimum_interest }}%<br>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
