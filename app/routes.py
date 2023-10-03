@@ -207,7 +207,6 @@ def user_list():
 def get_maximum_values_create_salesman():
     # Buscar el empleado id a partir del user_id de la sesión
     user_id = session['user_id']
-    print(f'user_id: {user_id}')
     employee_id = Employee.query.filter_by(user_id=user_id).first()
 
     if employee_id:
@@ -370,11 +369,12 @@ def client_list():
         if employee is None:
             return "Error: No se encontró el empleado correspondiente al usuario."
 
-        # Obtener la lista de clientes asociados al empleado actual
+        # Obtener la lista de clientes asociados al empleado actual que tienen préstamos en estado diferente de Falso
         if session['role'] == Role.COORDINADOR.value:
-            clients = Client.query.filter_by(employee_id=employee.id).all()
-        else:  # Si es vendedor, obtener solo los clientes asociados al vendedor
-            clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
+            clients = Client.query.filter_by(employee_id=employee.id) \
+                .join(Loan).filter(Loan.status != False).all()
+        else:  # Si es vendedor, obtener solo los clientes asociados al vendedor con préstamos en estado diferente de Falso
+            clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id, Loan.status != False).all()
 
         return render_template('client-list.html', client_list=clients)
     else:
@@ -391,17 +391,20 @@ def renewal():
             return "Error: No se encontró el empleado correspondiente al usuario."
 
         if request.method == 'POST':
-            # Obtener el número de documento del cliente desde el formulario
-            document_number = request.form.get('document_number')
+            # Obtener la lista de clientes asociados al empleado actual
+            if session['role'] == Role.COORDINADOR.value:
+                clients = Client.query.filter_by(employee_id=employee.id).all()
+            else:  # Si es vendedor, obtener solo los clientes asociados al vendedor
+                clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
 
-            # Buscar el cliente por número de documento
-            client = Client.query.filter_by(document=document_number).first()
+            # Obtener el índice del cliente seleccionado en el formulario
+            selected_index = int(request.form.get('client_index'))
 
-            if client is None:
-                return "Error: No se encontró un cliente con ese número de documento."
+            # Obtener el cliente seleccionado a partir del índice
+            selected_client = clients[selected_index]
 
             # Verificar si el cliente tiene préstamos activos
-            active_loans = Loan.query.filter_by(client_id=client.id, status=True).count()
+            active_loans = Loan.query.filter_by(client_id=selected_client.id, status=True).count()
 
             if active_loans > 0:
                 return "Error: El cliente ya tiene préstamos activos y no puede realizar una renovación."
@@ -430,7 +433,7 @@ def renewal():
                 status=True,
                 up_to_date=False,
                 is_renewal=True,
-                client_id=client.id,
+                client_id=selected_client.id,
                 employee_id=employee.id
             )
 
@@ -440,11 +443,14 @@ def renewal():
 
             return redirect(url_for('routes.credit_detail', id=renewal_loan.id))
 
-        # Obtener la lista de clientes que no tienen préstamos activos
-        clients_without_active_loans = Client.query.filter(Client.employee_id == employee.id)\
-            .filter(~Client.loans.any(Loan.status == True))
+        # Crear una lista de tuplas con los nombres y apellidos de los clientes para mostrar en el formulario
+        if session['role'] == Role.COORDINADOR.value:
+            clients = Client.query.filter_by(employee_id=employee.id).all()
+        else:
+            clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
+        client_names = [(client.first_name, client.last_name) for client in clients]
 
-        return render_template('renewal.html', clients=clients_without_active_loans)
+        return render_template('renewal.html', clients=client_names)
     else:
         return redirect(url_for('routes.menu_salesman'))
 
@@ -486,6 +492,7 @@ def modify_installments(loan_id):
 
     # Verificar si hay cuotas en estado "MORA"
     mora_installments = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.MORA).count()
+    print(f'mora installments: {mora_installments}')
     if mora_installments > 0:
         # El cliente está en mora, cambiar el estado a True
         client = Client.query.get(loan.client_id)
@@ -498,10 +505,12 @@ def modify_installments(loan_id):
 
     # Verificar si el cliente ya no tiene más cuotas pendientes del préstamo
     pending_installments = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PENDIENTE).count()
+    print(f'pending installments: {pending_installments}')
+    print(f'loan status: {loan.status}')
     if pending_installments == 0:
         loan.status = False
-        loan.status = False
         db.session.commit()
+        print(f'loan status: {loan.status}')
 
     return redirect(url_for('routes.credit_detail', id=loan_id))
 
