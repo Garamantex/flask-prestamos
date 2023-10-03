@@ -406,11 +406,20 @@ def renewal():
             if active_loans > 0:
                 return "Error: El cliente ya tiene préstamos activos y no puede realizar una renovación."
 
-            # Obtener los datos del formulario
+            # Obtener los valores máximos permitidos para el empleado
+            maximum_sale = employee.maximum_sale
+            maximum_installments = employee.maximum_installments
+            minimum_interest = employee.minimum_interest
+
+            # Obtener los datos del formulario sin ajustarlos a los máximos permitidos
             amount = float(request.form.get('amount'))
             dues = float(request.form.get('dues'))
             interest = float(request.form.get('interest'))
             payment = float(request.form.get('payment'))
+
+            # Verificar que los valores ingresados no superen los máximos permitidos
+            if amount > maximum_sale or dues > maximum_installments or interest > minimum_interest:
+                return "Error: Los valores ingresados superan los máximos permitidos."
 
             # Crear la instancia de renovación de préstamo
             renewal_loan = Loan(
@@ -431,7 +440,11 @@ def renewal():
 
             return redirect(url_for('routes.credit_detail', id=renewal_loan.id))
 
-        return render_template('renewal.html')
+        # Obtener la lista de clientes que no tienen préstamos activos
+        clients_without_active_loans = Client.query.filter(Client.employee_id == employee.id)\
+            .filter(~Client.loans.any(Loan.status == True))
+
+        return render_template('renewal.html', clients=clients_without_active_loans)
     else:
         return redirect(url_for('routes.menu_salesman'))
 
