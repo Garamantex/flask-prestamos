@@ -446,9 +446,10 @@ def renewal():
         # Crear una lista de tuplas con los nombres y apellidos de los clientes para mostrar en el formulario
         if session['role'] == Role.COORDINADOR.value:
             clients = Client.query.filter_by(employee_id=employee.id).all()
+            client_names = [(client.first_name, client.last_name) for client in clients]
         else:
             clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
-        client_names = [(client.first_name, client.last_name) for client in clients]
+            client_names = [(client.first_name, client.last_name) for client in clients]
 
         return render_template('renewal.html', clients=client_names)
     else:
