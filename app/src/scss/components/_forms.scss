@@ -5,6 +5,7 @@
     box-shadow: 3px 10px 20px 5px rgba(0, 0, 0, .5);
     background: rgba(20, 40, 40, 0.8);
     border-radius: 0;
+    color: white;
     &__label {
         display: block;
         color: white;
@@ -39,6 +40,11 @@
         &:focus {
             border-color: white;
         }
+
+        & option {
+            background: rgba(20, 40, 40, 0.8);
+            background-color: rgba(20, 40, 40, 0.8);
+        } 
     }
     &__textarea {
         display: block;
