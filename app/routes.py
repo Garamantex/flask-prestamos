@@ -489,12 +489,15 @@ def modify_installments(loan_id):
             # Actualizar el estado de la cuota
             installment.status = InstallmentStatus(new_status)
 
+            # Actualizar la fecha de pago a la fecha actual
+            if installment.status == InstallmentStatus.PAGADA:
+                installment.payment_date = datetime.datetime.now()
+
     # Guardar los cambios en la base de datos
     db.session.commit()
 
     # Verificar si hay cuotas en estado "MORA"
     mora_installments = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.MORA).count()
-    print(f'mora installments: {mora_installments}')
     if mora_installments > 0:
         # El cliente está en mora, cambiar el estado a True
         client = Client.query.get(loan.client_id)
@@ -507,12 +510,9 @@ def modify_installments(loan_id):
 
     # Verificar si el cliente ya no tiene más cuotas pendientes del préstamo
     pending_installments = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PENDIENTE).count()
-    print(f'pending installments: {pending_installments}')
-    print(f'loan status: {loan.status}')
     if pending_installments == 0:
         loan.status = False
         db.session.commit()
-        print(f'loan status: {loan.status}')
 
     return redirect(url_for('routes.credit_detail', id=loan_id))
 
@@ -990,9 +990,9 @@ def payments_list():
                     if installment.status == InstallmentStatus.PAGADA:
                         paid_installments += 1
                         # Si es un pago realizado, actualiza la fecha de la última cuota pagada
-                        if installment.due_date and (
-                                not last_payment_date or installment.due_date > last_payment_date):
-                            last_payment_date = installment.due_date
+                        if installment.payment_date and (
+                                not last_payment_date or installment.payment_date > last_payment_date):
+                            last_payment_date = installment.payment_date
 
                 client_info = {
                     'First Name': client.first_name,
@@ -1007,6 +1007,7 @@ def payments_list():
 
     # Finalmente, renderiza la información como una respuesta JSON y también renderiza una plantilla
     return render_template('payments-route.html', clients=clients_information)
+
 
 
 # Ruta para la página de aprobación de gastos
