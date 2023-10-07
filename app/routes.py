@@ -1184,8 +1184,13 @@ def wallet():
     return render_template('wallet.html', wallet_data=wallet_data)
 
 
-@routes.route('/wallet_detail')
-def wallet_detail():
+@routes.route('/wallet_detail/<int:employee_id>', methods=['GET'])
+def wallet_detail(employee_id):
+    # Obtener el empleado
+    employee = Employee.query.filter_by(employee_id=employee_id).first()
+    if not employee:
+        return jsonify({'message': 'Empleado no encontrado'}), 404
+
     # Inicializar variables
     total_loans = 0
     total_overdue_amount = 0
