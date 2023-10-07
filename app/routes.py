@@ -678,36 +678,36 @@ def get_concepts():
 @routes.route('/box', methods=['GET'])
 def box():
     try:
-        # Get user_id from session
+        # Obtiene el user_id de la sesión
         user_id = session.get('user_id')
 
-        # Check if user_id exists
+        # Comprueba si user_id existe
         if user_id is None:
-            return jsonify({'message': 'User not found'}), 404
+            return jsonify({'message': 'Usuario no encontrado'}), 404
 
-        # Get the employee corresponding to user_id
+        # Obtiene el empleado correspondiente a user_id
         employee = Employee.query.filter_by(user_id=user_id).first()
 
-        # Check if employee exists
+        # Comprueba si el empleado existe
         if employee is None:
-            return jsonify({'message': 'Employee not found'}), 404
+            return jsonify({'message': 'Empleado no encontrado'}), 404
 
-        # Get the manager corresponding to the employee
+        # Obtiene el coordinador correspondiente al empleado
         manager = Manager.query.filter_by(employee_id=employee.id).first()
 
-        # Check if manager exists
+        # Comprueba si el coordinador existe
         if manager is None:
-            return jsonify({'message': 'Manager not found'}), 404
+            return jsonify({'message': 'Coordinador no encontrado'}), 404
 
-        # Get the salesmen associated with that manager
+        # Obtiene los vendedores asociados a ese coordinador
         salesmen = Salesman.query.filter_by(manager_id=manager.id).all()
 
-        # Initialize a list to collect statistics for each salesman
+        # Inicializa una lista para recopilar estadísticas de cada vendedor
         salesmen_stats = []
 
-        # Iterate over the salesmen
+        # Itera sobre los vendedores
         for salesman in salesmen:
-            # Initialize variables to collect statistics for each salesman
+            # Inicializa variables para recopilar estadísticas de cada vendedor
             projected_collections = 0
             new_loans = 0
             daily_expenses = 0
@@ -718,59 +718,81 @@ def box():
             total_customers = 0
             customers_in_arrears = 0
 
-            # Calculate based on daily RETIRO transactions
+            # Calcula proyecciones de colecciones basadas en préstamos pendientes
+            projected_collections = Transaction.query.filter_by(
+                employee_id=salesman.employee_id,
+                transaction_types=TransactionType.INGRESO,
+                approval_status=ApprovalStatus.PENDIENTE
+            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+
+            # Calcula préstamos nuevos realizados hoy
+            new_loans = Loan.query.filter_by(
+                employee_id=salesman.employee_id,
+                creation_date=func.current_date()
+            ).count()
+
+            # Calcula gastos diarios
+            daily_expenses = Transaction.query.filter_by(
+                employee_id=salesman.employee_id,
+                transaction_types=TransactionType.GASTO,
+                creation_date=func.current_date()
+            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+
+            # Calcula retiros diarios basados en transacciones RETIRO
             daily_withdrawals = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.RETIRO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
-            # Calculate based on daily INGRESO transactions
+            # Calcula colecciones diarias basadas en transacciones INGRESO
             daily_collection = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.INGRESO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
-            # Calculate completed collections for the day
+            # Calcula colecciones completadas para el día
             sales_today = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
-                transaction_types=TransactionType.INGRESO
+                transaction_types=TransactionType.INGRESO,
+                approval_status=ApprovalStatus.APROBADA
             ).all()
 
-            completed_collections = len([sale for sale in sales_today if sale.status])
+            completed_collections = len(sales_today)
 
-            # Total customers of the salesman
+            # Total de clientes del vendedor
             total_customers = len(salesman.employee.clients)
 
-            # Customers in arrears for the day
+            # Clientes en mora para el día
             customers_in_arrears = len([
                 client for client in salesman.employee.clients
                 if any(loan.status and not loan.up_to_date for loan in client.loans)
             ])
 
-            # Create a dictionary with the results for this salesman
+            # Crea un diccionario con los resultados para este vendedor
             salesman_data = {
-                'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
-                'projected_collections_for_the_day': projected_collections,
-                'new_loans_made_today': new_loans,
-                'daily_expenses': daily_expenses,
-                'daily_withdrawals': daily_withdrawals,
-                'daily_collections_made': daily_collection,
-                'how_many_renewals_have_been_made_today': daily_renewals,
-                'how_many_collections_of_the_day_have_been_completed': completed_collections,
-                'total_number_of_customers': total_customers,
-                'customers_in_arrears_for_the_day': customers_in_arrears
+                'nombre_vendedor': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
+                'proyecciones_colecciones_del_dia': str(projected_collections),
+                'nuevos_prestamos_realizados_hoy': new_loans,
+                'gastos_diarios': str(daily_expenses),
+                'retiros_diarios': str(daily_withdrawals),
+                'colecciones_diarias_realizadas': str(daily_collection),
+                'cuántas_renovaciones_se_han_hecho_hoy': daily_renewals,
+                'cuántas_colecciones_del_día_se_han_completado': completed_collections,
+                'número_total_de_clientes': total_customers,
+                'clientes_en_mora_para_el_día': customers_in_arrears
             }
-
-            # Append the salesman's data to the list
+            print(f'salesman_data: {salesman_data}')
+            # Agrega los datos del vendedor a la lista
             salesmen_stats.append(salesman_data)
 
-        return render_template('box.html', manager_name=manager.employee.user.username, salesmen_stats=salesmen_stats)
+        return render_template('box.html', nombre_coordinador=manager.employee.user.username,
+                               estadisticas_vendedores=salesmen_stats)
 
     except Exception as e:
-        return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
 # Define the endpoint route to list clients in arrears
@@ -1007,7 +1029,6 @@ def payments_list():
 
     # Finalmente, renderiza la información como una respuesta JSON y también renderiza una plantilla
     return render_template('payments-route.html', clients=clients_information)
-
 
 
 # Ruta para la página de aprobación de gastos
