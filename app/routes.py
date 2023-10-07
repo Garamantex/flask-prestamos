@@ -1163,6 +1163,66 @@ def wallet():
     return render_template('wallet.html', wallet_data=wallet_data)
 
 
+@routes.route('/wallet_detail')
+def wallet_detail():
+    # Inicializar variables
+    total_loans = 0
+    total_overdue_amount = 0
+    loans_detail = []
+
+    # Obtener todos los préstamos
+    loans = Loan.query.all()
+
+    for loan in loans:
+        # Obtener el vendedor asociado al préstamo
+        seller = Salesman.query.filter_by(employee_id=loan.employee_id).first()
+
+        # Obtener el cliente asociado al préstamo
+        client = Client.query.filter_by(id=loan.client_id).first()
+
+        # Calcular el valor total del préstamo (suma de cuotas en PENDIENTE o MORA)
+        total_loan_amount = 0
+        total_overdue_amount_loan = 0
+        total_overdue_installments_loan = 0
+        total_paid_installments_loan = 0
+
+        for installment in loan.installments:
+            total_loan_amount += float(installment.amount)
+
+            if installment.status == InstallmentStatus.MORA:
+                total_overdue_amount_loan += float(installment.amount)
+                total_overdue_installments_loan += 1
+            elif installment.status == InstallmentStatus.PAGADA:
+                total_paid_installments_loan += 1
+
+        # Detalle de cada préstamo
+        loan_info = {
+            'Seller First Name': seller.employee.user.first_name,
+            'Seller Last Name': seller.employee.user.last_name,
+            'Client First Name': client.first_name,
+            'Client Last Name': client.last_name,
+            'Loan Amount': str(loan.amount),
+            'Total Overdue Amount': str(total_overdue_amount_loan),
+            'Overdue Installments Count': total_overdue_installments_loan,
+            'Paid Installments Count': total_paid_installments_loan,
+        }
+
+        loans_detail.append(loan_info)
+
+        # Incrementar el contador de préstamos y el valor total de préstamos pendientes o en mora
+        total_loans += 1
+        total_overdue_amount += total_overdue_amount_loan
+
+    # Crear un diccionario con los datos solicitados
+    wallet_detail_data = {
+        'Total Loans': total_loans,
+        'Total Overdue Amount': str(total_overdue_amount),
+        'Loans Detail': loans_detail,
+    }
+    print(wallet_detail_data)
+    return render_template('wallet-detail.html', wallet_detail_data=wallet_detail_data)
+
+
 @routes.route('/list-expenses')
 def list_expenses():
     return render_template('list-expenses.html')
@@ -1181,11 +1241,6 @@ def box_archive():
 @routes.route('/box-detail')
 def box_detail():
     return render_template('box-detail.html')
-
-
-@routes.route('/wallet-detail')
-def wallet_detail():
-    return render_template('wallet-detail.html')
 
 
 @routes.route('/reports')
