@@ -1088,6 +1088,81 @@ def modify_transaction(transaction_id):
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
+@routes.route('/wallet')
+def wallet():
+    # Initialize variables
+    total_cash = 0
+    total_active_sellers = 0
+    sellers_detail = []
+
+    # Get all coordinators
+    coordinators = Manager.query.all()
+
+    for coordinator in coordinators:
+        # Get sellers associated with this coordinator
+        sellers = Salesman.query.filter_by(manager_id=coordinator.id).all()
+        total_max_cash = 0
+        total_active_loans = 0
+        total_overdue_installments = 0
+        total_pending_installments = 0
+        day_collection = 0
+        debt_balance = 0
+
+        for seller in sellers:
+            # Calculate the total number of sellers with active loans
+            if len(seller.employee.clients) > 0:
+                total_active_sellers += 1
+
+            # Calculate the total of maximum_cash for sellers
+            total_max_cash += float(seller.employee.maximum_cash)
+
+            # Calculate the detail for each seller
+            seller_info = {
+                'First Name': seller.employee.user.first_name,
+                'Last Name': seller.employee.user.last_name,
+                'Number of Active Loans': 0,  # Initialize to 0
+                'Total Amount of Overdue Loans': 0,
+                'Total Amount of Pending Installments': 0,
+            }
+
+            # Get clients associated with this seller
+            clients = seller.employee.clients
+
+            for client in clients:
+                active_loans = Loan.query.filter_by(client_id=client.id, status=True).count()
+                seller_info['Number of Active Loans'] += active_loans
+
+                for loan in client.loans:
+                    for installment in loan.installments:
+                        if installment.status == InstallmentStatus.MORA:
+                            seller_info['Total Amount of Overdue Loans'] += float(loan.amount)
+                        elif installment.status == InstallmentStatus.PENDIENTE:
+                            seller_info['Total Amount of Pending Installments'] += float(installment.amount)
+
+            sellers_detail.append(seller_info)
+
+        # Calculate the total cash associated with sellers of the coordinator
+        total_cash += total_max_cash
+
+    # Calculate the percentage of the day's collection based on Installments PAGADA
+    # This is calculated by summing the Installments PAGADA and dividing it by the debt balance
+    paid_installments = LoanInstallment.query.filter_by(status=InstallmentStatus.PAGADA).count()
+    debt_balance = total_cash  # Assuming the debt balance is equal to the total cash
+    if debt_balance > 0:
+        day_collection = (paid_installments / debt_balance) * 100
+
+    # Create the final dictionary with the requested data
+    wallet_data = {
+        'Total Cash Value': str(total_cash),
+        'Total Sellers with Active Loans': total_active_sellers,
+        'Sellers Detail': sellers_detail,
+        'Percentage of Day Collection': f'{day_collection:.2f}%',
+        'Debt Balance': str(debt_balance)
+    }
+
+    return render_template('wallet.html', wallet_data=wallet_data)
+
+
 @routes.route('/list-expenses')
 def list_expenses():
     return render_template('list-expenses.html')
@@ -1106,11 +1181,6 @@ def box_archive():
 @routes.route('/box-detail')
 def box_detail():
     return render_template('box-detail.html')
-
-
-@routes.route('/wallet')
-def wallet():
-    return render_template('wallet.html')
 
 
 @routes.route('/wallet-detail')
