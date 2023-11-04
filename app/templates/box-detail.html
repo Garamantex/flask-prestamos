@@ -1,176 +1,55 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container c-bg c-bg__gray-400 pt-5">
-    <div class="row">
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+            </div>
         </div>
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
-        </div>
-    </div>
-    <h1>Caja de Vendedor 1</h1>
-    <div class="form-group">
-        <label for="filtro-select">Tipo de transacción:</label>
-        <select class="c-form c-form__dropdown" id="filtro-select">
-            <option value="gasto">Gasto</option>
-            <option value="ingreso">Ingreso</option>
-            <option value="retiro">Retiro</option>
-            <option value="ventas">Ventas</option>
-            <option value="renovacion">Renovación</option>
-            <option value="pago">Pago</option>
-            <option value="no-pago">No pago</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="filtro-texto">Búsqueda por texto:</label>
-        <input type="text" class="c-form c-form__input" id="filtro-texto">
-    </div>
-
-    <h2>Consolidado</h2>
-    <table class="table">
-      <thead>
-        <tr>
-          <th scope="col">Gastos</th>
-          <th scope="col">Ingresos</th>
-          <th scope="col">Retiros</th>
-          <th scope="col">Ventas</th>
-          <th scope="col">Renovaciones</th>
-          <th scope="col">Pagos</th>
-          <th scope="col">No Pago</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>$150.00</td>
-          <td>$1000.00</td>
-          <td>$400.00</td>
-          <td>$15000.00</td>
-          <td>$10000.00</td>
-          <td>$2000.00</td>
-          <td>$1350.00</td>
-        </tr>
-      </tbody>
-    </table>
+        <h1>Caja de Vendedor 1</h1>
+        <h2>Consolidado</h2>
+        <ul class="list-group">
+            <li class="list-group-item">Gastos: $150.00</li>
+            <li class="list-group-item">Ingresos: $1000.00</li>
+            <li class="list-group-item">Retiros: $400.00</li>
+            <li class="list-group-item">Ventas: $15000.00</li>
+            <li class="list-group-item">Renovaciones: $10000.00</li>
+            <li class="list-group-item">Pagos: $2000.00</li>
+            <li class="list-group-item">No Pago: $1350.00</li>
+        </ul>
+        
+        <h2>Gastos</h2>
+        <ul class="list-group">
+            <li class="list-group-item">
+                Descripción: Pago gasolina moto<br>
+                Valor: $50.00<br>
+                <a href="#" class="btn btn-primary">Detalle</a>
+            </li>
+            <li class="list-group-item">
+                Descripción: Pago gasolina moto<br>
+                Valor: $50.00<br>
+                <a href="#" class="btn btn-primary">Detalle</a>
+            </li>
+            <li class="list-group-item">
+                Descripción: Pago gasolina moto<br>
+                Valor: $50.00<br>
+                <a href="#" class="btn btn-primary">Detalle</a>
+            </li>
+        </ul>
     
-    <h2>Gastos</h2>
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Descripción: Pago gasolina moto</h5>
-            <p class="card-text">Valor: $50.00</p>
-            <a href="#" class="btn btn-primary">Detalle</a>
-        </div>
-        <div class="card-body">
-            <h5 class="card-title">Descripción: Pago gasolina moto</h5>
-            <p class="card-text">Valor: $50.00</p>
-            <a href="#" class="btn btn-primary">Detalle</a>
-        </div>
-        <div class="card-body">
-            <h5 class="card-title">Descripción: Pago gasolina moto</h5>
-            <p class="card-text">Valor: $50.00</p>
-            <a href="#" class="btn btn-primary">Detalle</a>
-        </div>
-    </div>
-
-    <h2>Ingresos</h2>
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Descripción: Ingreso de salario</h5>
-            <p class="card-text">Valor: $1000.00</p>
-            <a href="#" class="btn btn-primary">Detalle</a>
-        </div>
-    </div>
-
-    <h2>Retiros</h2>
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Descripción: Retiro de efectivo</h5>
-            <p class="card-text">Valor: $200.00</p>
-            <a href="#" class="btn btn-primary">Detalle</a>
-        </div>
-        <div class="card-body">
-            <h5 class="card-title">Descripción: Retiro de efectivo</h5>
-            <p class="card-text">Valor: $200.00</p>
-            <a href="#" class="btn btn-primary">Detalle</a>
-        </div>
-    </div>
-
-    <h2>Ventas</h2>
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Nombre del cliente: John Doe</h5>
-            <p class="card-text">Número de cuotas: 12</p>
-            <p class="card-text">Porcentaje de interés: 5%</p>
-            <p class="card-text">Total de ventas reportadas: $5000.00</p>
-        </div>
-    </div>
-
-    <h2>Renovaciones</h2>
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Nombre del cliente: Jane Smith</h5>
-            <p class="card-text">Número de cuotas: 24</p>
-            <p class="card-text">Porcentaje de interés: 8%</p>
-            <p class="card-text">Total de ventas reportadas: $10000.00</p>
-        </div>
-    </div>
-
-    <h2>No Pago</h2>
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Nombre del cliente: Juan Pérez</h5>
-            <p class="card-text">Cuotas vencidas: 3</p>
-            <p class="card-text">Saldo vencido: $150.00</p>
-            <p class="card-text">Saldo: $300.00</p>
-            <p class="card-text">Total: $450.00</p>
-        </div>
-        <div class="card-body">
-            <h5 class="card-title">Nombre del cliente: Juan Pérez</h5>
-            <p class="card-text">Cuotas vencidas: 3</p>
-            <p class="card-text">Saldo vencido: $150.00</p>
-            <p class="card-text">Saldo: $300.00</p>
-            <p class="card-text">Total: $450.00</p>
-        </div>
-        <div class="card-body">
-            <h5 class="card-title">Nombre del cliente: Juan Pérez</h5>
-            <p class="card-text">Cuotas vencidas: 3</p>
-            <p class="card-text">Saldo vencido: $150.00</p>
-            <p class="card-text">Saldo: $300.00</p>
-            <p class="card-text">Total: $450.00</p>
-        </div>
-    </div>
-
-    <h2>Pagos</h2>
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Nombre del cliente: Maria García</h5>
-            <p class="card-text">Valor de cuota: $100.00</p>
-            <p class="card-text">Valor pagado: $800.00</p>
-            <p class="card-text">Saldo a la fecha: $200.00</p>
-            <p class="card-text">Cuotas faltantes: 2</p>
-        </div>
-        <div class="card-body">
-            <h5 class="card-title">Nombre del cliente: Maria García</h5>
-            <p class="card-text">Valor de cuota: $100.00</p>
-            <p class="card-text">Valor pagado: $800.00</p>
-            <p class="card-text">Saldo a la fecha: $200.00</p>
-            <p class="card-text">Cuotas faltantes: 2</p>
-        </div>
-        <div class="card-body">
-            <h5 class="card-title">Nombre del cliente: Maria García</h5>
-            <p class="card-text">Valor de cuota: $100.00</p>
-            <p class="card-text">Valor pagado: $800.00</p>
-            <p class="card-text">Saldo a la fecha: $200.00</p>
-            <p class="card-text">Cuotas faltantes: 2</p>
-        </div>
-        <div class="card-body">
-            <h5 class="card-title">Nombre del cliente: Maria García</h5>
-            <p class="card-text">Valor de cuota: $100.00</p>
-            <p class="card-text">Valor pagado: $800.00</p>
-            <p class="card-text">Saldo a la fecha: $200.00</p>
-            <p class="card-text">Cuotas faltantes: 2</p>
-        </div>
+        <h2>Ingresos</h2>
+        <ul class="list-group">
+            <li class="list-group-item">
+                Descripción: Ingreso de salario<br>
+                Valor: $1000.00<br>
+                <a href="#" class="btn btn-primary">Detalle</a>
+            </li>
+        </ul>
     </div>
 </div>
 {% endblock %}

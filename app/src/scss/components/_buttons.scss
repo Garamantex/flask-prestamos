@@ -1,6 +1,8 @@
 .c-btn {
     margin: 0 auto;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: 1px solid rgba(10, 180, 180, 1);
     background: rgba(20, 20, 20, .6);
     font-size: 18px;
@@ -12,7 +14,7 @@
     cursor: pointer;
     transition: .4s;
     &:hover {
-        background: rgba(20, 20, 20, .8);
+        background: rgba(115, 115, 115, 0.8);
         border-color: white;
     }
     .icon {
