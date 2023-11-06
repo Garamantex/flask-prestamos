@@ -1,5 +1,6 @@
 import datetime
 from datetime import timedelta
+from datetime import date
 import os
 import uuid
 from operator import and_
@@ -709,7 +710,9 @@ def box():
         for salesman in salesmen:
             # Initialize variables to collect statistics for each salesman
             projected_collections = 0
+            total_collections_today = 0
             new_loans = 0
+            new_clients = 0
             daily_expenses = 0
             daily_withdrawals = 0
             daily_collection = 0
@@ -722,7 +725,14 @@ def box():
             projected_collections = LoanInstallment.query.join(Loan).filter(
                 Loan.client.has(employee_id=salesman.employee_id),
                 LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA]),
-                LoanInstallment.due_date <= datetime.now().date()
+                LoanInstallment.due_date <= date.today()
+            ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
+
+            # Calculate the total collections for the day with status "PAGADA"
+            total_collections_today = LoanInstallment.query.join(Loan).filter(
+                Loan.client.has(employee_id=salesman.employee_id),
+                LoanInstallment.status == InstallmentStatus.PAGADA,
+                LoanInstallment.payment_date == date.today()
             ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
 
             # Calculate new loans made today
@@ -752,16 +762,6 @@ def box():
                 transaction_types=TransactionType.INGRESO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
-            # Calculate completed collections for the day
-            sales_today = Transaction.query.filter_by(
-                employee_id=salesman.employee_id,
-                creation_date=func.current_date(),
-                transaction_types=TransactionType.INGRESO,
-                approval_status=ApprovalStatus.APROBADA
-            ).all()
-
-            completed_collections = len(sales_today)
-
             # Total number of salesman's customers
             total_customers = sum(
                 1 for client in salesman.employee.clients
@@ -784,7 +784,8 @@ def box():
             salesman_data = {
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
                 'projected_collections_for_the_day': str(projected_collections),
-                'new_loans_made_today': new_loans,
+                'total_collections_today': str(total_collections_today),
+                'new_clients_today': new_loans,
                 'daily_expenses': str(daily_expenses),
                 'daily_withdrawals': str(daily_withdrawals),
                 'daily_collections_made': str(daily_collection),
@@ -793,7 +794,8 @@ def box():
                 'total_number_of_customers': total_customers,
                 'customers_in_arrears_for_the_day': customers_in_arrears
             }
-            print(salesman_data)
+            print(f'salesman_data: {salesman_data}')
+
             # Add the salesman's data to the list
             salesmen_stats.append(salesman_data)
 
