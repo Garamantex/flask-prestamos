@@ -491,7 +491,7 @@ def modify_installments(loan_id):
 
             # Actualizar la fecha de pago a la fecha actual
             if installment.status == InstallmentStatus.PAGADA:
-                installment.payment_date = datetime.datetime.now()
+                installment.payment_date = datetime.now()  # Corrección
 
     # Guardar los cambios en la base de datos
     db.session.commit()
@@ -515,6 +515,7 @@ def modify_installments(loan_id):
         db.session.commit()
 
     return redirect(url_for('routes.credit_detail', id=loan_id))
+
 
 
 def generate_loan_installments(loan):
