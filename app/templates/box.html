@@ -1,14 +1,14 @@
-{% extends "base.html" %}
+[{% extends "base.html" %}
 
 {% block content %}
 <div class="c-narrow">
-    <div class="container pt-5">
+    <div class="container 0 pt-5">
         <div class="row">
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Volver</a>
             </div>
             <div class="col">
-                <a class "c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="./create-box">Crear caja</a>
@@ -16,60 +16,61 @@
         </div>
         <div class="row">
             <div class="col">
+                boxes_data
                 <ul class="c-cajas">
-                    {% for salesman in salesmen_stats %}
-                        <li class="c-cajas__item">
-                            <div class="c-cajas__item__header">
-                                <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja {{ salesman.salesman_name }}</h3>
-                                <div class="c-cajas__item__actions">
-                                    <a href="#" class="c-cajas__item--action"><i class="c-icon bi bi-pencil-square"></i></a>
-                                    <a href="#" class="c-cajas__item--action"><i class="c-icon bi bi-unlock-fill"></i></a>
-                                </div>
+                    {% for salesman in salesmen_statistics %}
+                    <li class="c-cajas__item">
+                        <div class="c-cajas__item__header">
+                            <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja {{salesman.salesman_name}}</h3>
+                            <div class="c-cajas__item__actions">
+                                <a href="#" class="c-cajas__item--action"><i class="c-icon bi bi-pencil-square"></i></a>
+                                <a href="#" class="c-cajas__item--action"><i class="c-icon bi bi-unlock-fill"></i></a>
                             </div>
-                            <div class="c-cajas__item__body">
-                                <div class="c-cajas__item__body__item">
-                                    <span class="c-cajas__item__body__item__label">Cobro proyectado:</span>
-                                    <span class="c-cajas__item__body__item__value">{{ salesman.projected_collections_for_the_day }}</span>
-                                </div>
-                                <div class="c-cajas__item__body__item">
-                                    <span class="c-cajas__item__body__item__label">Recaudo:</span>
-                                    <span class="c-cajas__item__body__item__value">{{ salesman.daily_collections_made }}</span>
-                                </div>
-                                <div class="c-cajas__item__body__item">
-                                    <span class="c-cajas__item__body__item__label">Ventas:</span>
-                                    <span class="c-cajas__item__body__item__value">{{ salesman.salesman_name }}</span>
-                                </div>
-                                <div class="c-cajas__item__body__item">
-                                    <span class="c-cajas__item__body__item__label">Renovaciones:</span>
-                                    <span class="c-cajas__item__body__item__value">{{ salesman.how_many_renewals_have_been_made_today }}</span>
-                                </div>
-                                <div class="c-cajas__item__body__item">
-                                    <span class="c-cajas__item__body__item__label">Gastos:</span>
-                                    <span class="c-cajas__item__body__item__value">${{ salesman.daily_expenses }}</span>
-                                </div>
-                                <div class="c-cajas__item__body__item">
-                                    <span class="c-cajas__item__body__item__label">Ingresos:</span>
-                                    <span class="c-cajas__item__body__item__value">${{ salesman.daily_withdrawals }}</span>
-                                </div>
-                                <div class="c-cajas__item__body__item">
-                                    <span class="c-cajas__item__body__item__label">Retiros:</span>
-                                    <span class="c-cajas__item__body__item__value">${{ salesman.daily_withdrawals }}</span>
-                                </div>
-                                <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                                    <span class="c-cajas__item__body__item__label">% de cobros completados:</span>
-                                    <span class="c-cajas__item__body__item__value">{{ salesman.how_many_collections_of_the_day_have_been_completed }}%</span>
-                                </div>
-                                <div class="c-cajas__item__body__item">
-                                    <span class="c-cajas__item__body__item__label">Número de clientes:</span>
-                                    <span class="c-cajas__item__body__item__value">{{ salesman.total_number_of_customers }}</span>
-                                </div>
-                                <div class="c-cajas__item__body__item">
-                                    <span class="c-cajas__item__body__item__label">Clientes en mora:</span>
-                                    <span class="c-cajas__item__body__item__value">{{ salesman.customers_in_arrears_for_the_day }}</span>
-                                </div>
-                                <a href="./box-detail/{{ salesman.salesman_name }}" class="c-btn c-btn-primary mb-4" type="submit">Ver detalle</a>
+                        </div>
+                        <div class="c-cajas__item__body">
+                            <div class="c-cajas__item__body__item">
+                                <span class="c-cajas__item__body__item__label">Cobro proyectado:</span>
+                                <span class="c-cajas__item__body__item__value">{{salesman.projected_collections_for_the_day}}</span>
                             </div>
-                        </li>
+                            <div class="c-cajas__item__body__item">
+                                <span class="c-cajas__item__body__item__label">Recaudo:</span>
+                                <span class="c-cajas__item__body__item__value">{{salesman.daily_collections_made}}</span>
+                            </div>
+                            <div class="c-cajas__item__body__item">
+                                <span class="c-cajas__item__body__item__label">Ventas:</span>
+                                <span class="c-cajas__item__body__item__value">{{salesman.new_loans_made_today}}</span>
+                            </div>
+                            <div class="c-cajas__item__body__item">
+                                <span class="c-cajas__item__body__item__label">Renovacones:</span>
+                                <span class="c-cajas__item__body__item__value">{{salesman.how_many_renewals_have_been_made_today}}</span>
+                            </div>
+                            <div class="c-cajas__item__body__item">
+                                <span class="c-cajas__item__body__item__label">Gastos:</span>
+                                <span class="c-cajas__item__body__item__value">${{salesman.daily_expenses}}</span>
+                            </div>
+                            <div class="c-cajas__item__body__item">
+                                <span class="c-cajas__item__body__item__label">Ingresos:</span>
+                                <span class="c-cajas__item__body__item__value">${{salesman.daily_withdrawals}}</span>
+                            </div>
+                            <div class="c-cajas__item__body__item">
+                                <span class="c-cajas__item__body__item__label">Retiro:</span>
+                                <span class="c-cajas__item__body__item__value">${{salesman.daily_withdrawals}}</span>
+                            </div>
+                            <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
+                                <span class="c-cajas__item__body__item__label">% de cobros completado:</span>
+                                <span class="c-cajas__item__body__item__value">%{{salesman.how_many_collections_of_the_day_have_been_completed}}</span>
+                            </div>
+                            <div class="c-cajas__item__body__item">
+                                <span class="c-cajas__item__body__item__label">Numero de clientes:</span>
+                                <span class="c-cajas__item__body__item__value">{{salesman.total_number_of_customers}}</span>
+                            </div>
+                            <div class="c-cajas__item__body__item">
+                                <span class="c-cajas__item__body__item__label">Clientes en mora:</span>
+                                <span class="c-cajas__item__body__item__value">{{salesman.customers_in_arrears_for_the_day}}</span>
+                            </div>
+                            <a href="./box-detail" class="c-btn c-btn-primary mb-4" type="submit">Ver detalle</a>
+                        </div>
+                    </li>
                     {% endfor %}
                 </ul>
             </div>
@@ -78,3 +79,4 @@
 </div>
 
 {% endblock %}
+]
