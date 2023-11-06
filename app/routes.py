@@ -705,7 +705,6 @@ def box():
         # Initialize a list to collect statistics for each salesman
         salesmen_stats = []
 
-        # Iterate over the salesmen
         for salesman in salesmen:
             # Initialize variables to collect statistics for each salesman
             projected_collections = 0
@@ -763,13 +762,27 @@ def box():
             completed_collections = len(sales_today)
 
             # Total number of salesman's customers
-            total_customers = len(salesman.employee.clients)
+            total_customers = 0
+
+            for client in salesman.employee.clients:
+                for loan in client.loans:
+                    if loan.status:
+                        total_customers += 1
+                        break
 
             # Customers in arrears for the day
-            customers_in_arrears = len([
-                client for client in salesman.employee.clients
-                if any(loan.status and not loan.up_to_date for loan in client.loans)
-            ])
+            customers_in_arrears = 0
+
+            for client in salesman.employee.clients:
+                for loan in client.loans:
+                    if loan.status and not loan.up_to_date:
+                        for installment in loan.installments:
+                            if (
+                                installment.status == InstallmentStatus.MORA
+                                or (installment.status == InstallmentStatus.PENDIENTE and installment.due_date < datetime.date.today())
+                            ):
+                                customers_in_arrears += 1
+                                break
 
             # Create a dictionary with the results for this salesman
             salesman_data = {
@@ -784,12 +797,11 @@ def box():
                 'total_number_of_customers': total_customers,
                 'customers_in_arrears_for_the_day': customers_in_arrears
             }
-            print(f'salesman_data: {salesman_data}')
+
             # Add the salesman's data to the list
             salesmen_stats.append(salesman_data)
 
-        return render_template('box.html', coordinator_name=manager.employee.user.username,
-                               salesmen_statistics=salesmen_stats)
+        return render_template('box.html', coordinator_name=manager.employee.user.username, salesmen_statistics=salesmen_stats)
 
     except Exception as e:
         return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
