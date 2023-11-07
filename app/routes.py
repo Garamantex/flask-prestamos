@@ -711,7 +711,6 @@ def box():
             # Initialize variables to collect statistics for each salesman
             projected_collections = 0
             total_collections_today = 0
-            new_loans = 0
             new_clients = 0
             daily_expenses = 0
             daily_withdrawals = 0
@@ -735,10 +734,10 @@ def box():
                 LoanInstallment.payment_date == date.today()
             ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
 
-            # Calculate new loans made today
-            new_loans = Loan.query.filter_by(
-                employee_id=salesman.employee_id,
-                creation_date=func.current_date()
+            # Ahora, calcula la cantidad de nuevos clientes registrados en el día
+            new_clients = Client.query.filter(
+                Client.employee_id == salesman.employee_id,
+                Client.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
             ).count()
 
             # Calculate daily expenses
@@ -785,7 +784,7 @@ def box():
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
                 'projected_collections_for_the_day': str(projected_collections),
                 'total_collections_today': str(total_collections_today),
-                'new_clients_today': new_loans,
+                'new_clients_registered_today': str(new_clients),
                 'daily_expenses': str(daily_expenses),
                 'daily_withdrawals': str(daily_withdrawals),
                 'daily_collections_made': str(daily_collection),
