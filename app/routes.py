@@ -393,7 +393,7 @@ def renewal():
             return "Error: No se encontró el empleado correspondiente al usuario."
 
         if request.method == 'POST':
-            # Obtener la lista de clientes asociados al empleado actual
+            # Obtener la lista de clientes asociados al empleado actual y que no tengan
             if session['role'] == Role.COORDINADOR.value:
                 clients = Client.query.filter_by(employee_id=employee.id).all()
             else:  # Si es vendedor, obtener solo los clientes asociados al vendedor
@@ -516,7 +516,6 @@ def modify_installments(loan_id):
         db.session.commit()
 
     return redirect(url_for('routes.credit_detail', id=loan_id))
-
 
 
 def generate_loan_installments(loan):
@@ -715,7 +714,6 @@ def box():
             daily_expenses = 0
             daily_withdrawals = 0
             daily_collection = 0
-            daily_renewals = 0
             completed_collections = 0
             total_customers = 0
             customers_in_arrears = 0
@@ -734,10 +732,19 @@ def box():
                 LoanInstallment.payment_date == date.today()
             ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
 
-            # Ahora, calcula la cantidad de nuevos clientes registrados en el día
+            # Calcula la cantidad de nuevos clientes registrados en el día
             new_clients = Client.query.filter(
                 Client.employee_id == salesman.employee_id,
                 Client.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            ).count()
+
+            # Calcula el total de préstamos con is_renewal en True para el día actual
+            today = datetime.combine(date.today(), datetime.min.time())
+            total_renewal_loans = Loan.query.filter(
+                Loan.client.has(employee_id=salesman.employee_id),
+                Loan.is_renewal == True,
+                Loan.creation_date >= today,
+                Loan.creation_date < today + timedelta(days=1)
             ).count()
 
             # Calculate daily expenses
@@ -785,10 +792,10 @@ def box():
                 'projected_collections_for_the_day': str(projected_collections),
                 'total_collections_today': str(total_collections_today),
                 'new_clients_registered_today': str(new_clients),
+                'how_many_renewals_have_been_made_today': total_renewal_loans,
                 'daily_expenses': str(daily_expenses),
                 'daily_withdrawals': str(daily_withdrawals),
                 'daily_collections_made': str(daily_collection),
-                'how_many_renewals_have_been_made_today': daily_renewals,
                 'how_many_collections_for_the_day_have_been_completed': completed_collections,
                 'total_number_of_customers': total_customers,
                 'customers_in_arrears_for_the_day': customers_in_arrears
