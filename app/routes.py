@@ -393,17 +393,17 @@ def renewal():
             return "Error: No se encontró el empleado correspondiente al usuario."
 
         if request.method == 'POST':
-            # Obtener la lista de clientes asociados al empleado actual y que no tengan
-            if session['role'] == Role.COORDINADOR.value:
-                clients = Client.query.filter_by(employee_id=employee.id).all()
-            else:  # Si es vendedor, obtener solo los clientes asociados al vendedor
-                clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
+            # Obtener el número de documento del cliente seleccionado en el formulario
+            document_number = request.form.get('document_number')
 
-            # Obtener el índice del cliente seleccionado en el formulario
-            selected_index = int(request.form.get('client_index'))
+            if not document_number:
+                return "Error: No se seleccionó un cliente."
 
-            # Obtener el cliente seleccionado a partir del índice
-            selected_client = clients[selected_index]
+            # Buscar el cliente por su número de documento
+            selected_client = Client.query.filter_by(document=document_number).first()
+
+            if selected_client is None:
+                return "Error: No se encontró el cliente."
 
             # Verificar si el cliente tiene préstamos activos
             active_loans = Loan.query.filter_by(client_id=selected_client.id, status=True).count()
@@ -416,14 +416,14 @@ def renewal():
             maximum_installments = employee.maximum_installments
             minimum_interest = employee.minimum_interest
 
-            # Obtener los datos del formulario sin ajustarlos a los máximos permitidos
+            # Obtener los datos del formulario
             amount = float(request.form.get('amount'))
             dues = float(request.form.get('dues'))
             interest = float(request.form.get('interest'))
-            payment = float(request.form.get('payment'))
+            payment = float(request.form.get('payment'))  # Asumiendo que también tienes un campo 'payment'
 
             # Verificar que los valores ingresados no superen los máximos permitidos
-            if amount > maximum_sale or dues > maximum_installments or interest > minimum_interest:
+            if amount > maximum_sale or dues > maximum_installments or interest < minimum_interest:
                 return "Error: Los valores ingresados superan los máximos permitidos."
 
             # Crear la instancia de renovación de préstamo
