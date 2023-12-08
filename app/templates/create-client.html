@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div id="user-id" data-user-id="{{ session.get('user_id') }}"></div>
 <div class="c-form">
     <div class="container pt-5">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list') }}">Ver Clientes</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Menu</a>
             </div>
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Volver al menú</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list') }}">Clientes</a>
             </div>
         </div>
         <div class="row">
@@ -55,23 +56,23 @@
                         <legend>Datos del préstamo</legend>
                         <div class="mb-3">
                             <label for="amount" class="form-label">Monto</label>
-                            <input type="text" class="c-form c-form__input" name="amount" id="amount" placeholder="Monto">
+                            <input type="text" class="c-form c-form__input js-number" name="amount" id="amount" placeholder="Monto">
                         </div>
                         <div class="mb-3">
                             <label for="dues" class="form-label">Cuotas</label>
-                            <select class="form-select c-form__select" name="dues" id="dues" aria-label="dues">
+                            <select class="c-form c-form__input" name="dues" id="dues" aria-label="dues">
                                 <option selected>Seleccionar</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="interest" class="form-label">Interés</label>
-                            <select class="form-select c-form__select" name="interest" id="interest" aria-label="interest">
+                            <select class="c-form c-form__input" name="interest" id="interest" aria-label="interest">
                                 <option selected>Seleccionar</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="amountPerPay" class="form-label">Monto por cuota</label>
-                            <input type="text" class="c-form c-form__input" name="amountPerPay"  id="amountPerPay" placeholder="Monto por cuota" readonly>
+                            <input type="text" class="c-form c-form__input js-number" name="amountPerPay"  id="amountPerPay" placeholder="Monto por cuota" readonly>
                         </div>
                     </fieldset>
                     

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+[{% extends "base.html" %}
 
 {% block content %}
 <div class="c-narrow">
@@ -18,7 +18,7 @@
             <div class="col">
                 boxes_data
                 <ul class="c-cajas">
-                    {% for salesman in salesmen_stats %}
+                    {% for salesman in salesmen_statistics %}
                     <li class="c-cajas__item">
                         <div class="c-cajas__item__header">
                             <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja {{salesman.salesman_name}}</h3>
@@ -29,16 +29,16 @@
                         </div>
                         <div class="c-cajas__item__body">
                             <div class="c-cajas__item__body__item">
-                                <span class="c-cajas__item__body__item__label">Cobro proyectado:</span>
+                                <span class="c-cajas__item__body__item__label">Pendiente por cobrar:</span>
                                 <span class="c-cajas__item__body__item__value">{{salesman.projected_collections_for_the_day}}</span>
                             </div>
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Recaudo:</span>
-                                <span class="c-cajas__item__body__item__value">{{salesman.daily_collections_made}}</span>
+                                <span class="c-cajas__item__body__item__value">{{salesman.total_collections_today}}</span>
                             </div>
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Ventas:</span>
-                                <span class="c-cajas__item__body__item__value">{{salesman.salesman_name}}</span>
+                                <span class="c-cajas__item__body__item__value">{{salesman.new_clients_registered_today}}</span>
                             </div>
                             <div class="c-cajas__item__body__item">
                                 <span class="c-cajas__item__body__item__label">Renovacones:</span>
@@ -68,6 +68,7 @@
                                 <span class="c-cajas__item__body__item__label">Clientes en mora:</span>
                                 <span class="c-cajas__item__body__item__value">{{salesman.customers_in_arrears_for_the_day}}</span>
                             </div>
+                            <a href="./box-detail" class="c-btn c-btn-primary mb-4" type="submit">Ver detalle</a>
                         </div>
                     </li>
                     {% endfor %}
@@ -78,3 +79,4 @@
 </div>
 
 {% endblock %}
+]

@@ -254,6 +254,13 @@ class TransactionType(Enum):
         return self.name
 
 
+# Enumeración para representar los estados de aprobación
+class ApprovalStatus(Enum):
+    PENDIENTE = "PENDIENTE"
+    APROBADA = "APROBADA"
+    RECHAZADA = "RECHAZADA"
+
+
 class Concept(db.Model):
     """ Modelo de Concepto """
 
@@ -272,8 +279,9 @@ class Concept(db.Model):
         return json.dumps(self.to_json(), indent=4)
 
 
+# Clase que representa el modelo de Transacción
 class Transaction(db.Model):
-    """ Modelo de Transacción  """
+    """ Modelo de Transacción """
 
     id = db.Column(db.Integer, primary_key=True)
     transaction_types = db.Column(db.Enum(TransactionType), nullable=False, doc='Tipo')
@@ -281,7 +289,8 @@ class Transaction(db.Model):
     description = db.Column(db.String(100), nullable=False, doc='Descripción')
     mount = db.Column(db.Numeric(10, 2), nullable=False, doc='Monto')
     attachment = db.Column(db.String(100), nullable=True, doc='Adjunto')
-    status = db.Column(db.Boolean, default=False, nullable=False, doc='Estado')
+    approval_status = db.Column(db.Enum(ApprovalStatus), default=ApprovalStatus.PENDIENTE, nullable=False,
+                                doc='Estado de Aprobación')
 
     concept = db.relationship('Concept', backref='transaction', uselist=False)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
@@ -299,6 +308,7 @@ class Transaction(db.Model):
             'mount': str(self.mount),
             'attachment': self.attachment,
             'status': self.status,
+            'approval_status': self.approval_status.name,  # Agregamos el estado de aprobación al JSON
             'creation_date': self.creation_date.isoformat(),
             'modification_date': self.modification_date.isoformat(),
             'employee_id': self.employee_id

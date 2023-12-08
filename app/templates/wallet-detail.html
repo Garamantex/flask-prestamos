@@ -5,8 +5,7 @@
     <div class="container pt-5">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3"
-                    href="./menu-manager">Volver al menu</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Volver al menú</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
@@ -17,6 +16,7 @@
                 <h2 class="c-cajas__item__title c-headings c-headings__h2">Créditos Activos</h2>
             </div>
         </div>
+
         <div class="row mt-4">
             <div class="col">
                 <div class="c-card">
@@ -24,43 +24,43 @@
                         <div class="row">
                             <div class="col">
                                 <h5>Total Créditos:</h5>
-                                <p>10</p>
+                                <p>{{ wallet_detail_data['Total Loans'] }}</p>
                             </div>
                             <div class="col">
                                 <h5>Valor Total de Créditos:</h5>
-                                <p>$25,000</p>
+                                <p>${{ wallet_detail_data['Total Overdue Amount'] }}</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        {% for loan_info in wallet_detail_data['Loans Detail'] %}
         <div class="row mt-4">
             <div class="col">
                 <div class="c-card">
                     <div class="card-header">
-                       <h4>Crédito #1</h4> 
+                        <h4>Crédito #{{ loop.index }}</h4>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-6">
-                                <p>Vendedor: Vendedor 1</p>
-                                <p>Cliente: Cliente A</p>
+                                <p>Vendedor: {{ loan_info['Seller First Name'] }} {{ loan_info['Seller Last Name'] }}</p>
+                                <p>Cliente: {{ loan_info['Client First Name'] }} {{ loan_info['Client Last Name'] }}</p>
                             </div>
                             <div class="col-6">
-                                <p>Saldo Inicial: $1000</p>
-                                <p>Saldo Vencido: $200</p>
+                                <p>Saldo Inicial: ${{ loan_info['Loan Amount'] }}</p>
+                                <p>Saldo Vencido: ${{ loan_info['Total Overdue Amount'] }}</p>
                             </div>
                             <div class="col-12">
                                 <h5>Cuotas</h5>
-                                <p>Cuotas Vencidas: 2</p>
-                                <p>Total Cuotas Pagas: 5/10</p>
+                                <p>Cuotas Vencidas: {{ loan_info['Overdue Installments Count'] }}</p>
+                                <p>Total Cuotas Pagas: {{ loan_info['Paid Installments Count'] }}/{{ loan_info['Number of Active Loans'] }}</p>
                             </div>
                             <div class="col-12">
                                 <h5>Fechas</h5>
-                                <p>Fecha de Creación: 2023-05-01</p>
-                                <p>Fecha de Finalización: 2023-12-31</p>
-                                <p>Último Pago: 2023-06-15</p>
+                                <!-- Agrega las fechas relevantes aquí -->
                                 <a href="./credit-detail" class="btn btn-primary">Ver Detalle</a>
                             </div>
                         </div>
@@ -68,6 +68,7 @@
                 </div>
             </div>
         </div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

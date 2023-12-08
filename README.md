@@ -47,6 +47,8 @@ tmt = text('DROP TABLE loan_installment')
 db.session.execute(stmt)
 db.session.commit()
 
+// Fuera de la consola de python
+
 flask db init
 flask db migrate
 flask db upgrade
