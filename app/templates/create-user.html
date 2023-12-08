@@ -8,7 +8,7 @@
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="./user-list">Ver usuarios</a>
             </div>
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Volver al menu</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
@@ -93,5 +93,8 @@
             </div>
         </div>
     </div>
+    <!-- En tu plantilla HTML -->
+    <div id="user-id" data-user-id="{{ session.get('user_id') }}"></div>
+
 </div>
 {% endblock %}

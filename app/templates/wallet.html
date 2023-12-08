@@ -5,8 +5,7 @@
     <div class="container pt-5">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3"
-                    href="./menu-manager">Volver al menu</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
@@ -19,25 +18,26 @@
                 <h4 class="c-cajas__item__title c-headings c-headings__h4"># Total cajas: 2</h4>
             </div>
         </div>
+
+        {% for seller_info in wallet_data['Sellers Detail'] %}
         <div class="row mt-4">
             <div class="col">
                 <div class="c-card">
                     <div class="card-header">
-                        <h4>Vendedor: vendedor1</h4>
+                        <h4>Vendedor: {{ seller_info['First Name'] }} {{ seller_info['Last Name'] }}</h4>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-6">
                                 <h5>Debió Cobrar</h5>
-                                <p># de Créditos: 10</p>
-                                <p>Valor de los Créditos: $1000</p>
-                                <p>% Recaudado: 80%</p>
+                                <p># de Créditos: {{ seller_info['Number of Active Loans'] }}</p>
+                                <p>Valor de los Créditos: ${{ seller_info['Total Amount of Pending Installments'] }}</p>
+                                <p>% Recaudado: {{ seller_info['Percentage of Day Collection'] }}</p>
                             </div>
                             <div class="col-6">
                                 <h5>Cartera</h5>
-                                <p>Valor Créditos Vencidos: $200</p>
-                                <p>Valor Total Cartera: $800</p>
-                                <p>Saldo Cartera: $600</p>
+                                <p>Valor Créditos Vencidos: ${{ seller_info['Total Amount of Overdue Loans'] }}</p>
+                                <!-- Agrega otros campos de la cartera si es necesario -->
                             </div>
                             <div class="col">
                                 <a href="./wallet-detail" class="btn btn-primary">Ir al Detalle</a>
@@ -47,34 +47,7 @@
                 </div>
             </div>
         </div>
-        <div class="row mt-4">
-            <div class="col">
-                <div class="c-card">
-                    <div class="card-header">
-                        <h4>Vendedor: vendedor2</h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-6">
-                                <h5>Debió Cobrar</h5>
-                                <p># de Créditos: 8</p>
-                                <p>Valor de los Créditos: $800</p>
-                                <p>% Recaudado: 90%</p>
-                            </div>
-                            <div class="col-6">
-                                <h5>Cartera</h5>
-                                <p>Valor Créditos Vencidos: $0</p>
-                                <p>Valor Total Cartera: $800</p>
-                                <p>Saldo Cartera: $800</p>
-                            </div>
-                            <div class="col">
-                                <a href="./wallet-detail" class="btn btn-primary">Ir al Detalle</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}
