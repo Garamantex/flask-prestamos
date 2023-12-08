@@ -626,9 +626,9 @@ def transactions():
             transaction_type = request.form.get('transaction_type')
             concept_id = request.form.get('concept_id')
             description = request.form.get('description')
-            mount = request.form.get('quantity')
+            amount = request.form.get('quantity')
             attachment = request.files['photo']  # Obtener el archivo de imagen
-            status = request.form.get('status')
+            approval_status = request.form.get('status')
             concepts = Concept.query.filter_by(transaction_types=transaction_type).all()
             basephant = os.path.abspath(os.path.dirname(__file__))
             filename = secure_filename(attachment.filename)
@@ -641,9 +641,9 @@ def transactions():
                 transaction_types=transaction_type,
                 concept_id=concept_id,
                 description=description,
-                mount=mount,
+                amount=amount,
                 attachment=attachment.filename,
-                status=status,
+                approval_status=approval_status,
                 employee_id=employee.id  # Usar el employee_id obtenido aquí
             )
 
