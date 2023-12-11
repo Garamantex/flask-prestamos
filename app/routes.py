@@ -1083,7 +1083,7 @@ def approval_expenses():
                 'tipo': transaccion.transaction_types.name,
                 'concepto': concepto.name,
                 'descripcion': transaccion.description,
-                'monto': transaccion.mount,
+                'monto': transaccion.amount,
                 'attachment': transaccion.attachment,
             }
 
@@ -1268,7 +1268,49 @@ def wallet_detail(employee_id):
 
 @routes.route('/list-expenses')
 def list_expenses():
-    return render_template('list-expenses.html')
+    try:
+        # Obtener el user_id de la sesión
+        user_id = session.get('user_id')
+
+        if user_id is None:
+            return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
+
+        # Buscar al empleado correspondiente al user_id de la sesión
+        empleado = Employee.query.filter_by(user_id=user_id).first()
+
+        if not empleado:
+            return jsonify({'message': 'Empleado no encontrado'}), 404
+
+        # Obtener todas las transacciones asociadas a este empleado
+        transacciones = Transaction.query.filter(
+            Transaction.employee_id == empleado.id
+        ).all()
+
+        # Crear una lista para almacenar los detalles de las transacciones
+        detalles_transacciones = []
+
+        for transaccion in transacciones:
+            # Obtener el concepto de la transacción
+            concepto = Concept.query.get(transaccion.concept_id)
+
+            # Crear un diccionario con los detalles de la transacción
+            detalle_transaccion = {
+                'id': transaccion.id,
+                'tipo': transaccion.transaction_types.name,
+                'concepto': concepto.name,
+                'descripcion': transaccion.description,
+                'monto': transaccion.amount,
+                'attachment': transaccion.attachment,
+                'status': transaccion.approval_status
+            }
+
+            # Agregar los detalles a la lista
+            detalles_transacciones.append(detalle_transaccion)
+
+        return render_template('list-expenses.html', detalles_transacciones=detalles_transacciones)
+
+    except Exception as e:
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
 @routes.route('/create-box')
