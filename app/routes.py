@@ -420,7 +420,7 @@ def renewal():
             amount = float(request.form.get('amount'))
             dues = float(request.form.get('dues'))
             interest = float(request.form.get('interest'))
-            payment = float(request.form.get('payment'))  # Asumiendo que también tienes un campo 'payment'
+            payment = float(request.form.get('amount'))
 
             # Verificar que los valores ingresados no superen los máximos permitidos
             if amount > maximum_sale or dues > maximum_installments or interest < minimum_interest:
@@ -450,10 +450,9 @@ def renewal():
             clients = Client.query.filter_by(employee_id=employee.id).all()
         else:
             clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
-        client_names = [f"{client.first_name} {client.last_name}" for client in clients]
-        print(f'clients: {client_names}')
+        client_data = [(client.document, f"{client.first_name} {client.last_name}") for client in clients]
 
-        return render_template('renewal.html', clients=client_names)
+        return render_template('renewal.html', clients=client_data)
     else:
         return redirect(url_for('routes.menu_salesman'))
 
@@ -1086,9 +1085,9 @@ def approval_expenses():
                 'monto': transaccion.amount,
                 'attachment': transaccion.attachment,
             }
-
             # Agregar los detalles a la lista
             detalles_transacciones.append(detalle_transaccion)
+            print(detalles_transacciones)
 
         return render_template('approval-expenses.html', detalles_transacciones=detalles_transacciones)
 
