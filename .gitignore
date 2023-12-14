@@ -7,6 +7,7 @@ app/node_modules/
 # Local development environment
 prestamos/
 .env
+venv
 
 # Flask instance folder
 instance/

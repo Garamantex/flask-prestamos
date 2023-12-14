@@ -287,7 +287,7 @@ class Transaction(db.Model):
     transaction_types = db.Column(db.Enum(TransactionType), nullable=False, doc='Tipo')
     concept_id = db.Column(db.Integer, db.ForeignKey('concept.id'), nullable=False)
     description = db.Column(db.String(100), nullable=False, doc='Descripción')
-    mount = db.Column(db.Numeric(10, 2), nullable=False, doc='Monto')
+    amount = db.Column(db.Numeric(10, 2), nullable=False, doc='Monto')
     attachment = db.Column(db.String(100), nullable=True, doc='Adjunto')
     approval_status = db.Column(db.Enum(ApprovalStatus), default=ApprovalStatus.PENDIENTE, nullable=False,
                                 doc='Estado de Aprobación')
@@ -305,7 +305,7 @@ class Transaction(db.Model):
             'transaction_types': self.transaction_types.name,
             'concept_id': self.concept_id,
             'description': self.description,
-            'mount': str(self.mount),
+            'amount': str(self.amount),
             'attachment': self.attachment,
             'status': self.status,
             'approval_status': self.approval_status.name,  # Agregamos el estado de aprobación al JSON

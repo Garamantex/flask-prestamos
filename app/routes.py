@@ -1,9 +1,10 @@
 import datetime
 from datetime import timedelta
+from datetime import date
 import os
 import uuid
 from operator import and_
-
+from datetime import datetime
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
@@ -392,17 +393,17 @@ def renewal():
             return "Error: No se encontró el empleado correspondiente al usuario."
 
         if request.method == 'POST':
-            # Obtener la lista de clientes asociados al empleado actual
-            if session['role'] == Role.COORDINADOR.value:
-                clients = Client.query.filter_by(employee_id=employee.id).all()
-            else:  # Si es vendedor, obtener solo los clientes asociados al vendedor
-                clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
+            # Obtener el número de documento del cliente seleccionado en el formulario
+            document_number = request.form.get('document_number')
 
-            # Obtener el índice del cliente seleccionado en el formulario
-            selected_index = int(request.form.get('client_index'))
+            if not document_number:
+                return "Error: No se seleccionó un cliente."
 
-            # Obtener el cliente seleccionado a partir del índice
-            selected_client = clients[selected_index]
+            # Buscar el cliente por su número de documento
+            selected_client = Client.query.filter_by(document=document_number).first()
+
+            if selected_client is None:
+                return "Error: No se encontró el cliente."
 
             # Verificar si el cliente tiene préstamos activos
             active_loans = Loan.query.filter_by(client_id=selected_client.id, status=True).count()
@@ -415,14 +416,14 @@ def renewal():
             maximum_installments = employee.maximum_installments
             minimum_interest = employee.minimum_interest
 
-            # Obtener los datos del formulario sin ajustarlos a los máximos permitidos
+            # Obtener los datos del formulario
             amount = float(request.form.get('amount'))
             dues = float(request.form.get('dues'))
             interest = float(request.form.get('interest'))
-            payment = float(request.form.get('payment'))
+            payment = float(request.form.get('amount'))
 
             # Verificar que los valores ingresados no superen los máximos permitidos
-            if amount > maximum_sale or dues > maximum_installments or interest > minimum_interest:
+            if amount > maximum_sale or dues > maximum_installments or interest < minimum_interest:
                 return "Error: Los valores ingresados superan los máximos permitidos."
 
             # Crear la instancia de renovación de préstamo
@@ -449,10 +450,9 @@ def renewal():
             clients = Client.query.filter_by(employee_id=employee.id).all()
         else:
             clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
-        client_names = [f"{client.first_name} {client.last_name}" for client in clients]
-        print(f'clients: {client_names}')
+        client_data = [(client.document, f"{client.first_name} {client.last_name}") for client in clients]
 
-        return render_template('renewal.html', clients=client_names)
+        return render_template('renewal.html', clients=client_data)
     else:
         return redirect(url_for('routes.menu_salesman'))
 
@@ -491,7 +491,7 @@ def modify_installments(loan_id):
 
             # Actualizar la fecha de pago a la fecha actual
             if installment.status == InstallmentStatus.PAGADA:
-                installment.payment_date = datetime.datetime.now()
+                installment.payment_date = datetime.now()  # Corrección
 
     # Guardar los cambios en la base de datos
     db.session.commit()
@@ -625,9 +625,9 @@ def transactions():
             transaction_type = request.form.get('transaction_type')
             concept_id = request.form.get('concept_id')
             description = request.form.get('description')
-            mount = request.form.get('quantity')
+            amount = request.form.get('quantity')
             attachment = request.files['photo']  # Obtener el archivo de imagen
-            status = request.form.get('status')
+            approval_status = request.form.get('status')
             concepts = Concept.query.filter_by(transaction_types=transaction_type).all()
             basephant = os.path.abspath(os.path.dirname(__file__))
             filename = secure_filename(attachment.filename)
@@ -640,9 +640,9 @@ def transactions():
                 transaction_types=transaction_type,
                 concept_id=concept_id,
                 description=description,
-                mount=mount,
+                amount=amount,
                 attachment=attachment.filename,
-                status=status,
+                approval_status=approval_status,
                 employee_id=employee.id  # Usar el employee_id obtenido aquí
             )
 
@@ -678,7 +678,7 @@ def get_concepts():
 @routes.route('/box', methods=['GET'])
 def box():
     try:
-        # Get user_id from session
+        # Get the user_id from the session
         user_id = session.get('user_id')
 
         # Check if user_id exists
@@ -688,14 +688,14 @@ def box():
         # Get the employee corresponding to user_id
         employee = Employee.query.filter_by(user_id=user_id).first()
 
-        # Check if employee exists
+        # Check if the employee exists
         if employee is None:
             return jsonify({'message': 'Employee not found'}), 404
 
         # Get the manager corresponding to the employee
         manager = Manager.query.filter_by(employee_id=employee.id).first()
 
-        # Check if manager exists
+        # Check if the manager exists
         if manager is None:
             return jsonify({'message': 'Manager not found'}), 404
 
@@ -705,69 +705,107 @@ def box():
         # Initialize a list to collect statistics for each salesman
         salesmen_stats = []
 
-        # Iterate over the salesmen
         for salesman in salesmen:
             # Initialize variables to collect statistics for each salesman
             projected_collections = 0
-            new_loans = 0
+            total_collections_today = 0
+            new_clients = 0
             daily_expenses = 0
             daily_withdrawals = 0
             daily_collection = 0
-            daily_renewals = 0
             completed_collections = 0
             total_customers = 0
             customers_in_arrears = 0
 
-            # Calculate based on daily RETIRO transactions
+            # Calculate collection projections based on pending loans
+            projected_collections = LoanInstallment.query.join(Loan).filter(
+                Loan.client.has(employee_id=salesman.employee_id),
+                LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA]),
+                LoanInstallment.due_date <= date.today()
+            ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
+
+            # Calculate the total collections for the day with status "PAGADA"
+            total_collections_today = LoanInstallment.query.join(Loan).filter(
+                Loan.client.has(employee_id=salesman.employee_id),
+                LoanInstallment.status == InstallmentStatus.PAGADA,
+                LoanInstallment.payment_date == date.today()
+            ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
+
+            # Calcula la cantidad de nuevos clientes registrados en el día
+            new_clients = Client.query.filter(
+                Client.employee_id == salesman.employee_id,
+                Client.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            ).count()
+
+            # Calcula el total de préstamos con is_renewal en True para el día actual
+            today = datetime.combine(date.today(), datetime.min.time())
+            total_renewal_loans = Loan.query.filter(
+                Loan.client.has(employee_id=salesman.employee_id),
+                Loan.is_renewal == True,
+                Loan.creation_date >= today,
+                Loan.creation_date < today + timedelta(days=1)
+            ).count()
+
+            # Calculate daily expenses
+            daily_expenses = Transaction.query.filter_by(
+                employee_id=salesman.employee_id,
+                transaction_types=TransactionType.GASTO,
+                creation_date=func.current_date()
+            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+
+            # Calculate daily withdrawals based on WITHDRAW transactions
             daily_withdrawals = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.RETIRO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
-            # Calculate based on daily INGRESO transactions
+            # Calculate daily collections based on INCOME transactions
             daily_collection = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.INGRESO
             ).with_entities(func.sum(Transaction.mount)).scalar() or 0
 
-            # Calculate completed collections for the day
-            sales_today = Transaction.query.filter_by(
-                employee_id=salesman.employee_id,
-                creation_date=func.current_date(),
-                transaction_types=TransactionType.INGRESO
-            ).all()
-
-            completed_collections = len([sale for sale in sales_today if sale.status])
-
-            # Total customers of the salesman
-            total_customers = len(salesman.employee.clients)
+            # Total number of salesman's customers
+            total_customers = sum(
+                1 for client in salesman.employee.clients
+                for loan in client.loans
+                if loan.status
+            )
 
             # Customers in arrears for the day
-            customers_in_arrears = len([
-                client for client in salesman.employee.clients
-                if any(loan.status and not loan.up_to_date for loan in client.loans)
-            ])
+            customers_in_arrears = sum(
+                1 for client in salesman.employee.clients
+                for loan in client.loans
+                if loan.status and not loan.up_to_date and any(
+                    installment.status == InstallmentStatus.MORA
+                    or (installment.status == InstallmentStatus.PENDIENTE and installment.due_date < datetime.now().date())
+                    for installment in loan.installments
+                )
+            )
 
             # Create a dictionary with the results for this salesman
             salesman_data = {
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
-                'projected_collections_for_the_day': projected_collections,
-                'new_loans_made_today': new_loans,
-                'daily_expenses': daily_expenses,
-                'daily_withdrawals': daily_withdrawals,
-                'daily_collections_made': daily_collection,
-                'how_many_renewals_have_been_made_today': daily_renewals,
-                'how_many_collections_of_the_day_have_been_completed': completed_collections,
+                'projected_collections_for_the_day': str(projected_collections),
+                'total_collections_today': str(total_collections_today),
+                'new_clients_registered_today': str(new_clients),
+                'how_many_renewals_have_been_made_today': total_renewal_loans,
+                'daily_expenses': str(daily_expenses),
+                'daily_withdrawals': str(daily_withdrawals),
+                'daily_collections_made': str(daily_collection),
+                'how_many_collections_for_the_day_have_been_completed': completed_collections,
                 'total_number_of_customers': total_customers,
                 'customers_in_arrears_for_the_day': customers_in_arrears
             }
+            print(f'salesman_data: {salesman_data}')
 
-            # Append the salesman's data to the list
+            # Add the salesman's data to the list
             salesmen_stats.append(salesman_data)
 
-        return render_template('box.html', manager_name=manager.employee.user.username, salesmen_stats=salesmen_stats)
+        return render_template('box.html', coordinator_name=manager.employee.user.username,
+                               salesmen_statistics=salesmen_stats)
 
     except Exception as e:
         return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
@@ -1044,12 +1082,12 @@ def approval_expenses():
                 'tipo': transaccion.transaction_types.name,
                 'concepto': concepto.name,
                 'descripcion': transaccion.description,
-                'monto': transaccion.mount,
+                'monto': transaccion.amount,
                 'attachment': transaccion.attachment,
             }
-
             # Agregar los detalles a la lista
             detalles_transacciones.append(detalle_transaccion)
+            print(detalles_transacciones)
 
         return render_template('approval-expenses.html', detalles_transacciones=detalles_transacciones)
 
@@ -1229,7 +1267,49 @@ def wallet_detail(employee_id):
 
 @routes.route('/list-expenses')
 def list_expenses():
-    return render_template('list-expenses.html')
+    try:
+        # Obtener el user_id de la sesión
+        user_id = session.get('user_id')
+
+        if user_id is None:
+            return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
+
+        # Buscar al empleado correspondiente al user_id de la sesión
+        empleado = Employee.query.filter_by(user_id=user_id).first()
+
+        if not empleado:
+            return jsonify({'message': 'Empleado no encontrado'}), 404
+
+        # Obtener todas las transacciones asociadas a este empleado
+        transacciones = Transaction.query.filter(
+            Transaction.employee_id == empleado.id
+        ).all()
+
+        # Crear una lista para almacenar los detalles de las transacciones
+        detalles_transacciones = []
+
+        for transaccion in transacciones:
+            # Obtener el concepto de la transacción
+            concepto = Concept.query.get(transaccion.concept_id)
+
+            # Crear un diccionario con los detalles de la transacción
+            detalle_transaccion = {
+                'id': transaccion.id,
+                'tipo': transaccion.transaction_types.name,
+                'concepto': concepto.name,
+                'descripcion': transaccion.description,
+                'monto': transaccion.amount,
+                'attachment': transaccion.attachment,
+                'status': transaccion.approval_status
+            }
+
+            # Agregar los detalles a la lista
+            detalles_transacciones.append(detalle_transaccion)
+
+        return render_template('list-expenses.html', detalles_transacciones=detalles_transacciones)
+
+    except Exception as e:
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
 @routes.route('/create-box')

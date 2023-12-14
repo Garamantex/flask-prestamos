@@ -1,14 +1,13 @@
 from flask import Flask
-import os
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-
 def create_app():
     app = Flask(__name__)
     app.config.from_pyfile('config.py')
-    app.config['UPLOAD_FOLDER'] = app.config['UPLOAD_FOLDER']  # Agrega esta línea
+    app.config['UPLOAD_FOLDER'] = app.config['UPLOAD_FOLDER']
+    
     # Inicializar la instancia de SQLAlchemy
     db.init_app(app)
 
@@ -23,8 +22,5 @@ def create_app():
     # Importar y registrar los modelos
     from app.models import User, Client, Loan
 
-    # Crear las tablas en la base de datos
-    with app.app_context():
-        db.create_all()
-
     return app
+

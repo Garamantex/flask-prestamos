@@ -6,7 +6,7 @@
         <div class="row">
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3"
-                    href="./menu-salesman">Volver al menu</a>
+                    href="./menu-salesman">Menu</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
@@ -14,7 +14,7 @@
         </div>
         <div class="col">
             <div class="c-users">
-                <p class="c-users__title">Renovacones</p>
+                <p class="c-users__title">Renovaciones</p>
             </div>
         </div>
         <div class="c-form">
@@ -26,33 +26,25 @@
                         <select class="c-form c-form__input" name="document_number">
                             <option value>Seleccionar usuario</option>
                             {% for client in clients %}
-                            <option value="{{ client.document }}">{{ client }}</option>
+                                <option value="{{ client[0] }}">{{ client[1] }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="cuotas">Número de Cuotas:</label>
-                        <select class="c-form c-form__input" name="dues">
+                        <select class="c-form c-form__input" name="dues" id="dues">
                             <option value>Seleccionar número de cuotas</option>
-                            <option value="6">6 cuotas</option>
-                            <option value="12">12 cuotas</option>
-                            <option value="18">18 cuotas</option>
-                            <option value="24">24 cuotas</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="interes">Interés del Préstamo:</label>
-                        <select class="c-form c-form__input" name="interest">
+                        <select class="c-form c-form__input" name="interest" id="interest">
                             <option value>Seleccionar interés del préstamo</option>
-                            <option value="5">5%</option>
-                            <option value="10">10%</option>
-                            <option value="15">15%</option>
-                            <option value="20">20%</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="valor">Valor del Préstamo:</label>
-                        <input type="text" class="c-form c-form__input" name="amount" placeholder="Ingrese el valor del préstamo">
+                        <input type="text" class="c-form c-form__input" name="amount" id="amount" placeholder="Ingrese el valor del préstamo">
                     </div>
                     <button type="submit" class="c-btn c-btn-primary mt-4">Crear Préstamo</button>
                 </form>

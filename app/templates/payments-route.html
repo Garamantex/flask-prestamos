@@ -5,7 +5,7 @@
     <div class="container pt-5">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Volver al menú</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Menu</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
@@ -29,7 +29,7 @@
                         <p class="mb-1">Monto deuda: ${{ client_info['Total Outstanding Amount'] }}</p>
                         <p class="mb-1">Monto mora: ${{ client_info['Total Overdue Amount'] }}</p>
                         <p class="mb-1">Ultimo pago: {{ client_info['Last Payment Date'] }}</p>
-                        <a href="{{ url_for('routes.credit_detail', id=client.loans[-1].id) }}" class="c-btn c-btn-primary mb-4" type="submit">Ver prestamo</a href="">
+                        <a href="" class="c-btn c-btn-primary mb-4" type="submit">Ver detalle</a>
                     </li>
                     {% endfor %}
                 </ul>
