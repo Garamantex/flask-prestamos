@@ -751,21 +751,21 @@ def box():
                 employee_id=salesman.employee_id,
                 transaction_types=TransactionType.GASTO,
                 creation_date=func.current_date()
-            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+            ).with_entities(func.sum(Transaction.amount)).scalar() or 0
 
             # Calculate daily withdrawals based on WITHDRAW transactions
             daily_withdrawals = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.RETIRO
-            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+            ).with_entities(func.sum(Transaction.amount)).scalar() or 0
 
             # Calculate daily collections based on INCOME transactions
             daily_collection = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.INGRESO
-            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+            ).with_entities(func.sum(Transaction.amount)).scalar() or 0
 
             # Total number of salesman's customers
             total_customers = sum(
