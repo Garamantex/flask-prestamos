@@ -621,6 +621,11 @@ def update_concept(concept_id):
     return jsonify(concept.to_json())
 
 
+import os
+import uuid
+from flask import request, render_template, session, redirect, url_for
+from werkzeug.utils import secure_filename
+
 @routes.route('/transaction', methods=['GET', 'POST'])
 def transactions():
     if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
@@ -638,11 +643,13 @@ def transactions():
             attachment = request.files['photo']  # Obtener el archivo de imagen
             approval_status = request.form.get('status')
             concepts = Concept.query.filter_by(transaction_types=transaction_type).all()
-            basephant = os.path.abspath(os.path.dirname(__file__))
-            filename = secure_filename(attachment.filename)
-            extension = filename.split('.')[-1]
-            newfilename = str(uuid.uuid4()) + '.' + extension
-            attachment.save(os.path.join(basephant, 'static', 'images', newfilename))
+
+            # Generar un nombre único para el archivo
+            filename = str(uuid.uuid4()) + secure_filename(attachment.filename)
+
+            # Guardar el archivo en la carpeta 'static/images'
+            upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'images')
+            attachment.save(os.path.join(upload_folder, filename))
 
             # Usar el employee_id obtenido para crear la transacción
             transaction = Transaction(
@@ -650,9 +657,9 @@ def transactions():
                 concept_id=concept_id,
                 description=description,
                 amount=amount,
-                attachment=attachment.filename,
+                attachment=filename,  # Usar el nombre único del archivo
                 approval_status=approval_status,
-                employee_id=employee.id  # Usar el employee_id obtenido aquí
+                employee_id=employee.id
             )
 
             db.session.add(transaction)
@@ -669,6 +676,7 @@ def transactions():
     else:
         # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
         return "Acceso no autorizado."
+
 
 
 @routes.route('/get-concepts', methods=['GET'])
@@ -998,7 +1006,6 @@ def get_debtors():
 
         # Agregar la información del vendedor a la lista principal
         debtors_info.append(salesman_info)
-    print(debtors_info)
     return jsonify(debtors_info)
 
 
@@ -1096,7 +1103,6 @@ def approval_expenses():
             }
             # Agregar los detalles a la lista
             detalles_transacciones.append(detalle_transaccion)
-            print(detalles_transacciones)
 
         return render_template('approval-expenses.html', detalles_transacciones=detalles_transacciones)
 
@@ -1270,7 +1276,6 @@ def wallet_detail(employee_id):
         'Total Overdue Amount': str(total_overdue_amount),
         'Loans Detail': loans_detail,
     }
-    print(wallet_detail_data)
     return render_template('wallet-detail.html', wallet_detail_data=wallet_detail_data)
 
 
@@ -1311,6 +1316,7 @@ def list_expenses():
                 'attachment': transaccion.attachment,
                 'status': transaccion.approval_status
             }
+            print(detalle_transaccion['status'])
 
             # Agregar los detalles a la lista
             detalles_transacciones.append(detalle_transaccion)
