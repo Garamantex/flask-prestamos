@@ -24,7 +24,7 @@
                         <span class="list-item-title">Información Adicional:</span><br>
                         {% for employee in employees %}
                             {% if employee.user_id == user.id %}
-                                - Dinero Máximo de Caja: {{ employee.maximum_cash }}<br>
+                                - Dinero Máximo de Caja: $ {{ "{:.2f}".format(employee.maximum_cash) }}<br>
                                 - Dinero Máximo de Venta: {{ employee.maximum_sale }}<br>
                                 - Dinero Máximo de Gasto: {{ employee.maximum_expense }}<br>
                                 - Máximo de Cuotas: {{ employee.maximum_installments }}<br>

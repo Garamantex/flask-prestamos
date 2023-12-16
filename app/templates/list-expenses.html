@@ -30,20 +30,6 @@
                         <p>Valor: <span>$1000</span></p>
                         <p>Estado: <span>Aprobado</span></p>
                     </li>
-
-                    <!-- Solicitud 2 -->
-                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px; background-color: red;">
-                        <p>Solicitado por: <span>David Rocha</span></p>
-                        <p>Tipo de Gasto: <span>Gasto</span></p>
-                        <p>Concepto: <span>Comida</span></p>
-                        <p>Descripción: <span>Compra de víveres</span></p>
-                        <p>Valor: <span>$500</span></p>
-                        <p>Estado: <span>Denegado</span></p>
-                    </li>
-
-                    <!-- Solicitud 3 -->
-                    <!-- ... Repite la estructura para más solicitudes ... -->
-                    
                 </ul>
             </div>
         </div>
@@ -53,7 +39,8 @@
                     {% for detalle_transaccion in detalles_transacciones %}
                     <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
                         <p>Solicitado por: <span>{{ detalle_transaccion['tipo'] }}</span></p>
-                        <p>Tipo de Gasto: <span>{{ detalle_transaccion['concepto'] }}</span></p>
+                        <p>Tipo: <span>{{ detalle_transaccion['tipo'] }}</span></p>
+                        <p>Concepto: <span>{{ detalle_transaccion['concepto'] }}</span></p>
                         <p>Descripción: <span>{{ detalle_transaccion['descripcion'] }}</span></p>
                         <p>Valor: <span>${{ detalle_transaccion['monto'] }}</span></p>
                         <p>Estado: <span>{{ detalle_transaccion['status'] }}</span></p>
