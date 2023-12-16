@@ -447,9 +447,18 @@ def renewal():
 
         # Crear una lista de tuplas con los nombres y apellidos de los clientes para mostrar en el formulario
         if session['role'] == Role.COORDINADOR.value:
-            clients = Client.query.filter_by(employee_id=employee.id).all()
+            # Para el coordinador, mostrar todos los clientes sin préstamos activos que pertenecen a su equipo
+            clients = Client.query.filter(
+                Client.employee_id == employee.id,
+                ~Client.loans.any(Loan.status == True)
+            ).all()
         else:
-            clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id).all()
+            # Para el vendedor, mostrar solo sus clientes sin préstamos activos
+            clients = Client.query.join(Loan).filter(
+                Loan.employee_id == employee.id,
+                ~Loan.status
+            ).distinct(Client.id).all()
+
         client_data = [(client.document, f"{client.first_name} {client.last_name}") for client in clients]
 
         return render_template('renewal.html', clients=client_data)
@@ -751,21 +760,21 @@ def box():
                 employee_id=salesman.employee_id,
                 transaction_types=TransactionType.GASTO,
                 creation_date=func.current_date()
-            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+            ).with_entities(func.sum(Transaction.amount)).scalar() or 0
 
             # Calculate daily withdrawals based on WITHDRAW transactions
             daily_withdrawals = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.RETIRO
-            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+            ).with_entities(func.sum(Transaction.amount)).scalar() or 0
 
             # Calculate daily collections based on INCOME transactions
             daily_collection = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 creation_date=func.current_date(),
                 transaction_types=TransactionType.INGRESO
-            ).with_entities(func.sum(Transaction.mount)).scalar() or 0
+            ).with_entities(func.sum(Transaction.amount)).scalar() or 0
 
             # Total number of salesman's customers
             total_customers = sum(
