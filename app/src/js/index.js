@@ -135,3 +135,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+document.addEventListener('DOMContentLoaded', function () {
+    // Al hacer clic en cualquier botón "Ver comprobante"
+    document.querySelectorAll('.c-btn-primary').forEach(function (button) {
+        button.addEventListener('click', function () {
+            // Obtén el atributo data-target del botón para identificar la modal asociada
+            var targetModalId = this.getAttribute('data-target');
+            var targetModal = document.getElementById(targetModalId);
+
+            // Muestra la modal correspondiente
+            targetModal.style.display = 'flex';
+        });
+    });
+
+    // Al hacer clic fuera de la imagen, cierra la modal
+    document.querySelectorAll('.c-modal').forEach(function (modal) {
+        modal.addEventListener('click', function (event) {
+            if (event.target.classList.contains('c-modal')) {
+                // Cierra la modal
+                this.style.display = 'none';
+            }
+        });
+    });
+
+    // Al hacer clic en el botón de cierre, cierra la modal
+    document.querySelectorAll('.close-button').forEach(function (closeButton) {
+        closeButton.addEventListener('click', function () {
+            // Obtén la modal asociada al botón de cierre
+            var modal = this.closest('.c-modal');
+            modal.style.display = 'none';
+        });
+    });
+});
