@@ -26,3 +26,4 @@ database.db
 .DS_Store
 Thumbs.db
 
+app/config.py
