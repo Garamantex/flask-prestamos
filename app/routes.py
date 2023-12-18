@@ -5,6 +5,8 @@ import os
 import uuid
 from operator import and_
 from datetime import datetime
+
+import holidays
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
@@ -526,6 +528,19 @@ def modify_installments(loan_id):
     return redirect(url_for('routes.credit_detail', id=loan_id))
 
 
+def is_workday(date):
+    # Verificar si la fecha es fin de semana
+    if date.weekday() >= 5:  # 5 para sábado y 6 para domingo
+        return False
+
+    # Verificar si la fecha es un día festivo en Chile
+    cl_holidays = holidays.Chile()
+    if date in cl_holidays:
+        return False
+
+    return True
+
+
 def generate_loan_installments(loan):
     amount = loan.amount
     dues = loan.dues
@@ -536,10 +551,19 @@ def generate_loan_installments(loan):
     employee_id = loan.employee_id
 
     installment_amount = (amount + (amount * interest / 100)) / dues
-    due_date = creation_date + timedelta(days=1)
+
+    # Establecer la fecha de vencimiento de la primera cuota
+    if creation_date.weekday() == 4:  # 4 representa el viernes
+        due_date = creation_date + timedelta(days=3)  # Avanzar al lunes
+    else:
+        due_date = creation_date + timedelta(days=1)
 
     installments = []
     for installment_number in range(1, int(dues) + 1):
+        # Asegurarse de que la fecha de vencimiento sea un día laborable
+        while not is_workday(due_date):
+            due_date += timedelta(days=1)
+
         installment = LoanInstallment(
             installment_number=installment_number,
             due_date=due_date,
@@ -549,6 +573,7 @@ def generate_loan_installments(loan):
         )
         installments.append(installment)
 
+        # Avanzar al siguiente día laborable para la próxima cuota
         due_date += timedelta(days=1)
 
     # Guardar las cuotas en la base de datos
@@ -789,7 +814,8 @@ def box():
                 for loan in client.loans
                 if loan.status and not loan.up_to_date and any(
                     installment.status == InstallmentStatus.MORA
-                    or (installment.status == InstallmentStatus.PENDIENTE and installment.due_date < datetime.now().date())
+                    or (
+                                installment.status == InstallmentStatus.PENDIENTE and installment.due_date < datetime.now().date())
                     for installment in loan.installments
                 )
             )
