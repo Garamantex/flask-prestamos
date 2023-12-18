@@ -899,7 +899,8 @@ def debtor():
                 'cuotas_pagadas': cuotas_pagadas,
                 'cuotas_vencidas': cuotas_vencidas,
                 'valor_total': valor_total,
-                'saldo_pendiente': saldo_pendiente
+                'saldo_pendiente': saldo_pendiente,
+                'id_prestamo': prestamo.id
             }
 
             # Agregar los detalles del cliente en MORA a la lista
@@ -1024,7 +1025,6 @@ def get_debtors():
 
         # Agregar la información del vendedor a la lista principal
         debtors_info.append(salesman_info)
-    print(debtors_info)
     return jsonify(debtors_info)
 
 
