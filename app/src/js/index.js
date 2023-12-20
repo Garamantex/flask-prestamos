@@ -167,3 +167,63 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Obtén referencias a los elementos del DOM
+    var verDetallesBtn = document.getElementById('verDetallesBtn');
+    var detallesContainer = document.getElementById('detallesContainer');
+
+    // Agrega un evento de clic al botón
+    verDetallesBtn.addEventListener('click', function () {
+        // Alternar la visibilidad del contenedor con un efecto de transición
+        if (detallesContainer.style.display === 'none') {
+            detallesContainer.style.display = 'block';
+            detallesContainer.style.opacity = '1';
+        } else {
+            detallesContainer.style.opacity = '0';
+            setTimeout(function () {
+                detallesContainer.style.display = 'none';
+            }, 50); // Ajusta la duración de la transición según tus preferencias
+        }
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    var installmentsContainer = document.getElementById('installmentsContainer');
+    
+    if (installmentsContainer) {
+        // Recorre las cuotas y aplica estilos según el estado
+        var installments = installmentsContainer.querySelectorAll('.request-item');
+        installments.forEach(function (installment) {
+            var statusElement = installment.querySelector('p:nth-child(2) span');
+
+            if (statusElement) {
+                var status = statusElement.innerText.trim();
+
+                if (status === 'PAGADA') {
+                    installment.style.display = 'none'; // Oculta las cuotas pagadas
+                } else if (status === 'MORA') {
+                    installment.style.backgroundColor = 'red'; // Agrega el estilo de fondo rojo a las cuotas en mora
+                }
+            }
+        });
+    }
+});
+
+ // Agrega un evento de clic al botón para mostrar/ocultar detalles
+ var verDetallesBtn = document.getElementById('verDetallesBtn');
+ var detallesContainer = document.getElementById('detallesContainer');
+ 
+ if (verDetallesBtn && detallesContainer) {
+     verDetallesBtn.addEventListener('click', function () {
+         if (detallesContainer.style.display === 'none') {
+             detallesContainer.style.display = 'block';
+             detallesContainer.style.opacity = '1';
+         } else {
+             detallesContainer.style.opacity = '0';
+             setTimeout(function () {
+                 detallesContainer.style.display = 'none';
+             }, 300);
+         }
+     });
+ }

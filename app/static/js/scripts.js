@@ -1,3 +1,5 @@
+
+
 document.addEventListener("DOMContentLoaded", function () {
   // Función para calcular el monto por cuota automáticamente
   function calcularMontoPorCuota() {
@@ -50,5 +52,4 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 });
-
 
