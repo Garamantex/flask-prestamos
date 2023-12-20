@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 app/node_modules/
 app/static/images/
+app/config.py
 
 # Local development environment
 prestamos/
@@ -27,4 +28,4 @@ database.db
 .DS_Store
 Thumbs.db
 
-app/config.py
+
