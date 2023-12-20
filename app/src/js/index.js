@@ -214,16 +214,17 @@ document.addEventListener('DOMContentLoaded', function () {
  var verDetallesBtn = document.getElementById('verDetallesBtn');
  var detallesContainer = document.getElementById('detallesContainer');
  
- if (verDetallesBtn && detallesContainer) {
-     verDetallesBtn.addEventListener('click', function () {
-         if (detallesContainer.style.display === 'none') {
-             detallesContainer.style.display = 'block';
-             detallesContainer.style.opacity = '1';
-         } else {
-             detallesContainer.style.opacity = '0';
-             setTimeout(function () {
-                 detallesContainer.style.display = 'none';
-             }, 300);
-         }
-     });
- }
+if (verDetallesBtn && detallesContainer) {
+    verDetallesBtn.addEventListener('click', function () {
+        if (detallesContainer.style.display === 'none') {
+            detallesContainer.style.display = 'block';
+            detallesContainer.style.opacity = '1';
+        } else {
+            detallesContainer.style.opacity = '0';
+            setTimeout(function () {
+                detallesContainer.style.display = 'none';
+            }, 300);
+        }
+    });
+}
+

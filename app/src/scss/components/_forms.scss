@@ -25,12 +25,14 @@
         font-size: 16px;
         padding: 10px;
         width: 100%;
-        border: 1px solid white;
+        border-radius: 10px;
+        border: 1px solid lightgrey;
         border-top: none;
         border-left: none;
         border-right: none;
-        background: rgba(20, 20, 20, .2);
-        color: white;
+        background: white;
+        color: black;
+        font-weight: 600;
         outline: none;
 
         &:active {
@@ -40,11 +42,6 @@
         &:focus {
             border-color: white;
         }
-
-        & option {
-            background: rgba(20, 40, 40, 0.8);
-            background-color: rgba(20, 40, 40, 0.8);
-        } 
     }
     &__textarea {
         display: block;
