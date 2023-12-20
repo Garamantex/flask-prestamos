@@ -3,4 +3,13 @@
     color: white;
     padding: 1rem;
     border-radius: 10px;
+
+    &__header {
+        padding: 10px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+    }
 }

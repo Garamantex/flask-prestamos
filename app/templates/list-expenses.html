@@ -23,7 +23,7 @@
                 <ul class="request-list">
                     {% for detalle_transaccion in detalles_transacciones %}
                     <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
-                        <p>Tipo de Gasto: <span>{{ detalle_transaccion['tipo'] }}</span></p>
+                        <p>Tipo de transacción: <span>{{ detalle_transaccion['tipo'] }}</span></p>
                         <p>Concepto: <span>{{ detalle_transaccion['concepto'] }}</span></p>
                         <p>Descripción: <span>{{ detalle_transaccion['descripcion'] }}</span></p>
                         <p>Valor: <span>${{ detalle_transaccion['monto'] }}</span></p>

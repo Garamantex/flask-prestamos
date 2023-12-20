@@ -11,21 +11,15 @@
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list') }}">Clientes</a>
             </div>
         </div>
-        <div class="row mt-4">
-            <div class="col">
-                <div class="c-users">
-                    <p class="c-users__title">Detalles del Crédito</p>
-                </div>
-            </div>
-        
-        </div>
+       
         <div class="row mt-4">
             <div class="col">
                 <div class="card">
-                    <div class="card-header">
-                        Información del Crédito
+                    <div class="c-card__header">
+                        <h3>Información del crédito </h3>
+                        <button id="verDetallesBtn" class="btn btn-primary" type="button">Ver detalles</button>
                     </div>
-                    <div class="card-body">
+                    <div id="detallesContainer" class="card-body" style="display: none;">
                         <ul class="request-list">
                             <li class="request-item">
                                 <p>Cuotas Totales: <span>{{ loan_detail.cuotas_totales }}</span></p>
@@ -54,14 +48,14 @@
             <div class="col">
                 <div class="card">
                     <div class="card-header">
-                        Detalle de Cuotas
+                       <h3 style="text-align: center;">Detalle de Cuotas</h3>
                     </div>
-                    <div class="card-body">
+                    <div id="installmentsContainer" class="card-body">
                         <form method="post" action="{{ url_for('routes.modify_installments', loan_id=loan.id) }}">
                             <div class="c-overflow">
                                 <ul class="request-list">
                                     {% for installment in installments %}
-                                    <li class="request-item request-item--column">
+                                    <li class="request-item request-item--column" id="installment_{{ installment.id }}">
                                         <p>N° Cuota: <span>{{ installment.installment_number }}</span></p>
                                         <p>Estado: <span>{{ installment.status.value }}</span></p>
                                         <p>Fecha de Pago: <span>{{ installment.due_date.strftime('%d/%m/%Y') }}</span></p>
@@ -71,8 +65,8 @@
                                                 <label for="estado_cuota_{{ installment.id }}">Modificar Estado:</label>
                                                 <select class="request-dropdown mt-3 mb-3" name="estado_cuota_{{ installment.id }}">
                                                     <option value="PAGADA">PAGADA</option>
-                                                    <option value="PENDIENTE" selected>PENDIENTE</option>
-                                                    <option value="MORA">MORA</option>
+                                                    <option value="PENDIENTE" {% if installment.status.value == 'PENDIENTE' %}selected{% endif %}>PENDIENTE</option>
+                                                    <option value="MORA" {% if installment.status.value == 'MORA' %}selected{% endif %}>MORA</option>
                                                 </select>
                                             {% else %}
                                                 <span>Modificar Estado: {{ installment.status.value }}</span>
@@ -90,4 +84,5 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
