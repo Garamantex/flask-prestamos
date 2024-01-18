@@ -529,8 +529,8 @@ def modify_installments(loan_id):
 
 
 def is_workday(date):
-    # Verificar si la fecha es fin de semana
-    if date.weekday() >= 5:  # 5 para sábado y 6 para domingo
+    # Verificar si la fecha es domingo
+    if date.weekday() == 6:  # 6 para domingo
         return False
 
     # Verificar si la fecha es un día festivo en Chile
@@ -553,8 +553,9 @@ def generate_loan_installments(loan):
     installment_amount = (amount + (amount * interest / 100)) / dues
 
     # Establecer la fecha de vencimiento de la primera cuota
-    if creation_date.weekday() == 4:  # 4 representa el viernes
-        due_date = creation_date + timedelta(days=3)  # Avanzar al lunes
+    if creation_date.weekday() in [4, 5]:  # 4 para viernes, 5 para sábado
+        days_to_add = 7 - creation_date.weekday()  # Avanzar al lunes
+        due_date = creation_date + timedelta(days=days_to_add)
     else:
         due_date = creation_date + timedelta(days=1)
 
@@ -651,6 +652,7 @@ import uuid
 from flask import request, render_template, session, redirect, url_for
 from werkzeug.utils import secure_filename
 
+
 @routes.route('/transaction', methods=['GET', 'POST'])
 def transactions():
     if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
@@ -701,7 +703,6 @@ def transactions():
     else:
         # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
         return "Acceso no autorizado."
-
 
 
 @routes.route('/get-concepts', methods=['GET'])
@@ -823,7 +824,7 @@ def box():
                 if loan.status and not loan.up_to_date and any(
                     installment.status == InstallmentStatus.MORA
                     or (
-                                installment.status == InstallmentStatus.PENDIENTE and installment.due_date < datetime.now().date())
+                            installment.status == InstallmentStatus.PENDIENTE and installment.due_date < datetime.now().date())
                     for installment in loan.installments
                 )
             )
