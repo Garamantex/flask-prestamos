@@ -18,6 +18,7 @@ migrations/
 
 # SQLite database file
 database.db
+database.sql
 
 # Editor and IDE files
 .idea/
