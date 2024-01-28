@@ -18,6 +18,8 @@ migrations/
 
 # SQLite database file
 database.db
+database.sql
+rutzchile.sql
 
 # Editor and IDE files
 .idea/
