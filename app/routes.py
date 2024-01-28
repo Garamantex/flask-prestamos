@@ -363,6 +363,52 @@ def create_client():
         return render_template('error.html', error_message=error_message), 500
 
 
+@routes.route('/edit-client/<int:client_id>', methods=['GET', 'POST'])
+def edit_client(client_id):
+    try:
+        # Verificar que el usuario tenga permisos y sea coordinador
+        if 'user_id' in session and session['role'] == Role.VENDEDOR.value:
+            client = Client.query.get(client_id)
+
+            if not client:
+                raise Exception("Error: Cliente no encontrado.")
+
+            if request.method == 'POST':
+                # Recopilar datos del formulario POST
+                first_name = request.form.get('first_name')
+                last_name = request.form.get('last_name')
+                alias = request.form.get('alias')
+                document = request.form.get('document')
+                cellphone = request.form.get('cellphone')
+                address = request.form.get('address')
+                neighborhood = request.form.get('neighborhood')
+
+                # Validar que los campos obligatorios no estén vacíos
+                if not first_name or not last_name or not document or not cellphone:
+                    raise Exception("Error: Los campos obligatorios deben estar completos.")
+
+                # Actualizar los datos del cliente
+                client.first_name = first_name
+                client.last_name = last_name
+                client.alias = alias
+                client.document = document
+                client.cellphone = cellphone
+                client.address = address
+                client.neighborhood = neighborhood
+
+                # Guardar los cambios en la base de datos
+                db.session.commit()
+
+                return redirect(url_for('routes.client_list'))
+
+            return render_template('edit-client.html', client=client)
+        else:
+            return redirect(url_for('routes.menu_salesman'))
+    except Exception as e:
+        # Manejo de excepciones: mostrar un mensaje de error y registrar la excepción
+        error_message = str(e)
+        return render_template('error.html', error_message=error_message), 500
+
 
 @routes.route('/client-list', methods=['GET', 'POST'])
 def client_list():

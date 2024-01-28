@@ -44,9 +44,10 @@
                         <p>Lista Negra: <span>{{ "Sí" if client.black_list else "No" }}</span></p>
                         <p>Fecha Creación: <span>{{ client.creation_date }}</span></p>
                         <p>Fecha Modificación: <span>{{ client.modification_date }}</span></p>
-                        <p>
-                            <a class="btn btn-primary" href="{{ url_for('routes.credit_detail', id=client.loans[-1].id) }}">Ver detalle del crédito</a>
-                        </p>
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between;">
+                            <a style="margin: 1.5rem 0;" class="btn btn-primary" href="{{ url_for('routes.credit_detail', id=client.loans[-1].id) }}">Ver detalle del crédito</a>
+                            <a class="btn btn-primary" href="{{ url_for('routes.edit_client', client_id=client.id) }}">Editar Cliente</a>
+                        </div>
                     </li>
                     {% endfor %}
                 </ul>

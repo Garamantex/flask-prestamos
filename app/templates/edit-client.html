@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="user-id" data-user-id="{{ session.get('user_id') }}"></div>
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Menu</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list') }}">Clientes</a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="c-users">
+                    <p class="c-users__title">Formulario de Edición de Cliente</p>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <form action="{{ url_for('routes.edit_client', client_id=client.id) }}" method="POST">
+                    <fieldset>
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label">Nombre</label>
+                            <input type="text" class="c-form c-form__input" name="first_name" id="first_name" placeholder="Nombre" value="{{ client.first_name }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">Apellido</label>
+                            <input type="text" class="c-form c-form__input" name="last_name" id="last_name" placeholder="Apellido" value="{{ client.last_name }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="alias" class="form-label">Alias</label>
+                            <input type="text" class="c-form c-form__input" name="alias" id="alias" placeholder="Alias" value="{{ client.alias }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="document" class="form-label">DNI</label>
+                            <input type="text" class="c-form c-form__input" name="document" id="document" placeholder="Documento" value="{{ client.document }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="cellphone" class="form-label">Teléfono</label>
+                            <input type="text" class="c-form c-form__input" name="cellphone" id="cellphone" placeholder="Teléfono" value="{{ client.cellphone }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Dirección</label>
+                            <input type="text" class="c-form c-form__input" name="address" id="address" placeholder="Dirección" value="{{ client.address }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="neighborhood" class="form-label">Barrio</label>
+                            <input type="text" class="c-form c-form__input" name="neighborhood" id="neighborhood" placeholder="Barrio" value="{{ client.neighborhood }}">
+                        </div>
+                    </fieldset>
+
+                    <button class="c-btn c-btn-primary mb-4" type="submit">Guardar Cambios</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
