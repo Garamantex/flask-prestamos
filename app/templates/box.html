@@ -11,7 +11,7 @@
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
             </div>
         </div>
-        <div class="row">
+        <div class="row mt-5">
             <div class="col">
                 <form action="{{ url_for('routes.box') }}" method="GET" style="display: flex; flex-direction: column;">
                     <div class="mb-3">
@@ -27,12 +27,9 @@
                 <ul class="c-cajas c-overflow">
                     {% for salesman in salesmen_statistics %}
                     <li class="c-cajas__item">
-                        <div class="c-cajas__item__header">
+                        <div class="c-cajas__item__header mb-4">
                             <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja {{salesman.salesman_name}}</h3>
-                            <div class="c-cajas__item__actions">
-                                <a href="#" class="c-cajas__item--action"><i class="c-icon bi bi-pencil-square"></i></a>
-                                <a href="#" class="c-cajas__item--action"><i class="c-icon bi bi-unlock-fill"></i></a>
-                            </div>
+                            
                         </div>
                         <div class="c-cajas__item__body">
                             <div class="c-cajas__item__body__item">

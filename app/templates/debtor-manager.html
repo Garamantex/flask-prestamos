@@ -21,6 +21,16 @@
         </div>
         <div class="row">
             <div class="col-lg-12 mt-4">
+                <form method="GET" action="{{ url_for('routes.debtor_manager') }}" style="display: flex; flex-direction: column;">
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="search" name="search" placeholder="Nombre del empleado o cliente">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Buscar</button>
+                </form>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12 mt-4">
                 <ul class="request-list" id="morosos-container">
                     {% for moroso in mora_debtors_details %}
                         <li class="request-item">

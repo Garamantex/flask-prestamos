@@ -998,7 +998,6 @@ def debtor():
             ).all()
 
         return render_template('debtor.html', mora_debtors_details=mora_debtors_details, search_term=search_term)
-        return render_template('debtor-manager.html', mora_debtors_details=mora_debtors_details, search_term=search_term)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
@@ -1165,13 +1164,24 @@ def payments_list():
                     'Overdue Installments': overdue_installments,
                     'Total Outstanding Amount': str(total_outstanding_amount),
                     'Total Overdue Amount': str(total_overdue_amount),
-                    'Last Payment Date': last_payment_date.isoformat() if last_payment_date else 'No se registraron pagos'
+                    'Last Payment Date': last_payment_date.isoformat() if last_payment_date else 'No se registraron pagos',
+                    'Loan ID': loan.id 
                 }
                 clients_information.append(client_info)
 
-    # Finalmente, renderiza la información como una respuesta JSON y también renderiza una plantilla
-    return render_template('payments-route.html', clients=clients_information)
 
+    # Obtén el término de búsqueda del formulario
+    search_term = request.args.get('search', '')
+
+    # Filtra los clientes según el término de búsqueda
+    filtered_clients_information = []
+    for client_info in clients_information:
+        full_name = f"{client_info['First Name']} {client_info['Last Name']}"
+        if search_term.lower() in full_name.lower():
+            filtered_clients_information.append(client_info)
+
+    # Finalmente, renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
+    return render_template('payments-route.html', clients=filtered_clients_information)
 
 # Ruta para la página de aprobación de gastos
 @routes.route('/approval-expenses')
