@@ -20,7 +20,17 @@
         </div>
         <div class="row mt-4">
             <div class="col">
-                <ul class="request-list">
+                <form style="display: flex; flex-direction: column;" method="post" action="{{ url_for('routes.client_list') }}">
+                    <div class="form-group">
+                        <input type="text" name="search" class="form-control" placeholder="Buscar por nombre, documento o alias">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Buscar</button>
+                </form>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col">
+                <ul class="request-list c-overflow">
                     {% for client in client_list %}
                     <li class="request-item">
                         <p>Nombre: <span>{{ client.first_name }} {{ client.last_name }}</span></p>

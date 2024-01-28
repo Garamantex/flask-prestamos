@@ -363,7 +363,8 @@ def create_client():
         return render_template('error.html', error_message=error_message), 500
 
 
-@routes.route('/client-list')
+
+@routes.route('/client-list', methods=['GET', 'POST'])
 def client_list():
     if 'user_id' in session and (session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
         user_id = session['user_id']
@@ -374,11 +375,21 @@ def client_list():
 
         # Obtener la lista de clientes asociados al empleado actual que tienen préstamos en estado diferente de Falso
         if session['role'] == Role.COORDINADOR.value:
-            clients = Client.query.filter_by(employee_id=employee.id) \
-                .join(Loan).filter(Loan.status != False).all()
-        else:  # Si es vendedor, obtener solo los clientes asociados al vendedor con préstamos en estado diferente de
-            # Falso
-            clients = Client.query.join(Loan).filter(Loan.employee_id == employee.id, Loan.status != False).all()
+            clients_query = Client.query.filter_by(employee_id=employee.id).join(Loan).filter(Loan.status != False)
+        else:  # Si es vendedor, obtener solo los clientes asociados al vendedor con préstamos en estado diferente de Falso
+            clients_query = Client.query.join(Loan).filter(Loan.employee_id == employee.id, Loan.status != False)
+
+        # Manejar la búsqueda
+        search_term = request.form.get('search')
+        if search_term:
+            clients_query = clients_query.filter(
+                (Client.first_name.ilike(f'%{search_term}%')) |
+                (Client.last_name.ilike(f'%{search_term}%')) |
+                (Client.alias.ilike(f'%{search_term}%')) |
+                (Client.document.ilike(f'%{search_term}%'))
+            )
+
+        clients = clients_query.all()
 
         return render_template('client-list.html', client_list=clients)
     else:
@@ -846,9 +857,19 @@ def box():
 
             # Add the salesman's data to the list
             salesmen_stats.append(salesman_data)
+            
+            # Obtener el término de búsqueda de la URL
+        search_term = request.args.get('salesman_name')
+        
+        # Inicializar search_term como cadena vacía si es None
+        search_term = search_term if search_term else ""
+
+        # Realizar la búsqueda en la lista de salesmen_stats si hay un término de búsqueda
+        if search_term:
+            salesmen_stats = [salesman for salesman in salesmen_stats if search_term.lower() in salesman['salesman_name'].lower()]
 
         return render_template('box.html', coordinator_name=manager.employee.user.username,
-                               salesmen_statistics=salesmen_stats)
+                               salesmen_statistics=salesmen_stats, search_term=search_term)
 
     except Exception as e:
         return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
@@ -914,11 +935,27 @@ def debtor():
             # Agregar los detalles del cliente en MORA a la lista
             mora_debtors_details.append(mora_debtor_details)
 
-        return render_template('debtor.html', mora_debtors_details=mora_debtors_details)
+                    # Obtener el término de búsqueda del formulario
+        search_term = request.args.get('search')
+
+        # Filtrar los clientes según el término de búsqueda
+        if search_term:
+            clientes_en_mora = Client.query.filter(
+                Client.employee_id == empleado.id,
+                Client.debtor == True,
+                (Client.first_name + ' ' + Client.last_name).ilike(f'%{search_term}%')
+            ).all()
+        else:
+            clientes_en_mora = Client.query.filter(
+                Client.employee_id == empleado.id,
+                Client.debtor == True,
+            ).all()
+
+        return render_template('debtor.html', mora_debtors_details=mora_debtors_details, search_term=search_term)
+        return render_template('debtor-manager.html', mora_debtors_details=mora_debtors_details, search_term=search_term)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
-
 
 @routes.route('/get-debtors', methods=['GET'])
 def get_debtors():
@@ -1372,3 +1409,7 @@ def box_detail():
 @routes.route('/reports')
 def reports():
     return render_template('reports.html')
+
+@routes.route('/debtor-manager')
+def debtor_manager():
+    return render_template('debtor-manager.html')
