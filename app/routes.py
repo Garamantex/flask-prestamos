@@ -5,6 +5,7 @@ import os
 import uuid
 from operator import and_
 from datetime import datetime
+from datetime import date
 
 import holidays
 from sqlalchemy import func
@@ -86,16 +87,57 @@ def menu_manager():
 # ruta para el menú del vendedor
 @routes.route('/menu-salesman')
 def menu_salesman():
-    # Verificar si el usuario está logueado es un vendedor
+    # Verificar si el usuario está logueado
     if 'user_id' not in session:
         return redirect(url_for('routes.home'))
 
-    # Verificar si el usuario es vendedor
-    if session.get('role') != 'VENDEDOR':
-        abort(403)  # Acceso no autorizado
+    # Obtener el user_id del usuario en sesión
+    user_id = session.get('user_id')
 
-    # Mostrar el menú del vendedor
-    return render_template('menu-salesman.html')
+    # Obtener el employee_id a partir del user_id
+    employee_id = Employee.query.filter_by(user_id=user_id).first().id
+
+    # Obtener la información del vendedor y créditos en mora
+    salesman_name = f"{session.get('first_name')} {session.get('last_name')}"
+    
+     # Obtener clientes morosos
+    delinquent_clients = Client.query.filter_by(
+        employee_id=employee_id,
+        debtor=True
+    ).count()
+
+    # Obtener la cantidad total de créditos asociados al employee_id
+    total_credits = Loan.query.filter_by(
+        employee_id=employee_id,
+        status=1
+    ).distinct(Loan.client_id).count()
+
+    # Recaudo realizado en el día
+    today_revenue = db.session.query(
+        db.func.sum(LoanInstallment.amount)
+    ).join(Loan).filter(
+        Loan.employee_id == employee_id,
+        LoanInstallment.payment_date == date.today()  # Utiliza date.today() directamente
+    ).scalar()
+    
+    # Si no hay recaudo, establecerlo como 0
+    today_revenue = today_revenue or 0
+
+    
+    # Calcular el valor total en mora
+    total_arrears_value = db.session.query(
+        db.func.sum(LoanInstallment.amount)
+    ).join(Loan).filter(
+        Loan.employee_id == employee_id,
+        LoanInstallment.status == InstallmentStatus.MORA
+    ).scalar()
+
+    # Mostrar el menú del vendedor y la información obtenida
+    return render_template('menu-salesman.html', salesman_name=salesman_name,
+                           delinquent_clients=delinquent_clients,
+                           total_credits=total_credits,
+                           today_revenue=today_revenue,
+                           total_arrears_value=total_arrears_value)
 
 
 @routes.route('/create-user', methods=['GET', 'POST'])
@@ -1469,3 +1511,4 @@ def reports():
 @routes.route('/debtor-manager')
 def debtor_manager():
     return render_template('debtor-manager.html')
+

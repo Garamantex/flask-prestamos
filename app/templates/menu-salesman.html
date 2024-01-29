@@ -4,12 +4,26 @@
     <div class="c-form">
         <div class="container pt-5">
             <div class="row">
-                <div class="col">
-                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+                <div style="">
+                    <div class="col">
+                        <!-- Información de bienvenida -->
+                        <h4>Bienvenido {{ salesman_name }}</h4>
+                        <p>Clientes Activos: {{ total_credits }}</p>
+                        <p>Clientes en MORA: {{ delinquent_clients }}</p>
+                        <p>Valor en MORA: <span id="formattedArrearsValue"></span></p>
+                        <p>Recaudo del día: <span id="formattedTodayRevenueValue"></span></p>
+                    </div>
                 </div>
             </div>
             <div class="row">
                 <div class="col">
+                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col">
+                    <!-- Menú del vendedor -->
                     <nav class="c-menu d-flex flex-wrap justify-content-center justify-content-md-start align-items-center h-100">
                         <a href="{{ url_for('routes.create_client') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i>Crear prestamo</a>
                         <a href="{{ url_for('routes.client_list') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i> Listado de Clientes</a>
@@ -23,4 +37,24 @@
             </div>
         </div>
     </div>
+    
+    <!-- Código JavaScript para formatear el valor en MORA -->
+    <script>
+        var delinquentArrearsValue = {{ total_arrears_value }};
+        var formattedArrearsValue = formatCurrency(delinquentArrearsValue);
+        document.getElementById('formattedArrearsValue').textContent = formattedArrearsValue;
+
+        function formatCurrency(value) {
+            return '$ ' + value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        var delinquentTodayValue = {{ today_revenue }};
+        var formattedTodayRevenueValue = formatCurrency(delinquentTodayValue);
+        document.getElementById('formattedTodayRevenueValue').textContent = formattedTodayRevenueValue;
+
+        function formatCurrency(value) {
+        var formattedValue = '$ ' + value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return formattedValue;
+    }
+    </script>
 {% endblock %}
