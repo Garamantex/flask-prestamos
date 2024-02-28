@@ -145,6 +145,7 @@ class Client(db.Model):
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
                                   onupdate=datetime.datetime.utcnow)
 
+
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=True)
     
     loans = db.relationship('Loan', backref='client', lazy=True)

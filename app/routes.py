@@ -1,18 +1,20 @@
-import datetime
-from datetime import timedelta
-from datetime import date
+# Importaciones del módulo estándar de Python
+from datetime import timedelta, datetime as dt, date as dt_date  # Cambio de nombre a 'dt' y 'dt_date'
 import os
 import uuid
-from operator import and_
-from datetime import datetime
-from datetime import date
 
+# Importaciones de librerías externas
+from operator import and_
 import holidays
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
+
+# Importaciones de tu aplicación (módulos locales)
 from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Salesman, TransactionType, \
     ApprovalStatus
+
+# Importaciones de modelos y otros componentes específicos de tu aplicación
 from .models import User, Client, Loan, Employee, LoanInstallment
 
 # Crea una instancia de Blueprint
@@ -117,7 +119,7 @@ def menu_salesman():
         db.func.sum(LoanInstallment.amount)
     ).join(Loan).filter(
         Loan.employee_id == employee_id,
-        LoanInstallment.payment_date == date.today()  # Utiliza date.today() directamente
+        LoanInstallment.payment_date == dt_date.today()  # Utiliza date.today() directamente
     ).scalar()
     
     # Si no hay recaudo, establecerlo como 0
@@ -601,7 +603,7 @@ def modify_installments(loan_id):
 
             # Actualizar la fecha de pago a la fecha actual
             if installment.status == InstallmentStatus.PAGADA:
-                installment.payment_date = datetime.now()  # Corrección
+                installment.payment_date = dt.now()  # Corrección
 
     # Guardar los cambios en la base de datos
     db.session.commit()
@@ -1159,8 +1161,6 @@ def get_debtors():
         debtors_info.append(salesman_info)
     return jsonify(debtors_info)
 
-
-# Define una ruta para obtener la lista de pagos
 @routes.route('/payment_list', methods=['GET'])
 def payments_list():
     # Obtiene el ID de usuario desde la sesión
@@ -1181,36 +1181,48 @@ def payments_list():
     # Inicializa la lista para almacenar la información de los clientes
     clients_information = []
 
-    # Obtiene los clientes del empleado con préstamos activos
+    # Obtiene los clientes del vendedor con préstamos activos
     for client in employee.clients:
         for loan in client.loans:
             if loan.status:
-                paid_installments = 0
-                overdue_installments = 0
-                total_outstanding_amount = 0
-                total_overdue_amount = 0
-                last_payment_date = None
+                # Calcula el número de cuotas pagadas
+                paid_installments = sum(1 for installment in loan.installments if installment.status == InstallmentStatus.PAGADA)
 
-                for installment in loan.installments:
-                    if installment.status == InstallmentStatus.PAGADA:
-                        paid_installments += 1
-                        # Si es un pago realizado, actualiza la fecha de la última cuota pagada
-                        if installment.payment_date and (
-                                not last_payment_date or installment.payment_date > last_payment_date):
-                            last_payment_date = installment.payment_date
+                # Calcula el número de cuotas vencidas
+                overdue_installments = sum(1 for installment in loan.installments if installment.status == InstallmentStatus.MORA)
 
+                # Calcula el monto total pendiente
+                total_outstanding_amount = sum(installment.amount for installment in loan.installments if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
+
+                # Calcula el monto total vencido
+                total_overdue_amount = sum(installment.amount for installment in loan.installments if installment.status == InstallmentStatus.MORA)
+
+                # Encuentra la última cuota pendiente a la fecha actual
+                pending_installments = [installment for installment in loan.installments if installment.status == InstallmentStatus.PENDIENTE and installment.due_date <= dt_date.today()]
+                last_pending_installment = max(pending_installments, key=lambda installment: installment.due_date, default=None)
+
+                # Obtiene la fecha del último pago
+                last_payment_date = max((installment.due_date for installment in loan.installments if installment.status == InstallmentStatus.PAGADA), default=None)
+
+                # Agrega la información del cliente y su crédito a la lista de información de clientes
                 client_info = {
                     'First Name': client.first_name,
                     'Last Name': client.last_name,
+                    'Alias Client': client.alias,
                     'Paid Installments': paid_installments,
                     'Overdue Installments': overdue_installments,
-                    'Total Outstanding Amount': str(total_outstanding_amount),
-                    'Total Overdue Amount': str(total_overdue_amount),
+                    'Total Outstanding Amount': total_outstanding_amount,
+                    'Total Overdue Amount': total_overdue_amount,
                     'Last Payment Date': last_payment_date.isoformat() if last_payment_date else 'No se registraron pagos',
-                    'Loan ID': loan.id 
+                    'Loan ID': loan.id,
+                    'Installment Value': last_pending_installment.amount if last_pending_installment else 0,
+                    'Total Installments': loan.dues,
+                    'Sales Date': loan.creation_date.isoformat(),
+                    'Next Installment Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 'No se registró próxima cuota',
+                    'Cuota Number': last_pending_installment.installment_number if last_pending_installment else 0  # Agrega el número de la cuota actual
                 }
-                clients_information.append(client_info)
 
+                clients_information.append(client_info)
 
     # Obtén el término de búsqueda del formulario
     search_term = request.args.get('search', '')
@@ -1222,8 +1234,11 @@ def payments_list():
         if search_term.lower() in full_name.lower():
             filtered_clients_information.append(client_info)
 
-    # Finalmente, renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
+    # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
     return render_template('payments-route.html', clients=filtered_clients_information)
+
+
+
 
 # Ruta para la página de aprobación de gastos
 @routes.route('/approval-expenses')

@@ -4,16 +4,34 @@
     <div class="c-form">
         <div class="container pt-5">
             <div class="row">
-                <div style="">
-                    <div class="col">
-                        <!-- Información de bienvenida -->
-                        <h4>Bienvenido {{ salesman_name }}</h4>
-                        <p>Clientes Activos: {{ total_credits }}</p>
-                        <p>Clientes en MORA: {{ delinquent_clients }}</p>
-                        <p>Valor en MORA: <span id="formattedArrearsValue"></span></p>
-                        <p>Recaudo del día: <span id="formattedTodayRevenueValue"></span></p>
+                    <div class="container">
+                        <div class="row">
+                            <div class="col">
+                                <!-- Información de bienvenida -->
+                                <h4>Bienvenido, {{ salesman_name }}</h4>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mt-2">
+                                <i class="bi bi-person-check-fill d-inline-block" title="Clientes ACTIVOS"></i>
+                                <p class="d-inline-block px-3" title="Clientes ACTIVOS">{{ total_credits }}</p>
+                            </div>
+                            <div class="col-md-6 mt-2">
+                                <i class="bi bi-person-fill-exclamation d-inline-block" title="Clientes en mora"></i>
+                                <p class="d-inline-block px-3" title="Clientes en mora">{{ delinquent_clients }}</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mt-2 mb-3">
+                                <i class="bi bi-cash d-inline-block"></i>
+                                <p class="d-inline-block px-3"><span id="formattedArrearsValue"></span></p>
+                            </div>
+                            <div class="col-md-6 mt-2 mb-3">
+                                <i class="bi bi-cash-coin d-inline-block"></i>
+                                <p class="d-inline-block px-3"><span id="formattedTodayRevenueValue"></span></p>
+                            </div>
+                        </div>
                     </div>
-                </div>
             </div>
             <div class="row">
                 <div class="col">
@@ -25,13 +43,13 @@
                 <div class="col">
                     <!-- Menú del vendedor -->
                     <nav class="c-menu d-flex flex-wrap justify-content-center justify-content-md-start align-items-center h-100">
-                        <a href="{{ url_for('routes.create_client') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i>Crear prestamo</a>
-                        <a href="{{ url_for('routes.client_list') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i> Listado de Clientes</a>
-                        <a href="{{ url_for('routes.renewal') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-person-vcard me-3"></i> Renovaciones</a>
-                        <a href="{{ url_for('routes.debtor') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-person-vcard me-3"></i> Morosos</a>
-                        <a href="{{ url_for('routes.transactions') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock me-3"></i> transacciónes</a>
-                        <a href="{{ url_for('routes.list_expenses') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-cash me-3"></i> estado transacciónes</a>
-                        <a href="{{ url_for('routes.payments_list') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Cobros del dia</a>
+                        <a href="{{ url_for('routes.create_client') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i>Crear Prestamo</a>
+                        <a href="{{ url_for('routes.client_list') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i> Listado de Clientes</a>
+                        <a href="{{ url_for('routes.renewal') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-person-vcard me-3"></i> Renovaciones</a>
+                        <a href="{{ url_for('routes.debtor') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-person-vcard me-3"></i> Morosos</a>
+                        <a href="{{ url_for('routes.transactions') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-lock me-3"></i> Transacciónes</a>
+                        <a href="{{ url_for('routes.list_expenses') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-cash me-3"></i> Estado Transacciónes</a>
+                        <a href="{{ url_for('routes.payments_list') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Cobros del día</a>
                     </nav>
                 </div>
             </div>

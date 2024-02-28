@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="c-form">
-    <div class="container pt-5">
+    <div class="container pt-1">
         <div class="row">
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Menu</a>
@@ -12,39 +12,97 @@
             </div>
         </div>
         <div class="row">
-            <div class="col">
-                <div class="c-users">
-                    <p class="c-users__title">Créditos del Día</p>
+            <div class="container">                
+                <div class="row">
+                    <div class="col-md-6 mt-2">
+                        <i class="bi bi-person-check-fill d-inline-block" title="Clientes ACTIVOS"></i>
+                        <p class="d-inline-block px-3" title="Clientes ACTIVOS">{{ total_credits }}</p>
+                    </div>
+                    <div class="col-md-6 mt-2 mb-3">
+                        <i class="bi bi-cash-coin d-inline-block"></i>
+                        <p class="d-inline-block px-3"><span id="formattedTodayRevenueValue"></span></p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="c-users">
+                            <p class="c-users__title">Créditos del Día</p>
+                        </div>
+                    </div>
                 </div>
             </div>
+    </div>
+        <div class="row">           
+            <form method="GET" action="{{ url_for('routes.payments_list') }}" class="mb-2">                
+                    <input type="text" name="search" class="form-control" placeholder="Buscar por cliente">
+                    <div class="input-group-append">
+                        <button type="submit" class="btn btn-primary" style="display: flex; width: 100%; justify-content: center;">Buscar</button>
+                    </div>      
+            </form>
         </div>
-        <form method="GET" action="{{ url_for('routes.payments_list') }}" class="mb-4">
-            
-                <input type="text" name="search" class="form-control" placeholder="Buscar por cliente">
-                <div class="input-group-append">
-                    <button type="submit" class="btn btn-primary" style="display: flex; width: 100%; justify-content: center;">Buscar</button>
-                </div>
-  
-        </form>
-        <div class="row mt-4">
+        <div class="row">
             <div class="col">
-                <ul class="list-group c-overflow" style="padding: 1rem;">
-                    {% for client_info in clients %}
-                    <li class="list-group-item mb-4" style="background-color: #111; border: 1px solid white; padding: 1.5rem; border-radius: 10px; color: white; display: flex; justify-content: center; flex-direction: column; align-items: center;">
-                        <h5 class="mb-1">Cliente: {{ client_info['First Name'] }} {{ client_info['Last Name'] }}</h5>
-                        <p class="mb-1">Cuotas pagadas: {{ client_info['Paid Installments'] }}</p>
-                        <p class="mb-1">Cuotas vencidas: {{ client_info['Overdue Installments'] }}</p>
-                        <p class="mb-1">Monto deuda: ${{ client_info['Total Outstanding Amount'] }}</p>
-                        <p class="mb-1">Monto mora: ${{ client_info['Total Overdue Amount'] }}</p>
-                        <p class="mb-1">Ultimo pago: {{ client_info['Last Payment Date'] }}</p>
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 1.5rem 0;">
-                            <a href="{{ url_for('routes.credit_detail', id=client_info['Loan ID']) }}" class="btn btn-primary mb-4" type="submit">Ver detalle</a>
-                        </div>
+                <ul class="list-group c-overflow" style="padding: 0.2rem;">
+                    {% for client in clients %}
+                    <li class="list-group-item mb-2" style="background-color: #111; border: 1px solid white; padding: 1rem; border-radius: 10px; color: white; display: flex; justify-content: center; flex-direction: column; align-items: center;">
+                        <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
+                            <div class="" style="display: flex; justify-content: space-between; align-items: flex-start;  flex-wrap: wrap;">
+                                <div class="" style="width: 50%; display: flex; align-items: flex-start; justify-content: flex-start; flex-direction: column;">
+                                    <p class="small">{{ client['First Name'] | capitalize }} {{ client['Last Name'] | capitalize }}</p>
+                                    <p class="small">{{ client['Alias Client'] | capitalize }}</p>
+                                    <p class="small">Cuota: {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}</p>
+                                </div>
+                                <div class="" style="width: 50%; display: flex; align-items: flex-start; justify-content: flex-start; flex-direction: column;">
+                                    <p>Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
+                                    <p>Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
+                                    <p>En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p> <!-- Mostrar número de cuota -->
+                                </div>
+                                <div class="" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                                    <a type="button" class="btn btn-primary" style="width: 60%;" href="#" class=""  data-toggle="modal" data-target="#exampleModal">pagar</a>
+                                    <a class="btn btn-primary" style="width: 40%; margin-left: 2rem;" href="#" class="">mora</a>
+                                </div>
+                            </div>
+                        </div>                        
                     </li>
                     {% endfor %}
-                </ul>
+                </ul>                
             </div>
         </div>
     </div>
 </div>
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Modal con Overlay Transparente</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          Contenido del modal...
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-primary">Guardar cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Overlay -->
+  <div class="modal-overlay"></div>
+  <style>
+    .modal-overlay {
+      background-color: rgba(0, 0, 0, 0.7); /* Color negro con transparencia del 70% */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 999;
+      display: none;
+    }O
+  </style>
 {% endblock %}
