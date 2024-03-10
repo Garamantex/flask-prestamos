@@ -58,7 +58,7 @@
                                     <p>En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p> <!-- Mostrar número de cuota -->
                                 </div>
                                 <div class="" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-                                    <a type="button" class="btn btn-primary" style="width: 60%;" href="#" class=""  data-toggle="modal" data-target="#exampleModal">pagar</a>
+                                    <a type="button" class="btn btn-primary btn-pagar" style="width: 60%;" data-id="{{ client['Loan ID'] }}" data-installment-value="{{ client['Installment Value'] }}" data-overdue-amount="{{ client['Total Overdue Amount'] }}" data-toggle="modal" data-target="#exampleModal">pagar</a>
                                     <a class="btn btn-primary" style="width: 40%; margin-left: 2rem;" href="#" class="">mora</a>
                                 </div>
                             </div>
@@ -71,26 +71,106 @@
     </div>
 </div>
 <!-- Modal -->
+
+<!-- Modal -->
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">Modal con Overlay Transparente</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Procesando PAGO</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Resumen del pago -->
+                <div class="row mb-1">
+                    <div class="col">
+                        <p><strong>Valor Cuota:</strong> $ <span id="installmentValue"></span></p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <p><strong>Monto en Mora:</strong> $ <span id="overdueAmount"></span></p>
+                    </div>
+                </div>
+                <!-- Formulario de pago -->
+                <div class="form-group mb-4">
+                    <label for="paymentAmount" style="padding-bottom: 0.5rem;">Monto a pagar:</label>
+                    <input type="number" class="form-control" id="customPayment" name="customPayment">
+                </div>
+                <div class="modal-footer text-center">
+                    <button type="button" class="btn btn-primary" id="confirmPaymentBtn">Confirmar Pago</button>
+                </div>
+            </div>
         </div>
-        <div class="modal-body">
-          Contenido del modal...
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-          <button type="button" class="btn btn-primary">Guardar cambios</button>
-        </div>
-      </div>
     </div>
-  </div>
-  
+</div><!-- Agrega un script adicional -->
+
+
+<!-- Agrega un script adicional -->
+<script>
+    // Función para actualizar los valores en la modal
+    function updateModalValues(installmentValue, overdueAmount) {
+        document.getElementById('installmentValue').textContent = installmentValue.toLocaleString();
+        document.getElementById('overdueAmount').textContent = overdueAmount.toLocaleString();
+    }
+
+    // Espera a que el documento esté listo
+    document.addEventListener('DOMContentLoaded', function () {
+        // Obtén todos los botones de pago
+        var btnsPagar = document.querySelectorAll('.btn-pagar');
+
+        // Agrega un evento de clic a cada botón de pago
+        btnsPagar.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                // Obtén el valor de la cuota del botón de pago
+                var installmentValue = parseFloat(this.getAttribute('data-installment-value'));
+                
+                // Obtén el valor vencido del botón de pago
+                var overdueAmount = parseFloat(this.getAttribute('data-overdue-amount'));
+
+                // Calcula la suma de los valores
+                var totalAmount = installmentValue + overdueAmount;
+
+                // Establece el valor del monto a pagar en el campo de entrada con formato de miles
+                document.getElementById('customPayment').value = totalAmount;
+
+                // Actualiza los valores en la modal
+                updateModalValues(installmentValue, overdueAmount);
+            });
+        });
+
+        // Agrega un evento de clic al botón de "Confirmar Pago"
+        document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
+            var loanId = document.querySelector('.btn-pagar').getAttribute('data-id'); // Obtener ID de préstamo
+            var customPayment = document.getElementById('customPayment').value; // Obtener valor de pago personalizado
+
+            // Enviar solicitud POST al servidor con los datos del pago
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/confirm_payment', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    // Verificar el estado de la respuesta
+                    if (xhr.status === 200) {
+                        // Procesar respuesta del servidor
+                        console.log(xhr.responseText);
+                        // Actualizar la página o mostrar un mensaje de éxito al usuario
+                    } else {
+                        // Mostrar un mensaje de error al usuario
+                        console.error('Error al procesar el pago:', xhr.responseText);
+                    }
+                }
+            };
+            xhr.send('loan_id=' + loanId + '&customPayment=' + customPayment);
+        });
+    });
+</script>
+
+
+
+
   <!-- Overlay -->
   <div class="modal-overlay"></div>
   <style>
