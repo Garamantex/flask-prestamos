@@ -99,16 +99,18 @@
                     <label for="paymentAmount" style="padding-bottom: 0.5rem;">Monto a pagar:</label>
                     <input type="number" class="form-control" id="customPayment" name="customPayment">
                 </div>
+
+                 <!-- Campo oculto para almacenar el ID del préstamo -->
+                 <input type="hidden" id="loanId" name="loanId" value="">
+                 
                 <div class="modal-footer text-center">
-                    <button type="button" class="btn btn-primary" id="confirmPaymentBtn">Confirmar Pago</button>
+                    <button type="button" class="btn btn-primary" id="confirmPaymentBtn" data-dismiss="modal">Confirmar Pago</button>
                 </div>
             </div>
         </div>
     </div>
 </div><!-- Agrega un script adicional -->
 
-
-<!-- Agrega un script adicional -->
 <script>
     // Función para actualizar los valores en la modal
     function updateModalValues(installmentValue, overdueAmount) {
@@ -130,6 +132,9 @@
                 // Obtén el valor vencido del botón de pago
                 var overdueAmount = parseFloat(this.getAttribute('data-overdue-amount'));
 
+                // Obtén el ID del préstamo del botón de pago
+                var loanId = this.getAttribute('data-id');
+
                 // Calcula la suma de los valores
                 var totalAmount = installmentValue + overdueAmount;
 
@@ -138,12 +143,15 @@
 
                 // Actualiza los valores en la modal
                 updateModalValues(installmentValue, overdueAmount);
+
+                // Almacena el ID del préstamo en un campo oculto
+                document.getElementById('loanId').value = loanId;
             });
         });
 
         // Agrega un evento de clic al botón de "Confirmar Pago"
         document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
-            var loanId = document.querySelector('.btn-pagar').getAttribute('data-id'); // Obtener ID de préstamo
+            var loanId = document.getElementById('loanId').value; // Obtener ID de préstamo desde el campo oculto
             var customPayment = document.getElementById('customPayment').value; // Obtener valor de pago personalizado
 
             // Enviar solicitud POST al servidor con los datos del pago
@@ -156,7 +164,8 @@
                     if (xhr.status === 200) {
                         // Procesar respuesta del servidor
                         console.log(xhr.responseText);
-                        // Actualizar la página o mostrar un mensaje de éxito al usuario
+                        // Recargar la página después de confirmar el pago
+                        window.location.reload();
                     } else {
                         // Mostrar un mensaje de error al usuario
                         console.error('Error al procesar el pago:', xhr.responseText);
