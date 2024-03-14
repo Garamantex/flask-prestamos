@@ -54,6 +54,7 @@
                                 </div>
                                 <div class="" style="width: 50%; display: flex; align-items: flex-start; justify-content: flex-start; flex-direction: column;">
                                     <p>Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
+                                    <p>Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p>
                                     <p>Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
                                     <p>En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p> <!-- Mostrar número de cuota -->
                                 </div>

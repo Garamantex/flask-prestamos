@@ -631,8 +631,10 @@ def modify_installments(loan_id):
     return redirect(url_for('routes.credit_detail', id=loan_id))
 
 
-from datetime import datetime
 
+
+from decimal import Decimal
+from datetime import datetime
 @routes.route('/confirm_payment', methods=['POST'])
 def confirm_payment():
     loan_id = request.form.get('loan_id')
@@ -644,12 +646,12 @@ def confirm_payment():
 
     # Calcular la suma de installmentValue y overdueAmount
     total_amount_due = sum(installment.amount for installment in loan.installments 
-                           if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
-
+                           if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA])
+    
     if custom_payment >= total_amount_due:
         # Marcar todas las cuotas como "PAGADA" y actualizar la fecha de pago
         for installment in loan.installments:
-            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA]:
+            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
                 installment.status = InstallmentStatus.PAGADA
                 installment.payment_date = datetime.utcnow()  # Establecer la fecha de pago actual
                 # Crear el pago asociado a esta cuota
@@ -659,28 +661,33 @@ def confirm_payment():
         return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
     else:
         # Lógica para manejar el pago parcial
-        remaining_payment = custom_payment
+        remaining_payment = Decimal(custom_payment)  # Convertir a Decimal
         for installment in loan.installments:
             if remaining_payment <= 0:
                 break
-            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA]:
+            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
                 if installment.amount <= remaining_payment:
                     installment.status = InstallmentStatus.PAGADA
                     installment.payment_date = datetime.utcnow()  # Establecer la fecha de pago actual
-                    remaining_payment -= float(installment.amount)
+                    remaining_payment -= installment.amount
+                    payment = Payment(amount=installment.amount, payment_date=datetime.utcnow(), installment_id=installment.id)
+                    installment.amount = 0
                 else:
+                    # Si el pago es mayor que la cuota actual, se distribuye el excedente
+                    # en las siguientes cuotas hasta completar el pago
                     installment.status = InstallmentStatus.ABONADA
+                    installment.amount -= remaining_payment
                     # Crear el pago asociado a este abono parcial
                     payment = Payment(amount=remaining_payment, payment_date=datetime.utcnow(), installment_id=installment.id)
                     db.session.add(payment)
                     remaining_payment = 0
-                # Crear el pago asociado a esta cuota
-                payment = Payment(amount=installment.amount, payment_date=datetime.utcnow(), installment_id=installment.id)
+                # Crear el pago asociado a esta cuota                
                 db.session.add(payment)
         db.session.commit()
+    
         return jsonify({"message": "El pago se ha registrado correctamente."}), 200
-
     return jsonify({"error": "El pago no pudo ser procesado."}), 400
+
 
 
 
@@ -714,6 +721,8 @@ def payments_list():
                 # Calcula el monto total pendiente
                 total_outstanding_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id, status=InstallmentStatus.PENDIENTE).scalar() or 0
 
+                total_amount_paid = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id, status=InstallmentStatus.ABONADA).scalar() or 0
+
                 # Calcula el monto total vencido
 
                 '''
@@ -736,6 +745,7 @@ def payments_list():
                     'Paid Installments': paid_installments,
                     'Overdue Installments': overdue_installments,
                     'Total Outstanding Amount': total_outstanding_amount,
+                    'Total Amount Paid': total_amount_paid,
                     'Total Overdue Amount': total_overdue_amount,
                     'Last Payment Date': last_payment_date.payment_date.isoformat() if last_payment_date else 'No se registraron pagos',
                     'Loan ID': loan.id,
