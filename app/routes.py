@@ -129,6 +129,9 @@ def menu_salesman():
 
     
     # Calcular el valor total en mora
+
+
+    #SE DEBE CALCULAR LA LOGICA DESDE LA TABLA "payments"
     total_arrears_value = db.session.query(
         db.func.sum(LoanInstallment.amount)
     ).join(Loan).filter(
@@ -631,8 +634,6 @@ def modify_installments(loan_id):
     return redirect(url_for('routes.credit_detail', id=loan_id))
 
 
-
-
 from decimal import Decimal
 from datetime import datetime
 @routes.route('/confirm_payment', methods=['POST'])
@@ -689,6 +690,26 @@ def confirm_payment():
     return jsonify({"error": "El pago no pudo ser procesado."}), 400
 
 
+
+
+@routes.route('/mark_overdue', methods=['POST'])
+def mark_overdue():
+    if request.method == 'POST':
+        loan_id = request.form['loan_id']  # Obtener el ID del préstamo de la solicitud POST
+        
+        # Buscar la última cuota pendiente del préstamo específico
+        last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan_id, status=InstallmentStatus.PENDIENTE).order_by(LoanInstallment.due_date.asc()).first()
+
+        if last_pending_installment:
+            # Actualizar el estado de la última cuota pendiente a "MORA"
+            last_pending_installment.status = InstallmentStatus.MORA
+            last_pending_installment.updated_at = datetime.now()  # Actualizar la fecha de actualización
+            db.session.commit()  # Guardar los cambios en la base de datos
+            return 'La última cuota pendiente ha sido marcada como MORA exitosamente'
+        else:
+            return 'No se encontraron cuotas pendientes para marcar como MORA'
+    else:
+        return 'Método no permitido'
 
 
 @routes.route('/payment_list', methods=['GET'])
@@ -834,6 +855,8 @@ def get_loan_details(loan_id):
     cuotas_pagadas = sum(1 for installment in installments if installment.status == InstallmentStatus.PAGADA)
     cuotas_vencidas = sum(1 for installment in installments if installment.status == InstallmentStatus.MORA)
     valor_total = loan.amount + (loan.amount * loan.interest / 100)
+
+    # SE DEBE MODIFICAR EL CALCULO DE LA SUMA DEL SALDO PENDIENTE
     saldo_pendiente = valor_total - sum(
         installment.amount for installment in installments if installment.status == InstallmentStatus.PAGADA)
 
@@ -957,6 +980,9 @@ def get_concepts():
     return jsonify(concepts_json)
 
 
+
+from datetime import date, datetime, timedelta
+
 @routes.route('/box', methods=['GET'])
 def box():
     try:
@@ -1006,7 +1032,10 @@ def box():
                 LoanInstallment.due_date <= date.today()
             ).with_entities(func.sum(LoanInstallment.amount)).scalar() or 0
 
+            print(projected_collections)
             # Calculate the total collections for the day with status "PAGADA"
+
+            #SE DEBE MODIFICAR LA LOGICA PARA QUE SE CALCULE DESDE LA TABLA "payments"
             total_collections_today = LoanInstallment.query.join(Loan).filter(
                 Loan.client.has(employee_id=salesman.employee_id),
                 LoanInstallment.status == InstallmentStatus.PAGADA,
@@ -1082,7 +1111,6 @@ def box():
                 'total_number_of_customers': total_customers,
                 'customers_in_arrears_for_the_day': customers_in_arrears
             }
-            print(f'salesman_data: {salesman_data}')
 
             # Add the salesman's data to the list
             salesmen_stats.append(salesman_data)
@@ -1102,6 +1130,9 @@ def box():
 
     except Exception as e:
         return jsonify({'message': 'Internal server error', 'error': str(e)}), 500
+
+
+
 
 
 # Define the endpoint route to list clients in arrears

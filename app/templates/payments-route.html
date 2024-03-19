@@ -60,7 +60,7 @@
                                 </div>
                                 <div class="" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
                                     <a type="button" class="btn btn-primary btn-pagar" style="width: 60%;" data-id="{{ client['Loan ID'] }}" data-installment-value="{{ client['Installment Value'] }}" data-overdue-amount="{{ client['Total Overdue Amount'] }}" data-toggle="modal" data-target="#exampleModal">pagar</a>
-                                    <a class="btn btn-primary" style="width: 40%; margin-left: 2rem;" href="#" class="">mora</a>
+                                    <a class="btn btn-primary btn-mora" style="width: 40%; margin-left: 2rem;" href="#" data-id="{{ client['Loan ID'] }}">Mora</a>
                                 </div>
                             </div>
                         </div>                        
@@ -174,6 +174,29 @@
                 }
             };
             xhr.send('loan_id=' + loanId + '&customPayment=' + customPayment);
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var btnsMora = document.querySelectorAll('.btn-mora');
+        btnsMora.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var loanId = this.getAttribute('data-id');
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/mark_overdue', true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            console.log(xhr.responseText);
+                            window.location.reload();
+                        } else {
+                            console.error('Error al marcar como MORA:', xhr.responseText);
+                        }
+                    }
+                };
+                xhr.send('loan_id=' + loanId);
+            });
         });
     });
 </script>
