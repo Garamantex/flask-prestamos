@@ -655,9 +655,14 @@ def confirm_payment():
             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
                 installment.status = InstallmentStatus.PAGADA
                 installment.payment_date = datetime.utcnow()  # Establecer la fecha de pago actual
+                # Establecer el valor de la cuota en 0
+                installment.amount = 0
                 # Crear el pago asociado a esta cuota
                 payment = Payment(amount=installment.amount, payment_date=datetime.utcnow(), installment_id=installment.id)
                 db.session.add(payment)
+        # Actualizar el estado del préstamo y el campo up_to_date
+        loan.status = False  # 0 indica que el préstamo está pagado en su totalidad
+        loan.up_to_date = True  # El préstamo está al día
         db.session.commit()
         return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
     else:
@@ -1100,6 +1105,7 @@ def box():
             # Create a dictionary with the results for this salesman
             salesman_data = {
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
+                'employee_id': salesman.employee_id, 
                 'projected_collections_for_the_day': str(projected_collections),
                 'total_collections_today': str(total_collections_today),
                 'new_clients_registered_today': str(new_clients),
@@ -1606,9 +1612,79 @@ def box_archive():
     return render_template('box-archive.html')
 
 
+
+
+
+from flask import request
 @routes.route('/box-detail')
 def box_detail():
-    return render_template('box-detail.html')
+    # Obtener el ID del empleado desde la consulta
+    employee_id = request.args.get('employee_id')
+
+    # Retrieve the employee from the database
+    employee = Employee.query.get(employee_id)
+
+    # Check if the employee exists
+    if employee is None:
+        # If the employee is not found, you can handle this situation as you wish
+        # For example, you can display an error message or redirect to another page
+        return "Employee not found"
+
+    # Retrieve the user associated with the employee
+    user = User.query.get(employee.user_id)
+
+    # Retrieve the number of clients associated with the salesman
+    num_clients = len(employee.clients)
+
+    # Check if the user exists
+    if user is None:
+        # If the user is not found, you can handle this situation as you wish
+        # For example, you can display an error message or redirect to another page
+        return "User not found"
+
+    # Retrieve necessary data with queries
+    loans = Loan.query.filter_by(employee_id=employee.id).all()
+    transactions = Transaction.query.filter_by(employee_id=employee.id).all()
+
+    # Calculate expenses, incomes, and withdrawals based on transaction types
+    expenses = sum(transaction.amount for transaction in transactions if transaction.transaction_types == TransactionType.GASTO)
+    incomes = sum(transaction.amount for transaction in transactions if transaction.transaction_types == TransactionType.INGRESO)
+    withdrawals = sum(transaction.amount for transaction in transactions if transaction.transaction_types == TransactionType.RETIRO)
+
+    # Calculate loan payments
+    loan_payments = 0
+    for loan in loans:
+        for installment in loan.installments:
+            # Sumar los montos de los pagos que corresponden a este installment
+            for payment in installment.payments:
+                loan_payments += payment.amount
+
+    # Calculate other required fields
+    sales = loan.amount + (loan.amount * loan.interest / 100)
+    renewals = sum(loan.amount for loan in loans if loan.is_renewal)
+    unpaid = sales - loan_payments
+
+
+    print("Sales:", sales)  # Imprimir el valor de las ventas calculadas
+
+    # Create a dictionary with the calculated information
+    information = {
+        'expenses': expenses,
+        'incomes': incomes,
+        'withdrawals': withdrawals,
+        'sales': sales,
+        'renewals': renewals,
+        'loan_payments': loan_payments,
+        'unpaid': unpaid,
+        'salesman_name': f"{user.first_name} {user.last_name}",  # Agregar el nombre del vendedor
+        'num_clients': num_clients  # Agregar la cantidad de clientes asociados
+    }
+
+    # Render the HTML template with the information
+    return render_template('box-detail.html', information=information)
+
+
+
 
 
 @routes.route('/reports')

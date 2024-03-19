@@ -11,45 +11,20 @@
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
             </div>
         </div>
-        <h1>Caja de Vendedor 1</h1>
-        <h2>Consolidado</h2>
-        <ul class="list-group">
-            <li class="list-group-item">Gastos: $150.00</li>
-            <li class="list-group-item">Ingresos: $1000.00</li>
-            <li class="list-group-item">Retiros: $400.00</li>
-            <li class="list-group-item">Ventas: $15000.00</li>
-            <li class="list-group-item">Renovaciones: $10000.00</li>
-            <li class="list-group-item">Pagos: $2000.00</li>
-            <li class="list-group-item">No Pago: $1350.00</li>
+        <h2 class="c-headings c-headings__h2 mb-4 mt-4">Caja de {{ information.salesman_name }}</h2>
+        <ul class="list-group mb-5">
+            <li class="list-group-item">Gastos: $ {{ '{:,.0f}'.format(information.expenses) }} </li>
+            <li class="list-group-item">Ingresos: $ {{ '{:,.0f}'.format(information.incomes) }}</li>
+            <li class="list-group-item">Retiros: $ {{ '{:,.0f}'.format(information.withdrawals) }} </li>
+            <li class="list-group-item">Ventas: $ {{ '{:,.0f}'.format(information.sales) }}</li>
+            <li class="list-group-item">Renovaciones: $ {{ '{:,.0f}'.format(information.renewals) }}</li>
+            <li class="list-group-item">Pagos: $ {{ '{:,.0f}'.format(information.loan_payments) }}</li>
+            <li class="list-group-item">No Pago: $ {{ '{:,.0f}'.format(information.unpaid) }}</li>
+            <li class="list-group-item">Clientes: {{ information.num_clients }}</li>
         </ul>
         
-        <h2>Gastos</h2>
-        <ul class="list-group">
-            <li class="list-group-item">
-                Descripción: Pago gasolina moto<br>
-                Valor: $50.00<br>
-                <a href="#" class="btn btn-primary">Detalle</a>
-            </li>
-            <li class="list-group-item">
-                Descripción: Pago gasolina moto<br>
-                Valor: $50.00<br>
-                <a href="#" class="btn btn-primary">Detalle</a>
-            </li>
-            <li class="list-group-item">
-                Descripción: Pago gasolina moto<br>
-                Valor: $50.00<br>
-                <a href="#" class="btn btn-primary">Detalle</a>
-            </li>
-        </ul>
-    
-        <h2>Ingresos</h2>
-        <ul class="list-group">
-            <li class="list-group-item">
-                Descripción: Ingreso de salario<br>
-                Valor: $1000.00<br>
-                <a href="#" class="btn btn-primary">Detalle</a>
-            </li>
-        </ul>
+        <!-- Puedes agregar más elementos HTML para mostrar información adicional si lo necesitas -->
+        
     </div>
 </div>
 {% endblock %}

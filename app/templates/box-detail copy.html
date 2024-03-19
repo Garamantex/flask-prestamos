@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+            </div>
+        </div>
+        <h1>Caja de Vendedor 1</h1>
+        <h2>Consolidado</h2>
+        <ul class="list-group">
+            <li class="list-group-item">Gastos: $150.00</li>
+            <li class="list-group-item">Ingresos: $1000.00</li>
+            <li class="list-group-item">Retiros: $400.00</li>
+            <li class="list-group-item">Ventas: $15000.00</li>
+            <li class="list-group-item">Renovaciones: $10000.00</li>
+            <li class="list-group-item">Pagos: $2000.00</li>
+            <li class="list-group-item">No Pago: $1350.00</li>
+        </ul>
+        
+        <h2>Gastos</h2>
+        <ul class="list-group">
+            <li class="list-group-item">
+                Descripción: Pago gasolina moto<br>
+                Valor: $50.00<br>
+                <a href="#" class="btn btn-primary">Detalle</a>
+            </li>
+            <li class="list-group-item">
+                Descripción: Pago gasolina moto<br>
+                Valor: $50.00<br>
+                <a href="#" class="btn btn-primary">Detalle</a>
+            </li>
+            <li class="list-group-item">
+                Descripción: Pago gasolina moto<br>
+                Valor: $50.00<br>
+                <a href="#" class="btn btn-primary">Detalle</a>
+            </li>
+        </ul>
+    
+        <h2>Ingresos</h2>
+        <ul class="list-group">
+            <li class="list-group-item">
+                Descripción: Ingreso de salario<br>
+                Valor: $1000.00<br>
+                <a href="#" class="btn btn-primary">Detalle</a>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
