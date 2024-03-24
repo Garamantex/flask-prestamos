@@ -918,7 +918,6 @@ import os
 import uuid
 from flask import request, render_template, session, redirect, url_for
 from werkzeug.utils import secure_filename
-
 @routes.route('/transaction', methods=['GET', 'POST'])
 def transactions():
     if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
@@ -926,6 +925,8 @@ def transactions():
 
         # Obtener el empleado asociado al user_id
         employee = Employee.query.filter_by(user_id=user_id).first()
+        
+        transaction_type = ''  # Definir transaction_type por defecto
 
         if request.method == 'POST':
             # Manejar la creación de la transacción
@@ -964,6 +965,7 @@ def transactions():
         else:
             # Obtener todos los conceptos disponibles
             concepts = Concept.query.all()
+
 
             return render_template('transactions.html', concepts=concepts)
     else:
@@ -1105,13 +1107,13 @@ def box():
                 creation_date=func.current_date()
             ).with_entities(func.sum(Transaction.amount)).scalar() or 0
             
+            
             daily_expenses = Transaction.query.filter_by(
                 employee_id=salesman.employee_id,
                 transaction_types=TransactionType.GASTO,
                 creation_date=func.current_date()
             ).count() or 0
             
-
 
             # Calcula los retiros diarios basados en transacciones de RETIRO
             daily_withdrawals = Transaction.query.filter_by(
