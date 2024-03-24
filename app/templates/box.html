@@ -50,9 +50,11 @@
                             <li class="list-group-item">Cant. Renovaciones: {{ salesman['total_renewal_loans'] }}</li>
                             <li class="list-group-item">Valor Renovaciones: $ {{ '{:,.0f}'.format(salesman['total_renewal_loans_amount']) }}</li>
                             <li class="list-group-item">Cant. Gastos: {{ salesman['daily_expenses'] }}</li>
-                            <li class="list-group-item">Gastos: $ {{ salesman['daily_expenses_amount'] }}</li>
-                            <li class="list-group-item">Retiros: ${{ salesman['daily_withdrawals'] }}</li>
-                            <li class="list-group-item">Ingresos: ${{ salesman['daily_collections_made'] }}</li>
+                            <li class="list-group-item">Gastos: $ {{ '{:,.0f}'.format(salesman['daily_expenses_amount']) }}</li>
+                            <li class="list-group-item">Cant. Retiros: {{ salesman['daily_withdrawals_count'] }}</li>
+                            <li class="list-group-item">Retiros: $ {{ '{:,.0f}'.format(salesman['daily_withdrawals']) }}</li>
+                            <li class="list-group-item">Cant. Ingresos: {{ '{:,.0f}'.format(salesman['daily_collection_count']) }}</li>
+                            <li class="list-group-item">Ingresos: $ {{ '{:,.0f}'.format(salesman['daily_collections_made']) }}</li>
                             <li class="list-group-item">Número total de clientes: {{ salesman['total_number_of_customers'] }}</li>
                             <li class="list-group-item">No Pago: {{ salesman['customers_in_arrears_for_the_day'] }}</li>
                         <a href="./box-detail?employee_id={{ salesman['employee_id'] }}" class="c-btn c-btn-primary mt-4" type="submit">Ver detalle</a>

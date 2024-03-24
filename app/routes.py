@@ -1043,7 +1043,7 @@ def box():
         for salesman in salesmen:
             # Inicializar variables para recopilar estadísticas para cada vendedor
             total_collections_today = 0 # Recaudo Diario
-            daily_expenses = 0 # Gastos Diarios
+            daily_expenses_count = 0 # Gastos Diarios
             daily_expenses_amount = 0 # Valor Gastos Diarios
             daily_withdrawals = 0 # Retiros Diarios
             daily_collection = 0 # Ingresos Diarios
@@ -1051,8 +1051,10 @@ def box():
             total_renewal_loans = 0  # Cantidad de Renovaciones
             total_renewal_loans_amount = 0 # Valor Total Renovaciones
             total_customers = 0 # Clientes Totales (Activos)
-            new_clients = 0
+            new_clients = 0 # Clientes Nuevos
             new_clients_loan_amount = 0 # Valor Prestamos Nuevos
+            daily_withdrawals_count = 0 # Cantidad Retiros Diarios
+            daily_collection_count = 0 # Cantidad Ingresos Diarios
 
 
             # Calcula el total de cobros para el día con estado "PAGADA"           
@@ -1068,12 +1070,13 @@ def box():
             ).scalar() or 0
 
 
+
+
             # Calcula la cantidad de nuevos clientes registrados en el día
             new_clients = Client.query.filter(
                 Client.employee_id == salesman.employee_id,
                 Client.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
             ).count()
-            
             
             # Calcula el total de préstamos de los nuevos clientes
             new_clients_loan_amount = Loan.query.join(Client).filter(
@@ -1081,6 +1084,8 @@ def box():
                 Loan.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
                 Loan.is_renewal == False  # Excluir renovaciones
             ).with_entities(func.sum(Loan.amount)).scalar() or 0
+
+
 
 
             # Calcula el total de renovaciones para el día actual para este vendedor
@@ -1100,35 +1105,56 @@ def box():
             ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
 
+
+
             # Calcula Valor de los gastos diarios
-            daily_expenses_amount = Transaction.query.filter_by(
-                employee_id=salesman.employee_id,
-                transaction_types=TransactionType.GASTO,
-                creation_date=func.current_date()
+            daily_expenses_amount = Transaction.query.filter(
+                Transaction.employee_id == salesman.employee_id,
+                Transaction.transaction_types == TransactionType.GASTO,
+                func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
             ).with_entities(func.sum(Transaction.amount)).scalar() or 0
-            
-            
-            daily_expenses = Transaction.query.filter_by(
-                employee_id=salesman.employee_id,
-                transaction_types=TransactionType.GASTO,
-                creation_date=func.current_date()
+
+            # Calcula el número de transacciones de gastos diarios
+            daily_expenses_count = Transaction.query.filter(
+                Transaction.employee_id == salesman.employee_id,
+                Transaction.transaction_types == TransactionType.GASTO,
+                func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
             ).count() or 0
-            
+
+
+
 
             # Calcula los retiros diarios basados en transacciones de RETIRO
-            daily_withdrawals = Transaction.query.filter_by(
-                employee_id=salesman.employee_id,
-                creation_date=func.current_date(),
-                transaction_types=TransactionType.RETIRO
+            daily_withdrawals = Transaction.query.filter(
+                Transaction.employee_id == salesman.employee_id,
+                Transaction.transaction_types == TransactionType.RETIRO,
+                func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
             ).with_entities(func.sum(Transaction.amount)).scalar() or 0
+            
+            daily_withdrawals_count = Transaction.query.filter(
+                Transaction.employee_id == salesman.employee_id,
+                Transaction.transaction_types == TransactionType.RETIRO,
+                func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
+            ).count() or 0
+
+
 
 
             # Calcula las colecciones diarias basadas en transacciones de INGRESO
-            daily_collection = Transaction.query.filter_by(
-                employee_id=salesman.employee_id,
-                creation_date=func.current_date(),
-                transaction_types=TransactionType.INGRESO
+            daily_collection = Transaction.query.filter(
+                Transaction.employee_id == salesman.employee_id,
+                Transaction.transaction_types == TransactionType.INGRESO,
+                func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
             ).with_entities(func.sum(Transaction.amount)).scalar() or 0
+
+            daily_collection_count = Transaction.query.filter(
+                Transaction.employee_id == salesman.employee_id,
+                Transaction.transaction_types == TransactionType.INGRESO,
+                func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
+            ).count() or 0
+
+
+
 
             # Número total de clientes del vendedor
             total_customers = sum(
@@ -1136,6 +1162,9 @@ def box():
                 for loan in client.loans
                 if loan.status
             )
+
+
+
 
             # Clientes morosos para el día
             customers_in_arrears = sum(
@@ -1157,7 +1186,7 @@ def box():
                 # Convertir los valores de estadísticas a números
                 'total_collections_today': total_collections_today,
                 'new_clients': new_clients,
-                'daily_expenses': daily_expenses,
+                'daily_expenses': daily_expenses_count,
                 'daily_expenses_amount': daily_expenses_amount,
                 'daily_withdrawals': daily_withdrawals,
                 'daily_collections_made': daily_collection,
@@ -1165,7 +1194,9 @@ def box():
                 'customers_in_arrears_for_the_day': customers_in_arrears,
                 'total_renewal_loans' : total_renewal_loans,
                 'total_new_clients_loan_amount': new_clients_loan_amount,  # Nuevo campo para el total de los préstamos de los nuevos clientes
-                'total_renewal_loans_amount': total_renewal_loans_amount
+                'total_renewal_loans_amount': total_renewal_loans_amount,
+                'daily_withdrawals_count': daily_withdrawals_count,
+                'daily_collection_count': daily_collection_count
             }
 
             salesmen_stats.append(salesman_data)
@@ -1196,8 +1227,6 @@ def box():
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
-
-
 
 
 
