@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="c-narrow">
-    <div class="container 0 pt-5">
+    <div class="container pt-5">
         <div class="row">
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Volver</a>
@@ -23,15 +23,40 @@
         </div>
         <div class="row">
             <div class="col">
+                <div class="c-cajas__item">
+                    <div class="c-cajas__item__header mb-4">
+                        <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja del Coordinador</h3>
+                    </div>
+                    <ul class="list-group">
+                        <li class="list-group-item">Valor Caja: $ {{ '{:,.0f}'.format(coordinator_box['maximum_cash']) }}</li>
+                        <li class="list-group-item">Total de Ingresos: $ {{ '{:,.0f}'.format(coordinator_box['total_inbound_amount']) }}</li>
+                        <li class="list-group-item">Total de Retiros: $ {{ '{:,.0f}'.format(coordinator_box['total_outbound_amount']) }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
                 <ul class="c-cajas c-overflow">
-                    {% for salesman in salesmen_statistics %}
+                    {% for salesman in salesmen_stats %}
                     <li class="c-cajas__item">
                         <div class="c-cajas__item__header mb-4">
                             <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja {{ salesman['salesman_name'] }}</h3>
                         </div>
-                        <div class="c-cajas__item__body">
-                            <a href="./box-detail?employee_id={{ salesman['employee_id'] }}" class="c-btn c-btn-primary mb-4" type="submit">Ver detalle</a>
-                        </div>
+                        <ul class="list-group">
+                            <li class="list-group-item">Recaudo: $ {{ '{:,.0f}'.format(salesman['total_collections_today']) }}</li>
+                            <li class="list-group-item">Cant. Ventas: {{ '{:,.0f}'.format(salesman['new_clients']) }}</li>
+                            <li class="list-group-item">Ventas: $ - {{ '{:,.0f}'.format(salesman['total_new_clients_loan_amount']) }}</li>
+                            <li class="list-group-item">Cant. Renovaciones: {{ salesman['total_renewal_loans'] }}</li>
+                            <li class="list-group-item">Valor Renovaciones: $ {{ '{:,.0f}'.format(salesman['total_renewal_loans_amount']) }}</li>
+                            <li class="list-group-item">Cant. Gastos: {{ salesman['daily_expenses'] }}</li>
+                            <li class="list-group-item">Gastos: $ {{ salesman['daily_expenses_amount'] }}</li>
+                            <li class="list-group-item">Retiros: ${{ salesman['daily_withdrawals'] }}</li>
+                            <li class="list-group-item">Ingresos: ${{ salesman['daily_collections_made'] }}</li>
+                            <li class="list-group-item">Número total de clientes: {{ salesman['total_number_of_customers'] }}</li>
+                            <li class="list-group-item">No Pago: {{ salesman['customers_in_arrears_for_the_day'] }}</li>
+                        <a href="./box-detail?employee_id={{ salesman['employee_id'] }}" class="c-btn c-btn-primary mt-4" type="submit">Ver detalle</a>
+                        </ul>
                     </li>
                     {% endfor %}
                 </ul>
