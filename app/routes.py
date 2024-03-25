@@ -1800,29 +1800,16 @@ def box_detail():
                 }
                 clients_in_arrears.append(client_arrears)
 
-    # Calcular los pagos realizados agrupados por cliente
-    payments_by_client = {}
-    for loan in loans:
-        client_name = loan.client.first_name + ' ' + loan.client.last_name
-        if client_name not in payments_by_client:
-            payments_by_client[client_name] = 0
-        for installment in loan.installments:
-            for payment in installment.payments:
-                payments_by_client[client_name] += payment.amount
-                
-    print(payments_by_client)
-
-
+    print(clients_in_arrears)
     # Renderizar la plantilla HTML con los datos recopilados
     return render_template('box-detail.html',
-                            salesman=employee.salesman,
-                            loans_details=loan_details,
-                            renewal_loan_details=renewal_loan_details,
-                            expense_details=expense_details,
-                            income_details=income_details,
-                            withdrawal_details=withdrawal_details,
-                            clients_in_arrears=clients_in_arrears,
-                            payments_by_client=payments_by_client)
+                        salesman=employee.salesman,
+                        loans_details=loan_details,
+                        renewal_loan_details=renewal_loan_details,
+                        expense_details=expense_details,
+                        income_details=income_details,
+                        withdrawal_details=withdrawal_details,
+                        clients_in_arrears=clients_in_arrears)
 
 
 

@@ -268,7 +268,7 @@ class LoanInstallment(db.Model):
         return json.dumps(self.to_json(), indent=4)
     
     def is_in_arrears(self):
-        return self.status == InstallmentStatus.MORA and self.due_date <= datetime.date.today()
+        return self.status == InstallmentStatus.MORA #and self.due_date <= datetime.date.today()
 
 
 

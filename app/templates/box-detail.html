@@ -219,32 +219,7 @@
       </tbody>
     </table>
 
-
-<!-- Tabla para los pagos realizados -->
-<h2 class="c-headings c-headings__h2 mb-4 mt-4">Pagos</h2>
-<table class="table">
-  <thead>
-    <tr>
-      <th>Nombre del Cliente</th>
-      <th>Valor de la Cuota</th>
-      <th>Total del Pago Realizado</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for client_name, total_payment in payments_by_client.items() %}
-    <tr>
-      <td>{{ client_name }}</td>
-      <td>
-        $ {{ '{:,.0f}'.format((loans_details[loop.index0].loan_amount * (1 + loans_details[loop.index0].loan_interest / 100)) / loans_details[loop.index0].loan_dues | default(0)) }}
-      </td>
-      <td>
-        $ {{ '{:,.0f}'.format(total_payment | default(0)) }}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
+    
 
 
 
