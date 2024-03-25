@@ -44,6 +44,7 @@
                             <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja {{ salesman['salesman_name'] }}</h3>
                         </div>
                         <ul class="list-group">
+                            <li class="list-group-item">Valor a Cobrar: $ {{ '{:,.0f}'.format(salesman['total_pending_installments_amount']) }}</li>
                             <li class="list-group-item">Recaudo: $ {{ '{:,.0f}'.format(salesman['total_collections_today']) }}</li>
                             <li class="list-group-item">Cant. Ventas: {{ '{:,.0f}'.format(salesman['new_clients']) }}</li>
                             <li class="list-group-item">Ventas: $ - {{ '{:,.0f}'.format(salesman['total_new_clients_loan_amount']) }}</li>

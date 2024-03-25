@@ -266,6 +266,9 @@ class LoanInstallment(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+    
+    def is_in_arrears(self):
+        return self.status == InstallmentStatus.MORA and self.due_date <= datetime.date.today()
 
 
 
@@ -331,8 +334,7 @@ class Transaction(db.Model):
             'description': self.description,
             'amount': str(self.amount),
             'attachment': self.attachment,
-            'status': self.status,
-            'approval_status': self.approval_status.name,  # Agregamos el estado de aprobación al JSON
+            'approval_status': self.approval_status.name,  # Corregido para reflejar el nombre del campo
             'creation_date': self.creation_date.isoformat(),
             'modification_date': self.modification_date.isoformat(),
             'employee_id': self.employee_id

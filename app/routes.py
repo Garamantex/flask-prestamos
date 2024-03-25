@@ -896,6 +896,7 @@ def create_concept():
         return render_template('create-concept.html', concept=Concept)
 
 
+
 @routes.route('/concept/<int:concept_id>', methods=['PUT'])
 def update_concept(concept_id):
     concept = Concept.query.get(concept_id)
@@ -1055,6 +1056,8 @@ def box():
             new_clients_loan_amount = 0 # Valor Prestamos Nuevos
             daily_withdrawals_count = 0 # Cantidad Retiros Diarios
             daily_collection_count = 0 # Cantidad Ingresos Diarios
+            total_pending_installments_amount = 0 # Monto total de cuotas pendientes
+
 
 
             # Calcula el total de cobros para el día con estado "PAGADA"           
@@ -1068,7 +1071,24 @@ def box():
                 Loan.client.has(employee_id=salesman.employee_id),
                 func.date(Payment.payment_date) == datetime.now().date()
             ).scalar() or 0
-
+            
+            
+            # Calcula el total de los montos de las cuotas en estado PENDIENTE, MORA o ABONADA, donde la fecha sea menor o igual a hoy
+            total_pending_installments_amount = db.session.query(
+                func.sum(LoanInstallment.amount)
+            ).join(
+                Loan, LoanInstallment.loan_id == Loan.id
+            ).join(
+                Client, Loan.client_id == Client.id
+            ).join(
+                Employee, Client.employee_id == Employee.id
+            ).join(
+                Salesman, Employee.id == Salesman.employee_id
+            ).filter(
+                Salesman.employee_id == salesman.employee_id,
+                LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]),
+                LoanInstallment.due_date <= datetime.now().date()
+            ).scalar() or 0
 
 
 
@@ -1196,7 +1216,8 @@ def box():
                 'total_new_clients_loan_amount': new_clients_loan_amount,  # Nuevo campo para el total de los préstamos de los nuevos clientes
                 'total_renewal_loans_amount': total_renewal_loans_amount,
                 'daily_withdrawals_count': daily_withdrawals_count,
-                'daily_collection_count': daily_collection_count
+                'daily_collection_count': daily_collection_count,
+                'total_pending_installments_amount': total_pending_installments_amount  # Nuevo campo para el total de los montos de las cuotas pendientes
             }
 
             salesmen_stats.append(salesman_data)
@@ -1705,75 +1726,103 @@ def box_archive():
 
 
 
-
-
-from flask import request
-@routes.route('/box-detail')
+@routes.route('/box-detail', methods=['GET'])
 def box_detail():
-    # Obtener el ID del empleado desde la consulta
+    # Obtener el employee_id del vendedor desde la solicitud
     employee_id = request.args.get('employee_id')
 
-    # Retrieve the employee from the database
+    # Verificar si el employee_id existe en la base de datos
     employee = Employee.query.get(employee_id)
+    if not employee:
+        return jsonify({'error': 'Empleado no encontrado'}), 404
 
-    # Check if the employee exists
-    if employee is None:
-        # If the employee is not found, you can handle this situation as you wish
-        # For example, you can display an error message or redirect to another page
-        return "Employee not found"
+    # Obtener todos los préstamos asociados a ese vendedor
+    loans = Loan.query.filter_by(employee_id=employee_id).all()
 
-    # Retrieve the user associated with the employee
-    user = User.query.get(employee.user_id)
+    # Recopilar detalles de los préstamos
+    loan_details = []
+    renewal_loan_details = []  # Detalles de los préstamos que son renovaciones activas
 
-    # Retrieve the number of clients associated with the salesman
-    num_clients = len(employee.clients)
+    for loan in loans:
+        loan_detail = {
+            'client_name': loan.client.first_name + ' ' + loan.client.last_name,
+            'loan_amount': loan.amount,
+            'loan_dues': loan.dues,
+            'loan_interest': loan.interest
+        }
+        loan_details.append(loan_detail)
 
-    # Check if the user exists
-    if user is None:
-        # If the user is not found, you can handle this situation as you wish
-        # For example, you can display an error message or redirect to another page
-        return "User not found"
+        # Si el préstamo es una renovación activa, recopilar detalles adicionales
+        if loan.is_renewal and loan.status:
+            renewal_loan_detail = {
+                'client_name': loan.client.first_name + ' ' + loan.client.last_name,
+                'loan_amount': loan.amount,
+                'loan_dues': loan.dues,
+                'loan_interest': loan.interest
+            }
+            renewal_loan_details.append(renewal_loan_detail)
 
-    # Retrieve necessary data with queries
-    loans = Loan.query.filter_by(employee_id=employee.id).all()
-    transactions = Transaction.query.filter_by(employee_id=employee.id).all()
+    # Calcular el valor total para cada préstamo
+    for loan_detail in loan_details:
+        loan_amount = float(loan_detail['loan_amount'])
+        loan_interest = float(loan_detail['loan_interest'])
+        loan_detail['total_amount'] = loan_amount + (loan_amount * loan_interest / 100)
 
-    # Calculate expenses, incomes, and withdrawals based on transaction types
-    expenses = sum(transaction.amount for transaction in transactions if transaction.transaction_types == TransactionType.GASTO)
-    incomes = sum(transaction.amount for transaction in transactions if transaction.transaction_types == TransactionType.INGRESO)
-    withdrawals = sum(transaction.amount for transaction in transactions if transaction.transaction_types == TransactionType.RETIRO)
+    # Calcular el valor total para cada préstamo de renovación activa
+    for renewal_loan_detail in renewal_loan_details:
+        loan_amount = float(renewal_loan_detail['loan_amount'])
+        loan_interest = float(renewal_loan_detail['loan_interest'])
+        renewal_loan_detail['total_amount'] = loan_amount + (loan_amount * loan_interest / 100)
 
-    # Calculate loan payments
-    loan_payments = 0
+    # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de modificación descendente
+    transactions = Transaction.query.filter_by(employee_id=employee_id).order_by(Transaction.modification_date.desc()).all()
+
+    # Filtrar transacciones por tipo
+    expenses = [trans for trans in transactions if trans.transaction_types.value == TransactionType.GASTO.value]
+    incomes = [trans for trans in transactions if trans.transaction_types.value == TransactionType.INGRESO.value]
+    withdrawals = [trans for trans in transactions if trans.transaction_types.value == TransactionType.RETIRO.value]
+
+    # Recopilar detalles con formato de fecha y clases de Bootstrap
+    expense_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.modification_date.strftime('%d/%m/%Y')} for trans in expenses]
+    income_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.modification_date.strftime('%d/%m/%Y')} for trans in incomes]
+    withdrawal_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.modification_date.strftime('%d/%m/%Y')} for trans in withdrawals]
+
+    # Calcular clientes con cuotas en mora
+    clients_in_arrears = []
     for loan in loans:
         for installment in loan.installments:
-            # Sumar los montos de los pagos que corresponden a este installment
+            if installment.is_in_arrears():
+                client_arrears = {
+                    'client_name': loan.client.first_name + ' ' + loan.client.last_name,
+                    'arrears_count': sum(1 for inst in loan.installments if inst.is_in_arrears()),
+                    'overdue_balance': sum(inst.amount for inst in loan.installments if inst.is_in_arrears()),
+                    'total_loan_amount': loan.amount
+                }
+                clients_in_arrears.append(client_arrears)
+
+    # Calcular los pagos realizados agrupados por cliente
+    payments_by_client = {}
+    for loan in loans:
+        client_name = loan.client.first_name + ' ' + loan.client.last_name
+        if client_name not in payments_by_client:
+            payments_by_client[client_name] = 0
+        for installment in loan.installments:
             for payment in installment.payments:
-                loan_payments += payment.amount
-
-    # Calculate other required fields
-    sales = loan.amount + (loan.amount * loan.interest / 100)
-    renewals = sum(loan.amount for loan in loans if loan.is_renewal)
-    unpaid = sales - loan_payments
+                payments_by_client[client_name] += payment.amount
+                
+    print(payments_by_client)
 
 
-    print("Sales:", sales)  # Imprimir el valor de las ventas calculadas
-
-    # Create a dictionary with the calculated information
-    information = {
-        'expenses': expenses,
-        'incomes': incomes,
-        'withdrawals': withdrawals,
-        'sales': sales,
-        'renewals': renewals,
-        'loan_payments': loan_payments,
-        'unpaid': unpaid,
-        'salesman_name': f"{user.first_name} {user.last_name}",  # Agregar el nombre del vendedor
-        'num_clients': num_clients  # Agregar la cantidad de clientes asociados
-    }
-
-    # Render the HTML template with the information
-    return render_template('box-detail.html', information=information)
+    # Renderizar la plantilla HTML con los datos recopilados
+    return render_template('box-detail.html',
+                            salesman=employee.salesman,
+                            loans_details=loan_details,
+                            renewal_loan_details=renewal_loan_details,
+                            expense_details=expense_details,
+                            income_details=income_details,
+                            withdrawal_details=withdrawal_details,
+                            clients_in_arrears=clients_in_arrears,
+                            payments_by_client=payments_by_client)
 
 
 
@@ -1782,6 +1831,8 @@ def box_detail():
 @routes.route('/reports')
 def reports():
     return render_template('reports.html')
+
+
 
 @routes.route('/debtor-manager')
 def debtor_manager():

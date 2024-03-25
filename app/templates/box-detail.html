@@ -1,30 +1,254 @@
-{% extends "base.html" %}
-
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <div class="c-form">
-    <div class="container pt-5">
-        <div class="row">
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
-            </div>
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
-            </div>
-        </div>
-        <h2 class="c-headings c-headings__h2 mb-4 mt-4">Caja de {{ information.salesman_name }}</h2>
-        <ul class="list-group mb-5">
-            <li class="list-group-item">Gastos: $ {{ '{:,.0f}'.format(information.expenses) }} </li>
-            <li class="list-group-item">Ingresos: $ {{ '{:,.0f}'.format(information.incomes) }}</li>
-            <li class="list-group-item">Retiros: $ {{ '{:,.0f}'.format(information.withdrawals) }} </li>
-            <li class="list-group-item">Ventas: $ {{ '{:,.0f}'.format(information.sales) }}</li>
-            <li class="list-group-item">Renovaciones: $ {{ '{:,.0f}'.format(information.renewals) }}</li>
-            <li class="list-group-item">Pagos: $ {{ '{:,.0f}'.format(information.loan_payments) }}</li>
-            <li class="list-group-item">No Pago: $ {{ '{:,.0f}'.format(information.unpaid) }}</li>
-            <li class="list-group-item">Clientes: {{ information.num_clients }}</li>
-        </ul>
-        
-        <!-- Puedes agregar más elementos HTML para mostrar información adicional si lo necesitas -->
-        
+  <div class="container pt-5">
+    <div class="row">
+      <div class="col">
+        <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager"
+          >Menu</a
+        >
+      </div>
+      <div class="col">
+        <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+      </div>
     </div>
+    <h2 class="c-headings c-headings__h2 mb-4 mt-4">
+      Detalles de préstamos del vendedor: {{ salesman.employee.user.first_name
+      }} {{ salesman.employee.user.last_name }}
+    </h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nombre del Cliente</th>
+          <th>Valor del Préstamo</th>
+          <!-- <th>Valor Total</th> -->
+          <th>Cuotas</th>
+          <th>Interés</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan_detail in loans_details %}
+        <tr>
+          <td>{{ loan_detail.client_name }}</td>
+          <td>$-{{ '{:,.0f}'.format(loan_detail.loan_amount) }}</td>
+          <!-- <td>${{ '{:,.0f}'.format(loan_detail.total_amount) }}</td> -->
+          <td>{{ '{:,.0f}'.format(loan_detail.loan_dues) }}</td>
+          <td>{{ '{:,.0f}'.format(loan_detail.loan_interest) }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- Tabla para los retiros -->
+    <h2 class="c-headings c-headings__h2 mb-4 mt-4">Retiros</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Descripción</th>
+          <th>Valor</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th>Adjunto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for withdrawal_detail in withdrawal_details %}
+        <tr>
+          <td>{{ withdrawal_detail.description }}</td>
+          <td>${{ '{:,.0f}'.format(withdrawal_detail.amount) }}</td>
+          <td>
+            {% if withdrawal_detail.approval_status == 'PENDIENTE' %}
+            <span class="badge text-bg-warning"
+              >{{ withdrawal_detail.approval_status }}</span
+            >
+            {% elif withdrawal_detail.approval_status == 'APROBADA' %}
+            <span class="badge text-bg-success"
+              >{{ withdrawal_detail.approval_status }}</span
+            >
+            {% elif withdrawal_detail.approval_status == 'RECHAZADA' %}
+            <span class="badge text-bg-danger"
+              >{{ withdrawal_detail.approval_status }}</span
+            >
+            {% endif %}
+          </td>
+          <td>{{ withdrawal_detail.date }}</td>
+          <!-- Estado del retiro -->
+          <td>
+            <!-- Enlace para ver el adjunto si existe -->
+            {% if withdrawal_detail.attachment %}
+            <a href="{{ withdrawal_detail.attachment }}">Ver adjunto</a>
+            {% else %} N/A {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Tabla para los ingresos -->
+    <h2 class="c-headings c-headings__h2 mb-4 mt-4">Ingresos</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Descripción</th>
+          <th>Valor</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th>Adjunto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for income_detail in income_details %}
+        <tr>
+          <td>{{ income_detail.description }}</td>
+          <td>${{ '{:,.0f}'.format(income_detail.amount) }}</td>
+          <td>
+            {% if income_detail.approval_status == 'PENDIENTE' %}
+            <span class="badge text-bg-warning"
+              >{{ income_detail.approval_status }}</span
+            >
+            {% elif income_detail.approval_status == 'APROBADA' %}
+            <span class="badge text-bg-success"
+              >{{ income_detail.approval_status }}</span
+            >
+            {% elif income_detail.approval_status == 'RECHAZADA' %}
+            <span class="badge text-bg-danger"
+              >{{ income_detail.approval_status }}</span
+            >
+            {% endif %}
+          </td>
+          <td>{{ income_detail.date }}</td>
+          <!-- Estado del ingreso -->
+          <td>
+            <!-- Enlace para ver el adjunto si existe -->
+            {% if income_detail.attachment %}
+            <a href="{{ income_detail.attachment }}">Ver adjunto</a>
+            {% else %} N/A {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Tabla para los gastos -->
+    <h2 class="c-headings c-headings__h2 mb-4 mt-4">Gastos</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Descripción</th>
+          <th>Valor</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th>Adjunto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for expense_detail in expense_details %}
+        <tr>
+          <td>{{ expense_detail.description }}</td>
+          <td>${{ '{:,.0f}'.format(expense_detail.amount) }}</td>
+          <td>
+            {% if expense_detail.approval_status == 'PENDIENTE' %}
+            <span class="badge text-bg-warning"
+              >{{ expense_detail.approval_status }}</span
+            >
+            {% elif expense_detail.approval_status == 'APROBADA' %}
+            <span class="badge text-bg-success"
+              >{{ expense_detail.approval_status }}</span
+            >
+            {% elif expense_detail.approval_status == 'RECHAZADA' %}
+            <span class="badge text-bg-danger"
+              >{{ expense_detail.approval_status }}</span
+            >
+            {% endif %}
+          </td>
+          <td>{{ expense_detail.date }}</td>
+          <!-- Estado del gasto -->
+          <td>
+            <!-- Enlace para ver el adjunto si existe -->
+            {% if expense_detail.attachment %}
+            <a href="{{ expense_detail.attachment }}">Ver adjunto</a>
+            {% else %} N/A {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Tabla para los préstamos de renovación activos -->
+    <h2 class="c-headings c-headings__h2 mb-4 mt-4">Renovaciones Activas</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nombre del Cliente</th>
+          <th>Valor del Préstamo</th>
+          <!-- <th>Valor Total</th> -->
+          <th>Cuotas</th>
+          <th>Interés</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for renewal_detail in renewal_loan_details %}
+        <tr>
+          <td>{{ renewal_detail.client_name }}</td>
+          <td>$-{{ '{:,.0f}'.format(renewal_detail.loan_amount) }}</td>
+          <!-- <td>${{ '{:,.0f}'.format(renewal_detail.total_amount) }}</td> -->
+          <td>{{ '{:,.0f}'.format(renewal_detail.loan_dues) }}</td>
+          <td>{{ '{:,.0f}'.format(renewal_detail.loan_interest) }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- Agregar esta tabla para los clientes con cuotas en mora -->
+    <h2 class="c-headings c-headings__h2 mb-4 mt-4">NO PAGO</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nombre del Cliente</th>
+          <th>Cantidad de Cuotas en Mora</th>
+          <th>Saldo Vencido Total</th>
+          <th>Valor Total del Préstamo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for client_in_arrears in clients_in_arrears %}
+        <tr>
+          <td>{{ client_in_arrears.client_name }}</td>
+          <td>{{ client_in_arrears.arrears_count }}</td>
+          <td>${{ '{:,.0f}'.format(client_in_arrears.overdue_balance) }}</td>
+          <td>${{ '{:,.0f}'.format(client_in_arrears.total_loan_amount) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+
+<!-- Tabla para los pagos realizados -->
+<h2 class="c-headings c-headings__h2 mb-4 mt-4">Pagos</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Nombre del Cliente</th>
+      <th>Valor de la Cuota</th>
+      <th>Total del Pago Realizado</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for client_name, total_payment in payments_by_client.items() %}
+    <tr>
+      <td>{{ client_name }}</td>
+      <td>
+        $ {{ '{:,.0f}'.format((loans_details[loop.index0].loan_amount * (1 + loans_details[loop.index0].loan_interest / 100)) / loans_details[loop.index0].loan_dues | default(0)) }}
+      </td>
+      <td>
+        $ {{ '{:,.0f}'.format(total_payment | default(0)) }}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+
+
+
+
+  </div>
 </div>
 {% endblock %}
