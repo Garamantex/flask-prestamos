@@ -14,8 +14,8 @@
         <div class="row">
             <div class="col">
                 <div class="c-morosos">
-                    <p class="c-morosos__item">Número de morosos: <span id="totalMorosos">0</span></p>
-                    <p class="c-morosos__item">Total mora: $<span id="totalMora">0</span></p>
+                    <p class="c-morosos__item">Número de morosos: <span id="totalMorosos">{{ debtors_info|length }}</span></p>
+                    <p class="c-morosos__item">Total mora: $<span id="totalMora">{{ '{:,.0f}'.format(total_mora) }}</span></p>
                 </div>
             </div>
         </div>
@@ -32,14 +32,17 @@
         <div class="row">
             <div class="col-lg-12 mt-4">
                 <ul class="request-list" id="morosos-container">
-                    {% for moroso in mora_debtors_details %}
+                    {% for debtor_info in debtors_info %}
                         <li class="request-item">
-                            <p>Nombre del empleado: <span>{{ moroso.nombre_empleado }}</span></p>
-                            <p>Nombre del cliente: <span>{{ moroso.nombre_cliente }}</span></p>
-                            <p>Cuotas pagadas: <span>{{ moroso.cuotas_pagadas }}</span></p>
-                            <p>Cuotas vencidas: <span>{{ moroso.cuotas_vencidas }}</span></p>
-                            <p>Valor total: <span>${{ moroso.valor_total }}</span></p>
-                            <p>Saldo pendiente: <span>${{ moroso.saldo_pendiente }}</span></p>
+                            <p>Nombre del vendedor: <span>{{ debtor_info.salesman_name }}</span></p>
+                            <p>Nombre del cliente: <span>{{ debtor_info.client_name }}</span></p>
+                            <p>Valor préstamo con intereses: <span>$ {{ '{:,.0f}'.format(debtor_info.total_loan_amount) }}</span></p>
+                            <p>Saldo: <span>$ {{ '{:,.0f}'.format(debtor_info.balance) }}</span></p>
+                            <p>Valor vencido: <span>$ {{ '{:,.0f}'.format(debtor_info.total_due) }}</span></p>
+                            <p>Cantidad cuotas vencidas: <span>{{ debtor_info.overdue_installments }}</span></p>
+                            <p>Cantidad cuotas totales: <span>{{ debtor_info.total_installments }}</span></p>
+                            <p>Fecha de última cuota: <span>{{ debtor_info.last_installment_date }}</span></p>
+                            <p>Fecha último pago registrado: <span>{{ debtor_info.last_payment_date }}</span></p>
                         </li>
                     {% endfor %}
                 </ul>

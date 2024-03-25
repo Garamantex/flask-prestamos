@@ -1,3 +1,4 @@
+<!-- plantilla.html -->
 {% extends "base.html" %}
 
 {% block content %}
@@ -19,13 +20,13 @@
             </div>
         </div>
         <div class="row mt-5">
-            <div class="col">
+            <div id="select-container" class="col">
                 <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data">
                     <fieldset>
                         <legend style="color: white;">Tipo de gasto</legend>
                         <div class="mb-3">
                             <select id="transactionType" name="transaction_type" class="c-form c-form__dropdown" aria-label="Default select example">
-                                <option selected></option>
+                                <option value="">Selecciona un tipo de transacción</option>
                                 <option value="GASTO">Gasto</option>
                                 <option value="INGRESO">Ingreso</option>
                                 <option value="RETIRO">Retiro</option>
@@ -34,17 +35,17 @@
                         <legend style="color: white;">Concepto</legend>
                         <div class="mb-3">
                             <select id="concept" name="concept_id" class="c-form c-form__dropdown" aria-label="Default select example">
-                                <option selected></option>
+                                <option value="">Selecciona un concepto</option>
                                 {% for concept in concepts %}
-                                <option value="{{ concept.id }}" data-transaction-type="{{ concept.transaction_types }}">{{ concept.name }}</option>
+                                    <option value="{{ concept.id }}" data-transaction-type="{{ concept.transaction_types.value }}">{{ concept.name }}</option>
                                 {% endfor %}
-                              </select>                          
+                            </select>                         
                         </div>
                     </fieldset>
                     <fieldset>
                         <div class="mb-3">
-                            <legend for="description" style="color: white;" class="form-label">description</legend>
-                            <textarea class="c-form c-form__textarea" name="description" id="" cols="30" rows="10"></textarea>
+                            <legend for="description" style="color: white;" class="form-label">Descripción</legend>
+                            <textarea class="c-form c-form__textarea" name="description" id="description" cols="30" rows="10"></textarea>
                         </div>
                     </fieldset>
                     <fieldset>
@@ -63,4 +64,34 @@
         </div>
     </div>
 </div>
+
+
+<script>
+    // Obtener el tipo de transacción pasado desde el backend
+    var transactionType = "{{ transaction_type }}";
+    // Filtrar las opciones del segundo select basado en el tipo de transacción inicial
+    filterConceptOptions(transactionType);
+
+    document.getElementById('transactionType').addEventListener('change', function() {
+        var transactionType = this.value;
+        // Llamar a la función de filtrado cuando cambia el tipo de transacción
+        filterConceptOptions(transactionType);
+    });
+
+    function filterConceptOptions(transactionType) {
+        console.log("Transaction Type:", transactionType);
+        var conceptOptions = document.querySelectorAll('#concept option');
+        conceptOptions.forEach(function(option) {
+            var dataTransactionType = option.getAttribute('data-transaction-type');
+            console.log("Data Transaction Type:", dataTransactionType);
+            if (transactionType === '' || dataTransactionType === transactionType) {
+                option.style.display = '';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    }
+</script>
+
+
 {% endblock %}

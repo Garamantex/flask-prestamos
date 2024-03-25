@@ -145,6 +145,7 @@ class Client(db.Model):
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
                                   onupdate=datetime.datetime.utcnow)
 
+
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=True)
     
     loans = db.relationship('Loan', backref='client', lazy=True)
@@ -219,6 +220,25 @@ class InstallmentStatus(Enum):
         return self.name
 
 
+class Payment(db.Model):
+    """ Modelo de Pago """
+
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Numeric(10, 2), nullable=False, doc='Monto del pago')
+    payment_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow, doc='Fecha de pago')
+    installment_id = db.Column(db.Integer, db.ForeignKey('loan_installment.id'), nullable=False)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'amount': str(self.amount),
+            'payment_date': self.payment_date.isoformat(),
+            'installment_id': self.installment_id
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), indent=4)
+
 class LoanInstallment(db.Model):
     """ Modelo de Cuota de Préstamo """
 
@@ -229,6 +249,8 @@ class LoanInstallment(db.Model):
     status = db.Column(db.Enum(InstallmentStatus), default=InstallmentStatus.PENDIENTE, nullable=False, doc='status')
     payment_date = db.Column(db.Date, nullable=True, doc='Fecha de pago')
     loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=False)
+    
+    payments = db.relationship('Payment', backref='installment', cascade='all, delete-orphan')
 
     def to_json(self):
         return {
@@ -238,11 +260,16 @@ class LoanInstallment(db.Model):
             'amount': str(self.amount),
             'status': self.status,
             'payment_date': self.payment_date.isoformat() if self.payment_date else None,
-            'loan_id': self.loan_id
+            'loan_id': self.loan_id,
+            'payments': [payment.to_json() for payment in self.payments]
         }
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+    
+    def is_in_arrears(self):
+        return self.status == InstallmentStatus.MORA #and self.due_date <= datetime.date.today()
+
 
 
 class TransactionType(Enum):
@@ -307,8 +334,7 @@ class Transaction(db.Model):
             'description': self.description,
             'amount': str(self.amount),
             'attachment': self.attachment,
-            'status': self.status,
-            'approval_status': self.approval_status.name,  # Agregamos el estado de aprobación al JSON
+            'approval_status': self.approval_status.name,  # Corregido para reflejar el nombre del campo
             'creation_date': self.creation_date.isoformat(),
             'modification_date': self.modification_date.isoformat(),
             'employee_id': self.employee_id

@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
+
 db = SQLAlchemy()
 
 def create_app():
@@ -14,6 +15,7 @@ def create_app():
     # Configurar la migración de la base de datos
     from flask_migrate import Migrate
     migrate = Migrate(app, db)
+
 
     # Importar y registrar las rutas
     from app.routes import routes
