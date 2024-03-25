@@ -709,12 +709,21 @@ def mark_overdue():
             # Actualizar el estado de la última cuota pendiente a "MORA"
             last_pending_installment.status = InstallmentStatus.MORA
             last_pending_installment.updated_at = datetime.now()  # Actualizar la fecha de actualización
+            
+            # Obtener el cliente asociado a este préstamo
+            client = Client.query.join(Loan).filter(Loan.id == loan_id).first()
+            if client:
+                # Actualizar el campo debtor del cliente a True
+                client.debtor = True
+            
             db.session.commit()  # Guardar los cambios en la base de datos
-            return 'La última cuota pendiente ha sido marcada como MORA exitosamente'
+            
+            return 'La última cuota pendiente ha sido marcada como MORA y el cliente ha sido marcado como deudor exitosamente'
         else:
             return 'No se encontraron cuotas pendientes para marcar como MORA'
     else:
         return 'Método no permitido'
+
 
 
 @routes.route('/payment_list', methods=['GET'])
@@ -1335,6 +1344,9 @@ def debtor():
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
+
+
+
 @routes.route('/get-debtors', methods=['GET'])
 def get_debtors():
     # Obtener el ID del usuario desde la sesión
@@ -1702,7 +1714,7 @@ def list_expenses():
                 'descripcion': transaccion.description,
                 'monto': transaccion.amount,
                 'attachment': transaccion.attachment,
-                'status': transaccion.approval_status
+                'status': transaccion.approval_status.value
             }
             print(detalle_transaccion['status'])
 
@@ -1812,16 +1824,72 @@ def box_detail():
                         clients_in_arrears=clients_in_arrears)
 
 
-
-
-
 @routes.route('/reports')
 def reports():
     return render_template('reports.html')
 
 
 
+
 @routes.route('/debtor-manager')
 def debtor_manager():
-    return render_template('debtor-manager.html')
+    debtors_info = []
+    total_mora = 0
+    
+    # Obtener todos los coordinadores
+    coordinators = Manager.query.all()
 
+    for coordinator in coordinators:
+        # Obtener todos los vendedores asociados al coordinador
+        salesmen = Salesman.query.filter_by(manager_id=coordinator.id).all()
+
+        for salesman in salesmen:
+            # Obtener todos los clientes morosos del vendedor
+            debtors = Client.query.filter(Client.employee_id == salesman.employee_id, Client.debtor == True).all()
+
+            for debtor in debtors:
+                # Calcular la información requerida para cada cliente moroso
+                loan = Loan.query.filter_by(client_id=debtor.id).first()
+                print(loan)
+                if loan:
+                    total_loan_amount = loan.amount + (loan.amount * loan.interest / 100)
+
+                    # Obtener todas las cuotas de préstamo asociadas a este préstamo
+                    loan_installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+                    print(loan_installments)
+                    # Calcular la mora
+                    total_due = sum(installment.amount for installment in loan_installments if installment.status == InstallmentStatus.MORA)
+                    print("Total due for client:", total_due)
+                    print("Installments statuses:", [installment.status for installment in loan_installments])
+                    print("Installments amounts:", [installment.amount for installment in loan_installments])
+
+                    total_mora += total_due
+
+
+                    # Verificar si el cliente está en mora
+                    if total_due > 0:
+                        overdue_installments = len([installment for installment in loan_installments if installment.status == InstallmentStatus.MORA])
+                        total_installments = len(loan_installments)
+                        last_installment_date = max(installment.due_date for installment in loan_installments)
+                        last_payment_date = max(payment.payment_date for installment in loan_installments for payment in installment.payments)
+
+                        # Calcular el saldo pendiente
+                        total_payment = sum(payment.amount for installment in loan.installments for payment in installment.payments)
+                        balance = total_loan_amount - total_payment
+                        
+                        debtor_info = {
+                            'salesman_name': f"{salesman.employee.user.first_name} {salesman.employee.user.last_name}",
+                            'client_name': f"{debtor.first_name} {debtor.last_name}",
+                            'total_loan_amount': total_loan_amount,
+                            'balance': balance,
+                            'total_due': total_due,
+                            'overdue_installments': overdue_installments,
+                            'total_installments': total_installments,
+                            'last_installment_date': last_installment_date,
+                            'last_payment_date': last_payment_date
+                        }
+
+                        debtors_info.append(debtor_info)
+                        
+    print(debtors_info)
+    return render_template('debtor-manager.html', debtors_info=debtors_info, total_mora=total_mora)

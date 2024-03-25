@@ -26,7 +26,7 @@
                         <p>Tipo de transacción: <span>{{ detalle_transaccion['tipo'] }}</span></p>
                         <p>Concepto: <span>{{ detalle_transaccion['concepto'] }}</span></p>
                         <p>Descripción: <span>{{ detalle_transaccion['descripcion'] }}</span></p>
-                        <p>Valor: <span>${{ detalle_transaccion['monto'] }}</span></p>
+                        <p>Valor: <span>$ {{ '{:,.0f}'.format(detalle_transaccion['monto']) }}</span></p>
                         <!-- Agregar un identificador único al botón y la modal -->
                         <p>Estado: <span>{{ detalle_transaccion['status'] }}</span></p>
                         <button class="c-btn c-btn-primary" data-target="modal{{ loop.index }}">Ver comprobante</button>
