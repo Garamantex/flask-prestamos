@@ -11,6 +11,11 @@
             color: white;
         }
     }
+
+    &__item__title {
+        text-align: center;
+    }
+
     &__item__body {
         padding: 1rem;
         border: 1px solid $gray-300;

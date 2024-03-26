@@ -11,50 +11,48 @@
         <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
       </div>
     </div>
-    <h2 class="c-headings c-headings__h2 mb-4 mt-4">
-      Detalles de préstamos del vendedor: {{ salesman.employee.user.first_name
+    <h2 class="c-headings c-headings__h3 mb-4 mt-4">
+      Detalles vendedor: {{ salesman.employee.user.first_name
       }} {{ salesman.employee.user.last_name }}
     </h2>
-    <table class="table">
+    <table class="c-table">
       <thead>
         <tr>
-          <th>Nombre del Cliente</th>
-          <th>Valor del Préstamo</th>
-          <!-- <th>Valor Total</th> -->
-          <th>Cuotas</th>
-          <th>Interés</th>
+          <th class="c-table__box">Nombre del Cliente</th>
+          <th class="c-table__box">Valor del Préstamo</th>
+          <th class="c-table__box">Cuotas</th>
+          <th class="c-table__box">Interés</th>
         </tr>
       </thead>
       <tbody>
         {% for loan_detail in loans_details %}
         <tr>
-          <td>{{ loan_detail.client_name }}</td>
-          <td>$-{{ '{:,.0f}'.format(loan_detail.loan_amount) }}</td>
-          <!-- <td>${{ '{:,.0f}'.format(loan_detail.total_amount) }}</td> -->
-          <td>{{ '{:,.0f}'.format(loan_detail.loan_dues) }}</td>
-          <td>{{ '{:,.0f}'.format(loan_detail.loan_interest) }}%</td>
+          <td class="c-table__box">{{ loan_detail.client_name }}</td>
+          <td class="c-table__box">$-{{ '{:,.0f}'.format(loan_detail.loan_amount) }}</td>
+          <td class="c-table__box">{{ '{:,.0f}'.format(loan_detail.loan_dues) }}</td>
+          <td class="c-table__box">{{ '{:,.0f}'.format(loan_detail.loan_interest) }}%</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     <!-- Tabla para los retiros -->
-    <h2 class="c-headings c-headings__h2 mb-4 mt-4">Retiros</h2>
-    <table class="table">
+    <h2 class="c-headings c-headings__h3 mb-4 mt-4">Retiros</h2>
+    <table class="c-table">
       <thead>
         <tr>
-          <th>Descripción</th>
-          <th>Valor</th>
-          <th>Estado</th>
-          <th>Fecha</th>
-          <th>Adjunto</th>
+          <th class="c-table__box">Descripción</th>
+          <th class="c-table__box">Valor</th>
+          <th class="c-table__box">Estado</th>
+          <th class="c-table__box">Fecha</th>
+          <th class="c-table__box">Adjunto</th>
         </tr>
       </thead>
       <tbody>
         {% for withdrawal_detail in withdrawal_details %}
         <tr>
-          <td>{{ withdrawal_detail.description }}</td>
-          <td>${{ '{:,.0f}'.format(withdrawal_detail.amount) }}</td>
-          <td>
+          <td class="c-table__box">{{ withdrawal_detail.description }}</td>
+          <td class="c-table__box">${{ '{:,.0f}'.format(withdrawal_detail.amount) }}</td>
+          <td class="c-table__box">
             {% if withdrawal_detail.approval_status == 'PENDIENTE' %}
             <span class="badge text-bg-warning"
               >{{ withdrawal_detail.approval_status }}</span
@@ -69,9 +67,9 @@
             >
             {% endif %}
           </td>
-          <td>{{ withdrawal_detail.date }}</td>
+          <td class="c-table__box">{{ withdrawal_detail.date }}</td>
           <!-- Estado del retiro -->
-          <td>
+          <td class="c-table__box">
             <!-- Enlace para ver el adjunto si existe -->
             {% if withdrawal_detail.attachment %}
             <a href="{{ withdrawal_detail.attachment }}">Ver adjunto</a>
@@ -83,23 +81,23 @@
     </table>
 
     <!-- Tabla para los ingresos -->
-    <h2 class="c-headings c-headings__h2 mb-4 mt-4">Ingresos</h2>
-    <table class="table">
+    <h2 class="c-headings c-headings__h3 mb-4 mt-4">Ingresos</h2>
+    <table class="c-table">
       <thead>
         <tr>
-          <th>Descripción</th>
-          <th>Valor</th>
-          <th>Estado</th>
-          <th>Fecha</th>
-          <th>Adjunto</th>
+          <th class="c-table__box">Descripción</th>
+          <th class="c-table__box">Valor</th>
+          <th class="c-table__box">Estado</th>
+          <th class="c-table__box">Fecha</th>
+          <th class="c-table__box">Adjunto</th>
         </tr>
       </thead>
       <tbody>
         {% for income_detail in income_details %}
         <tr>
-          <td>{{ income_detail.description }}</td>
-          <td>${{ '{:,.0f}'.format(income_detail.amount) }}</td>
-          <td>
+          <td class="c-table__box">{{ income_detail.description }}</td>
+          <td class="c-table__box">${{ '{:,.0f}'.format(income_detail.amount) }}</td>
+          <td class="c-table__box">
             {% if income_detail.approval_status == 'PENDIENTE' %}
             <span class="badge text-bg-warning"
               >{{ income_detail.approval_status }}</span
@@ -114,9 +112,9 @@
             >
             {% endif %}
           </td>
-          <td>{{ income_detail.date }}</td>
+          <td class="c-table__box">{{ income_detail.date }}</td>
           <!-- Estado del ingreso -->
-          <td>
+          <td class="c-table__box">
             <!-- Enlace para ver el adjunto si existe -->
             {% if income_detail.attachment %}
             <a href="{{ income_detail.attachment }}">Ver adjunto</a>
@@ -128,23 +126,22 @@
     </table>
 
     <!-- Tabla para los gastos -->
-    <h2 class="c-headings c-headings__h2 mb-4 mt-4">Gastos</h2>
-    <table class="table">
+    <h2 class="c-headings c-headings__h3 mb-4 mt-4">Gastos</h2>
+    <table class="c-table">
       <thead>
         <tr>
-          <th>Descripción</th>
-          <th>Valor</th>
-          <th>Estado</th>
-          <th>Fecha</th>
-          <th>Adjunto</th>
+          <th class="c-table__box">Descripción</th>
+          <th class="c-table__box">Valor</th>
+          <th class="c-table__box">Estado</th>
+          <th class="c-table__box">Adjunto</th>
         </tr>
       </thead>
       <tbody>
         {% for expense_detail in expense_details %}
         <tr>
-          <td>{{ expense_detail.description }}</td>
-          <td>${{ '{:,.0f}'.format(expense_detail.amount) }}</td>
-          <td>
+          <td class="c-table__box">{{ expense_detail.description }}</td>
+          <td class="c-table__box">${{ '{:,.0f}'.format(expense_detail.amount) }}</td>
+          <td class="c-table__box">
             {% if expense_detail.approval_status == 'PENDIENTE' %}
             <span class="badge text-bg-warning"
               >{{ expense_detail.approval_status }}</span
@@ -158,13 +155,11 @@
               >{{ expense_detail.approval_status }}</span
             >
             {% endif %}
-          </td>
-          <td>{{ expense_detail.date }}</td>
-          <!-- Estado del gasto -->
-          <td>
+          </td> 
+          <td class="c-table__box">
             <!-- Enlace para ver el adjunto si existe -->
             {% if expense_detail.attachment %}
-            <a href="{{ expense_detail.attachment }}">Ver adjunto</a>
+            <a class style="color: white;" href="{{ expense_detail.attachment }}">Ver adjunto</a>
             {% else %} N/A {% endif %}
           </td>
         </tr>
@@ -173,47 +168,45 @@
     </table>
 
     <!-- Tabla para los préstamos de renovación activos -->
-    <h2 class="c-headings c-headings__h2 mb-4 mt-4">Renovaciones Activas</h2>
-    <table class="table">
+    <h2 class="c-headings c-headings__h3 mb-4 mt-4">Renovaciones Activas</h2>
+    <table class="c-table">
       <thead>
         <tr>
-          <th>Nombre del Cliente</th>
-          <th>Valor del Préstamo</th>
-          <!-- <th>Valor Total</th> -->
-          <th>Cuotas</th>
-          <th>Interés</th>
+          <th class="c-table__box">Nombre del Cliente</th>
+          <th class="c-table__box">Valor del Préstamo</th>
+          <th class="c-table__box">Cuotas</th>
+          <th class="c-table__box">Interés</th>
         </tr>
       </thead>
       <tbody>
         {% for renewal_detail in renewal_loan_details %}
         <tr>
-          <td>{{ renewal_detail.client_name }}</td>
-          <td>$-{{ '{:,.0f}'.format(renewal_detail.loan_amount) }}</td>
-          <!-- <td>${{ '{:,.0f}'.format(renewal_detail.total_amount) }}</td> -->
-          <td>{{ '{:,.0f}'.format(renewal_detail.loan_dues) }}</td>
-          <td>{{ '{:,.0f}'.format(renewal_detail.loan_interest) }}%</td>
+          <td class="c-table__box">{{ renewal_detail.client_name }}</td>
+          <td class="c-table__box">$-{{ '{:,.0f}'.format(renewal_detail.loan_amount) }}</td>
+          <td class="c-table__box">{{ '{:,.0f}'.format(renewal_detail.loan_dues) }}</td>
+          <td class="c-table__box">{{ '{:,.0f}'.format(renewal_detail.loan_interest) }}%</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     <!-- Agregar esta tabla para los clientes con cuotas en mora -->
-    <h2 class="c-headings c-headings__h2 mb-4 mt-4">NO PAGO</h2>
-    <table class="table">
+    <h2 class="c-headings c-headings__h3 mb-4 mt-4">No Pago</h2>
+    <table class="c-table">
       <thead>
         <tr>
-          <th>Nombre del Cliente</th>
-          <th>Cantidad de Cuotas en Mora</th>
-          <th>Saldo Vencido Total</th>
-          <th>Valor Total del Préstamo</th>
+          <th class="c-table__box">Nombre del Cliente</th>
+          <th class="c-table__box">Cantidad de Cuotas en Mora</th>
+          <th class="c-table__box">Saldo Vencido Total</th>
+          <th class="c-table__box">Valor Total del Préstamo</th>
         </tr>
       </thead>
       <tbody>
         {% for client_in_arrears in clients_in_arrears %}
         <tr>
-          <td>{{ client_in_arrears.client_name }}</td>
-          <td>{{ client_in_arrears.arrears_count }}</td>
-          <td>${{ '{:,.0f}'.format(client_in_arrears.overdue_balance) }}</td>
-          <td>${{ '{:,.0f}'.format(client_in_arrears.total_loan_amount) }}</td>
+          <td class="c-table__box">{{ client_in_arrears.client_name }}</td>
+          <td class="c-table__box">{{ client_in_arrears.arrears_count }}</td>
+          <td class="c-table__box">${{ '{:,.0f}'.format(client_in_arrears.overdue_balance) }}</td>
+          <td class="c-table__box">${{ '{:,.0f}'.format(client_in_arrears.total_loan_amount) }}</td>
         </tr>
         {% endfor %}
       </tbody>

@@ -1,5 +1,5 @@
 # Configuración de la base de datos
-SQLALCHEMY_DATABASE_URI = 'mysql://root:123456@localhost/rutzchile'
+SQLALCHEMY_DATABASE_URI = 'mysql://root@localhost/rutzchile'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Otras configuraciones
