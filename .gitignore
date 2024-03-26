@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 app/node_modules/
 app/static/images/
+app/config.py
 
 # Local development environment
 prestamos/
@@ -29,4 +30,4 @@ rutzchile.sql
 .DS_Store
 Thumbs.db
 
-app/config.py
+
