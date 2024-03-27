@@ -53,31 +53,31 @@
         </div>
         <div class="row">
             <div class="col">
-                <ul class="list-group c-overflow" style="padding: 0 1rem;">
+                <ul class="list-group " style="padding: 0 0.5em;">
                     {% for client in clients %}
                     <li class="c-card__box-mannager mb-4">
-                        <div class="c-card__internal">
-                            <p class="small">{{ client['First Name'] |
+                        <div class="c-card__internal" >
+                            <p  style="margin-bottom: 0.2rem;">{{ client['First Name'] |
                                 capitalize }} {{ client['Last Name'] |
                                 capitalize }}</p>
-                            <p class="small">{{ client['Alias Client'] |
+                            <p  style="margin-bottom: 0.2rem;">{{ client['Alias Client'] |
                                 capitalize }}</p>
-                            <p class="small">Cuota: {{
+                            <p  style="margin-bottom: 0.2rem;">Cuota: {{
                                 client['Cuota Number'] }} / {{
                                 client['Total Installments'] | float | int
                                 }}</p>
                         </div>
                         <div class="c-card__internal">
-                            <p>Saldo: $ {{
+                            <p  style="margin-bottom: 0.2rem;">Saldo: $ {{
                                 '{:,.0f}'.format(client['Total Outstanding Amount']
                                 | float | int) }}</p>
-                            <p>Saldo Abonos: $ {{
+                            <p  style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{
                                 '{:,.0f}'.format(client['Total Amount Paid']
                                 | float | int) }}</p>
-                            <p>Valor cuota: $ {{
+                            <p  style="margin-bottom: 0.2rem;">Valor cuota: $ {{
                                 '{:,.0f}'.format(client['Installment Value']
                                 | float | int) }}</p>
-                            <p>En mora: $ {{
+                            <p  style="margin-bottom: 0.2rem;">En mora: $ {{
                                 '{:,.0f}'.format(client['Total Overdue Amount']
                                 | float | int) }}</p>
                             <!-- Mostrar número de cuota -->
@@ -86,14 +86,14 @@
                             style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
                             <a type="button"
                                 class="c-btn c-btn-primary btn-pagar"
-                                style="width: 60%;"
+                                style="width: 60%; padding: 0.4rem 0;"
                                 data-id="{{ client['Loan ID'] }}"
                                 data-installment-value="{{ client['Installment Value'] }}"
                                 data-overdue-amount="{{ client['Total Overdue Amount'] }}"
                                 data-toggle="modal"
-                                data-target="#exampleModal">pagar</a>
+                                data-target="#exampleModal">Pagar</a>
                             <a class="c-btn c-btn-primary btn-mora"
-                                style="width: 40%; margin-left: 2rem;"
+                                style="width: 40%; margin-left: 1rem; padding: 0.4rem 0;"
                                 href="#"
                                 data-id="{{ client['Loan ID'] }}">Mora</a>
                         </div>
