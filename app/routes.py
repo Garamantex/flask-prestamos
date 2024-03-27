@@ -1651,7 +1651,7 @@ def wallet():
 
 
 
-@routes.route('/wallet_detail/<int:employee_id>', methods=['GET'])
+@routes.route('/wallet-detail/<int:employee_id>', methods=['GET'])
 def wallet_detail(employee_id):
     # Obtener el empleado
     employee = Employee.query.filter_by(id=employee_id).first()
@@ -1694,6 +1694,7 @@ def wallet_detail(employee_id):
             'Seller Last Name': seller.employee.user.last_name,
             'Client First Name': client.first_name,
             'Client Last Name': client.last_name,
+            'Loan ID': loan.id,
             'Loan Amount': str(loan.amount),
             'Total Overdue Amount': str(total_overdue_amount_loan),
             'Overdue Installments Count': total_overdue_installments_loan,
