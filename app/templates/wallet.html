@@ -5,7 +5,7 @@
     <div class="container pt-5">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager') }}">Menu</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
@@ -40,7 +40,7 @@
                                 <!-- Agrega otros campos de la cartera si es necesario -->
                             </div>
                             <div class="col">
-                                <a href="./wallet-detail" class="btn btn-primary">Ir al Detalle</a>
+                                <a href="/wallet-detail/{{ seller_info['Employee ID'] }}" class="btn btn-primary">Ir al Detalle</a>
                             </div>
                         </div>
                     </div>
