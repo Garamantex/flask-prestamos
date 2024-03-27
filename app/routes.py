@@ -1579,6 +1579,7 @@ def wallet():
     total_cash = 0
     total_active_sellers = 0
     sellers_detail = []
+    
 
     # Get all coordinators
     coordinators = Manager.query.all()
@@ -1603,6 +1604,7 @@ def wallet():
 
             # Calculate the detail for each seller
             seller_info = {
+                'Employee ID': seller.employee.id,  # Add the Employee ID
                 'First Name': seller.employee.user.first_name,
                 'Last Name': seller.employee.user.last_name,
                 'Number of Active Loans': 0,  # Initialize to 0
@@ -1648,10 +1650,11 @@ def wallet():
     return render_template('wallet.html', wallet_data=wallet_data)
 
 
+
 @routes.route('/wallet_detail/<int:employee_id>', methods=['GET'])
 def wallet_detail(employee_id):
     # Obtener el empleado
-    employee = Employee.query.filter_by(employee_id=employee_id).first()
+    employee = Employee.query.filter_by(id=employee_id).first()
     if not employee:
         return jsonify({'message': 'Empleado no encontrado'}), 404
 
