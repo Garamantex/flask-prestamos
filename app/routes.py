@@ -656,7 +656,7 @@ def confirm_payment():
                 installment.status = InstallmentStatus.PAGADA
                 installment.payment_date = datetime.utcnow()  # Establecer la fecha de pago actual
                 # Crear el pago asociado a esta cuota
-                payment = Payment(amount=installment.amount, payment_date=datetime.utcnow(), installment_id=installment.id)
+                payment = Payment(amount=installment.amount, payment_date=datetime.now(), installment_id=installment.id)
                 # Establecer el valor de la cuota en 0
                 installment.amount = 0
                 db.session.add(payment)
@@ -676,7 +676,7 @@ def confirm_payment():
                     installment.status = InstallmentStatus.PAGADA
                     installment.payment_date = datetime.utcnow()  # Establecer la fecha de pago actual
                     remaining_payment -= installment.amount
-                    payment = Payment(amount=installment.amount, payment_date=datetime.utcnow(), installment_id=installment.id)
+                    payment = Payment(amount=installment.amount, payment_date=datetime.now(), installment_id=installment.id)
                     installment.amount = 0
                 else:
                     # Si el pago es mayor que la cuota actual, se distribuye el excedente
@@ -684,7 +684,7 @@ def confirm_payment():
                     installment.status = InstallmentStatus.ABONADA
                     installment.amount -= remaining_payment
                     # Crear el pago asociado a este abono parcial
-                    payment = Payment(amount=remaining_payment, payment_date=datetime.utcnow(), installment_id=installment.id)
+                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(), installment_id=installment.id)
                     db.session.add(payment)
                     remaining_payment = 0
                 # Crear el pago asociado a esta cuota                
@@ -954,6 +954,8 @@ def transactions():
             # Guardar el archivo en la carpeta 'static/images'
             upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'images')
             attachment.save(os.path.join(upload_folder, filename))
+            
+            current_date = datetime.now()
 
             # Usar el employee_id obtenido para crear la transacción
             transaction = Transaction(
@@ -963,7 +965,8 @@ def transactions():
                 amount=amount,
                 attachment=filename,  # Usar el nombre único del archivo
                 approval_status=approval_status,
-                employee_id=employee.id
+                employee_id=employee.id,
+                creation_date=current_date
             )
 
             db.session.add(transaction)
@@ -1029,20 +1032,32 @@ def box():
         salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
 
         # Funciones para sumar el valor de todas las transacciones en estado: APROBADO y Tipo: INGRESO/RETIRO
+        current_date = datetime.now().date()
+
+        # Calcular la fecha de inicio y fin del día actual
+        start_of_day = datetime.combine(current_date, datetime.min.time())
+        end_of_day = datetime.combine(current_date, datetime.max.time())
+
+        # Filtrar las transacciones para el día actual
         total_outbound_amount = db.session.query(
             func.sum(Transaction.amount).label('total_amount'),
             Salesman.manager_id
         ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
             Transaction.transaction_types == 'INGRESO',
-            Transaction.approval_status == 'APROBADA'
+            Transaction.approval_status == 'APROBADA',
+            Transaction.creation_date.between(start_of_day, end_of_day)  # Filtrar por fecha actual
         ).group_by(Salesman.manager_id).all()
 
+
+
+        # Filtrar las transacciones para el día actual
         total_inbound_amount = db.session.query(
             func.sum(Transaction.amount).label('total_amount'),
             Salesman.manager_id
         ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
             Transaction.transaction_types == 'RETIRO',
-            Transaction.approval_status == 'APROBADA'
+            Transaction.approval_status == 'APROBADA',
+            Transaction.creation_date.between(start_of_day, end_of_day)  # Filtrar por fecha actual
         ).group_by(Salesman.manager_id).all()
 
         
