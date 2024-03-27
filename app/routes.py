@@ -1119,13 +1119,15 @@ def box():
             # Calcula la cantidad de nuevos clientes registrados en el día
             new_clients = Client.query.filter(
                 Client.employee_id == salesman.employee_id,
-                Client.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                Client.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
+                Client.creation_date <= datetime.now()
             ).count()
-            
+
             # Calcula el total de préstamos de los nuevos clientes
             new_clients_loan_amount = Loan.query.join(Client).filter(
                 Client.employee_id == salesman.employee_id,
                 Loan.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
+                Loan.creation_date <= datetime.now(),
                 Loan.is_renewal == False  # Excluir renovaciones
             ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
@@ -1208,8 +1210,6 @@ def box():
             )
 
 
-
-
             # Clientes morosos para el día
             customers_in_arrears = sum(
                 1 for client in salesman.employee.clients
@@ -1217,7 +1217,7 @@ def box():
                 if loan.status and not loan.up_to_date and any(
                     installment.status == InstallmentStatus.MORA
                     or (
-                        installment.status == InstallmentStatus.PENDIENTE and installment.due_date < datetime.now().date()
+                        installment.status == InstallmentStatus.PENDIENTE and installment.due_date == datetime.now().date()
                     )
                     for installment in loan.installments
                 )
@@ -1478,7 +1478,11 @@ def get_debtors():
     return jsonify(debtors_info)
 
 
-# Ruta para la página de aprobación de gastos
+
+
+
+from sqlalchemy import join
+
 @routes.route('/approval-expenses')
 def approval_expenses():
     try:
@@ -1494,35 +1498,49 @@ def approval_expenses():
         if not empleado:
             return jsonify({'message': 'Empleado no encontrado'}), 404
 
-        # Obtener todas las transacciones asociadas a este empleado en estado "PENDIENTE"
-        transacciones_pendientes = Transaction.query.filter(
-            Transaction.employee_id == empleado.id,
-            Transaction.approval_status == ApprovalStatus.PENDIENTE
-        ).all()
+        # Verificar si el usuario es un coordinador
+        if empleado.manager is None:
+            return jsonify({'message': 'El usuario no es un coordinador'}), 403
 
-        # Crear una lista para almacenar los detalles de las transacciones pendientes
+        # Obtener los empleados asociados a este coordinador
+        empleados_a_cargo = empleado.manager.salesmen
+
+        # Inicializar una lista para almacenar las transacciones pendientes de aprobación
         detalles_transacciones = []
 
-        for transaccion in transacciones_pendientes:
-            # Obtener el concepto de la transacción
-            concepto = Concept.query.get(transaccion.concept_id)
+        # Iterar sobre los empleados y obtener las transacciones pendientes de cada uno
+        for empleado in empleados_a_cargo:
+            # Realizar una unión entre las tablas Transaction y Employee para obtener el nombre del vendedor
+            query = db.session.query(Transaction, Employee).join(Employee).filter(
+                Transaction.employee_id == empleado.employee_id,
+                Transaction.approval_status == ApprovalStatus.PENDIENTE
+            )
 
-            # Crear un diccionario con los detalles de la transacción pendiente
-            detalle_transaccion = {
-                'id': transaccion.id,
-                'tipo': transaccion.transaction_types.name,
-                'concepto': concepto.name,
-                'descripcion': transaccion.description,
-                'monto': transaccion.amount,
-                'attachment': transaccion.attachment,
-            }
-            # Agregar los detalles a la lista
-            detalles_transacciones.append(detalle_transaccion)
+            for transaccion, vendedor in query:
+                # Obtener el concepto de la transacción
+                concepto = Concept.query.get(transaccion.concept_id)
+
+                # Crear un diccionario con los detalles de la transacción pendiente, incluyendo el nombre del vendedor
+                detalle_transaccion = {
+                    'id': transaccion.id,
+                    'tipo': transaccion.transaction_types.name,
+                    'concepto': concepto.name,
+                    'descripcion': transaccion.description,
+                    'monto': transaccion.amount,
+                    'attachment': transaccion.attachment,
+                    'vendedor': vendedor.user.first_name + ' ' + vendedor.user.last_name  # Obtener el nombre del vendedor
+                }
+                # Agregar los detalles a la lista
+                detalles_transacciones.append(detalle_transaccion)
 
         return render_template('approval-expenses.html', detalles_transacciones=detalles_transacciones)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+
+
+
+
 
 
 # Ruta para modificar el estado de una transacción
@@ -1771,23 +1789,29 @@ def box_detail():
     renewal_loan_details = []  # Detalles de los préstamos que son renovaciones activas
 
     for loan in loans:
-        loan_detail = {
-            'client_name': loan.client.first_name + ' ' + loan.client.last_name,
-            'loan_amount': loan.amount,
-            'loan_dues': loan.dues,
-            'loan_interest': loan.interest
-        }
-        loan_details.append(loan_detail)
-
-        # Si el préstamo es una renovación activa, recopilar detalles adicionales
-        if loan.is_renewal and loan.status:
-            renewal_loan_detail = {
+        loan_date = loan.creation_date.date()  # Obtener solo la fecha del préstamo
+        if loan_date == datetime.today().date():  # Verificar si el préstamo se realizó hoy
+            loan_detail = {
                 'client_name': loan.client.first_name + ' ' + loan.client.last_name,
                 'loan_amount': loan.amount,
                 'loan_dues': loan.dues,
-                'loan_interest': loan.interest
+                'loan_interest': loan.interest,
+                'loan_date': loan_date.strftime('%d/%m/%Y')  # Agregar la fecha del préstamo
             }
-            renewal_loan_details.append(renewal_loan_detail)
+            loan_details.append(loan_detail)
+
+        # Si el préstamo es una renovación activa y se realizó hoy, recopilar detalles adicionales
+        if loan.is_renewal and loan.status:
+            renewal_date = loan.creation_date.date()  # Obtener solo la fecha de la renovación
+            if renewal_date == datetime.today().date():  # Verificar si la renovación se realizó hoy
+                renewal_loan_detail = {
+                    'client_name': loan.client.first_name + ' ' + loan.client.last_name,
+                    'loan_amount': loan.amount,
+                    'loan_dues': loan.dues,
+                    'loan_interest': loan.interest,
+                    'renewal_date': renewal_date.strftime('%d/%m/%Y')  # Agregar la fecha de la renovación
+                }
+                renewal_loan_details.append(renewal_loan_detail)
 
     # Calcular el valor total para cada préstamo
     for loan_detail in loan_details:
@@ -1801,24 +1825,27 @@ def box_detail():
         loan_interest = float(renewal_loan_detail['loan_interest'])
         renewal_loan_detail['total_amount'] = loan_amount + (loan_amount * loan_interest / 100)
 
-    # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de modificación descendente
-    transactions = Transaction.query.filter_by(employee_id=employee_id).order_by(Transaction.modification_date.desc()).all()
 
-    # Filtrar transacciones por tipo
-    expenses = [trans for trans in transactions if trans.transaction_types.value == TransactionType.GASTO.value]
-    incomes = [trans for trans in transactions if trans.transaction_types.value == TransactionType.INGRESO.value]
-    withdrawals = [trans for trans in transactions if trans.transaction_types.value == TransactionType.RETIRO.value]
+    # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de creación descendente
+    transactions = Transaction.query.filter_by(employee_id=employee_id).order_by(Transaction.creation_date.desc()).all()
+
+    # Filtrar transacciones por tipo y fecha
+    today = datetime.today().date()
+    expenses = [trans for trans in transactions if trans.transaction_types == TransactionType.GASTO and trans.creation_date.date() == today]
+    incomes = [trans for trans in transactions if trans.transaction_types == TransactionType.INGRESO and trans.creation_date.date() == today]
+    withdrawals = [trans for trans in transactions if trans.transaction_types == TransactionType.RETIRO and trans.creation_date.date() == today]
 
     # Recopilar detalles con formato de fecha y clases de Bootstrap
-    expense_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.modification_date.strftime('%d/%m/%Y')} for trans in expenses]
-    income_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.modification_date.strftime('%d/%m/%Y')} for trans in incomes]
-    withdrawal_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.modification_date.strftime('%d/%m/%Y')} for trans in withdrawals]
-
-    # Calcular clientes con cuotas en mora
+    expense_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
+    income_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in incomes]
+    withdrawal_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in withdrawals]
+    
+    
+    # Calcular clientes con cuotas en mora y cuya fecha de vencimiento sea la de hoy
     clients_in_arrears = []
     for loan in loans:
         for installment in loan.installments:
-            if installment.is_in_arrears():
+            if installment.is_in_arrears() and installment.due_date == today:
                 client_arrears = {
                     'client_name': loan.client.first_name + ' ' + loan.client.last_name,
                     'arrears_count': sum(1 for inst in loan.installments if inst.is_in_arrears()),

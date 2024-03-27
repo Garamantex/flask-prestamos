@@ -61,12 +61,12 @@
 
     <div class="row">
       <div class="col">
-        <ul class="c-cajas c-overflow">
+        <ul class="c-cajas">
           {% for salesman in salesmen_stats %}
           <li class="c-cajas__item">
             <div style="display: flex" class="mb-4">
               <h4 class="c-cajas__item__title c-headings c-headings__h3">
-                Caja {{ salesman['salesman_name'] }}
+                {{ salesman['salesman_name'] }}
               </h4>
               <a
                 href="./box-detail?employee_id={{ salesman['employee_id'] }}"
@@ -78,7 +78,7 @@
             </div>
             <ul class="c-card__box-mannager">
               <li class="c-card__internal">
-                Valor a Cobrar: $ {{
+                Debido Cobrar: $ {{
                 '{:,.0f}'.format(salesman['total_pending_installments_amount'])
                 }}
               </li>
@@ -94,7 +94,7 @@
                 {{ '{:,.0f}'.format(salesman['new_clients']) }}
               </li>
               <li class="c-card__internal">
-                Valor Renovaciones: $ {{
+                Renovaciones: $ {{
                 '{:,.0f}'.format(salesman['total_renewal_loans_amount']) }}
               </li>
               <li class="c-card__internal">

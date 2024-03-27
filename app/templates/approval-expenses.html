@@ -14,7 +14,7 @@
         <div class="row">
             <div class="col">
                 <div class="c-users">
-                    <p class="c-users__title">Listado de Solicitudes</p>
+                    <p class="c-users__title">Transacciones</p>
                 </div>
             </div>
         </div>
@@ -22,17 +22,24 @@
             <div class="col">
                 <ul class="request-list">
                     {% for detalle_transaccion in detalles_transacciones %}
-                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
-                        <p>Solicitado por: <span>{{ detalle_transaccion['tipo'] }}</span></p>
-                        <p>Tipo de Gasto: <span>{{ detalle_transaccion['concepto'] }}</span></p>
-                        <p>Descripción: <span>{{ detalle_transaccion['descripcion'] }}</span></p>
-                        <p>Valor: <span>${{ detalle_transaccion['monto'] }}</span></p>
-                        <p>Aprobar/Denegar:</p>
-                        <select class="request-dropdown mt-3 mb-3" name="approval_status">
-                            <option value="approve">Aprobar</option>
-                            <option value="deny">Denegar</option>
-                        </select><br>
-                        <a class="btn btn-primary" href="">Procesar Solicitud</a>
+                    <li class="request-item mb-4 d-flex justify-content-center align-items-center"
+                        style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
+                        <div class="text-center"> <!-- Agregado -->
+                            <p>Vendedor: <span>{{ detalle_transaccion['vendedor'] }}</span></p>
+                            <p>Valor: <span>$ {{ '{:,.0f}'.format(detalle_transaccion['monto']) }}</span></p>
+                            <p>Tipo de Gasto: <span>{{ detalle_transaccion['tipo'] }}</span></p>
+                            <p>Concepto: <span>{{ detalle_transaccion['concepto'] }}</span></p>
+                            <p>Descripción: <span>{{ detalle_transaccion['descripcion'] }}</span></p>
+                            <form class="mt-4" method="POST"
+                                action="{{ url_for('routes.modify_transaction', transaction_id=detalle_transaccion['id']) }}">
+                                <label for="approval_status">Aprobar/Denegar:</label>
+                                <select class="request-dropdown mt-3 mb-3" name="new_status" id="approval_status">
+                                    <option value="APROBADA">Aprobar</option>
+                                    <option value="RECHAZADA">Denegar</option>
+                                </select><br>
+                                <button type="submit" class="btn btn-primary">Procesar Solicitud</button>
+                            </form>
+                        </div>
                     </li>
                     {% endfor %}
                 </ul>
