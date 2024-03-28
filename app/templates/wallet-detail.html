@@ -44,22 +44,21 @@
                         <h4>Crédito #{{ loop.index }}</h4>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-6">
-                                <p>Vendedor: {{ loan_info['Seller First Name'] }} {{ loan_info['Seller Last Name'] }}</p>
+                        <div class="c-card__box-mannager">
+                            <div class="c-card__internal">
+                                <p>{{ loan_info['Seller First Name'] }} {{ loan_info['Seller Last Name'] }}</p>
                                 <p>Cliente: {{ loan_info['Client First Name'] }} {{ loan_info['Client Last Name'] }}</p>
                             </div>
-                            <div class="col-6">
-                                <p>Saldo Inicial: ${{ loan_info['Loan Amount'] }}</p>
-                                <p>Saldo Vencido: ${{ loan_info['Total Overdue Amount'] }}</p>
+                            <div class="c-card__internal">
+                                <p>Saldo Inicial: $ {{ '{:,.0f}'.format(loan_info['Loan Amount']  | float | int) }}</p>
+                                <p>Saldo Vencido: $ {{ '{:,.0f}'.format(loan_info['Total Overdue Amount'] | float | int) }}</p>
                             </div>
-                            <div class="col-12">
+                            <div class="c-card__internal">
                                 <h5>Cuotas</h5>
                                 <p>Cuotas Vencidas: {{ loan_info['Overdue Installments Count'] }}</p>
-                                <p>Total Cuotas Pagas: {{ loan_info['Paid Installments Count'] }}/{{ loan_info['Number of Active Loans'] }}</p>
+                                <p>Total Cuotas Pagas: {{ loan_info['Paid Installments Count'] }}/{{ loan_info['Total Installments'] }}</p>
                             </div>
-                            <div class="col-12">
-                                <h5>Fechas</h5>
+                            <div class="c-card__internal">
                                 <!-- Agrega las fechas relevantes aquí -->
                                 <!-- <a href="{{ url_for('routes.credit_detail', id=loan_info['Loan ID']) }}" class="btn btn-primary">Ver Detalle</a> -->
                             </div>

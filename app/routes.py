@@ -1120,14 +1120,14 @@ def box():
             new_clients = Client.query.filter(
                 Client.employee_id == salesman.employee_id,
                 Client.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
-                Client.creation_date <= datetime.now()
+                # Client.creation_date <= datetime.now()
             ).count()
 
             # Calcula el total de préstamos de los nuevos clientes
             new_clients_loan_amount = Loan.query.join(Client).filter(
                 Client.employee_id == salesman.employee_id,
                 Loan.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
-                Loan.creation_date <= datetime.now(),
+                # Loan.creation_date <= datetime.now(),
                 Loan.is_renewal == False  # Excluir renovaciones
             ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
@@ -1138,16 +1138,16 @@ def box():
             total_renewal_loans = Loan.query.filter(
                 Loan.client.has(employee_id=salesman.employee_id),
                 Loan.is_renewal == True,
-                Loan.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
-                Loan.creation_date < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+                Loan.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                # Loan.creation_date < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
             ).count()
 
             # Calcula el monto total de las renovaciones de préstamos para este vendedor
             total_renewal_loans_amount = Loan.query.filter(
                 Loan.client.has(employee_id=salesman.employee_id),
                 Loan.is_renewal == True,
-                Loan.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
-                Loan.creation_date < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+                Loan.creation_date >= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                # Loan.creation_date < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
             ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
 
@@ -1617,6 +1617,7 @@ def wallet():
 
             for client in clients:
                 active_loans = Loan.query.filter_by(client_id=client.id, status=True).count()
+                print(active_loans)
                 seller_info['Number of Active Loans'] += active_loans
 
                 for loan in client.loans:
@@ -1678,6 +1679,9 @@ def wallet_detail(employee_id):
         total_overdue_amount_loan = 0
         total_overdue_installments_loan = 0
         total_paid_installments_loan = 0
+        
+        # Obtener el total de cuotas del préstamo
+        total_installments_loan = len(loan.installments)
 
         for installment in loan.installments:
             total_loan_amount += float(installment.amount)
@@ -1699,6 +1703,7 @@ def wallet_detail(employee_id):
             'Total Overdue Amount': str(total_overdue_amount_loan),
             'Overdue Installments Count': total_overdue_installments_loan,
             'Paid Installments Count': total_paid_installments_loan,
+            'Total Installments': total_installments_loan
         }
 
         loans_detail.append(loan_info)
@@ -1807,7 +1812,7 @@ def box_detail():
         # Si el préstamo es una renovación activa y se realizó hoy, recopilar detalles adicionales
         if loan.is_renewal and loan.status:
             renewal_date = loan.creation_date.date()  # Obtener solo la fecha de la renovación
-            if renewal_date == datetime.today().date():  # Verificar si la renovación se realizó hoy
+            if renewal_date >= datetime.today().date():  # Verificar si la renovación se realizó hoy
                 renewal_loan_detail = {
                     'client_name': loan.client.first_name + ' ' + loan.client.last_name,
                     'loan_amount': loan.amount,
