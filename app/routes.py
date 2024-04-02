@@ -126,10 +126,8 @@ def menu_salesman():
     
     # Si no hay recaudo, establecerlo como 0
     today_revenue = today_revenue or 0
-
     
     # Calcular el valor total en mora
-
 
     #SE DEBE CALCULAR LA LOGICA DESDE LA TABLA "payments"
     total_arrears_value = db.session.query(
@@ -313,15 +311,18 @@ def get_maximum_values_create_salesman():
     else:
         abort(404)  # Empleado no encontrado
 
-
 @routes.route('/maximum-values-loan', methods=['GET'])
 def get_maximum_values_loan():
+    # Verificamos si 'user_id' está presente en la sesión
+    if 'user_id' not in session:
+        return "Error: El usuario no ha iniciado sesión."
+
     # Obtenemos el ID del empleado desde la sesión
     user_id = session['user_id']
     employee = Employee.query.filter_by(user_id=user_id).first()
 
     if employee is None:
-        return "Error: No se encontrón los valores máximos para el préstamo."
+        return "Error: No se encontraron los valores máximos para el préstamo."
 
     # Obtenemos los valores máximos establecidos para el préstamo
     maximum_sale = employee.maximum_sale
@@ -654,7 +655,7 @@ def confirm_payment():
         for installment in loan.installments:
             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
                 installment.status = InstallmentStatus.PAGADA
-                installment.payment_date = datetime.utcnow()  # Establecer la fecha de pago actual
+                installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
                 # Crear el pago asociado a esta cuota
                 payment = Payment(amount=installment.amount, payment_date=datetime.now(), installment_id=installment.id)
                 # Establecer el valor de la cuota en 0
@@ -674,7 +675,7 @@ def confirm_payment():
             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
                 if installment.amount <= remaining_payment:
                     installment.status = InstallmentStatus.PAGADA
-                    installment.payment_date = datetime.utcnow()  # Establecer la fecha de pago actual
+                    installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
                     remaining_payment -= installment.amount
                     payment = Payment(amount=installment.amount, payment_date=datetime.now(), installment_id=installment.id)
                     installment.amount = 0
@@ -726,6 +727,8 @@ def mark_overdue():
 
 
 
+
+
 @routes.route('/payment_list', methods=['GET'])
 def payments_list():
     # Obtiene el ID de usuario desde la sesión
@@ -769,6 +772,8 @@ def payments_list():
                 # Encuentra la última cuota pendiente a la fecha actual
                 last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PENDIENTE).order_by(LoanInstallment.due_date.asc()).first()
 
+                print(last_pending_installment)
+
                 # Obtiene la fecha del último pago
                 last_payment_date = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).order_by(LoanInstallment.payment_date.desc()).first()
 
@@ -793,6 +798,8 @@ def payments_list():
 
                 clients_information.append(client_info)
 
+                print(clients_information)
+
     # Obtén el término de búsqueda del formulario
     search_term = request.args.get('search', '')
 
@@ -801,6 +808,10 @@ def payments_list():
 
     # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
     return render_template('payments-route.html', clients=filtered_clients_information)
+
+
+
+
 
 
 def is_workday(date):

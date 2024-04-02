@@ -55,50 +55,26 @@
             <div class="col">
                 <ul class="list-group " style="padding: 0 0.5em;">
                     {% for client in clients %}
-                    <li class="c-card__box-mannager mb-4">
+                    <li class="c-card__box-mannager mb-4{% if client['Status'] != 'PENDIENTE' %} u-hidden{% endif %}">
                         <div class="c-card__internal" >
-                            <p  style="margin-bottom: 0.2rem;">{{ client['First Name'] |
-                                capitalize }} {{ client['Last Name'] |
-                                capitalize }}</p>
-                            <p  style="margin-bottom: 0.2rem;">{{ client['Alias Client'] |
-                                capitalize }}</p>
-                            <p  style="margin-bottom: 0.2rem;">Cuota: {{
-                                client['Cuota Number'] }} / {{
-                                client['Total Installments'] | float | int
-                                }}</p>
+                            <p style="margin-bottom: 0.2rem;">{{ client['First Name'] | capitalize }} {{ client['Last Name'] | capitalize }}</p>
+                            <p style="margin-bottom: 0.2rem;">{{ client['Alias Client'] | capitalize }}</p>
+                            <p style="margin-bottom: 0.2rem;">Cuota: {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}</p>
                         </div>
                         <div class="c-card__internal">
-                            <p  style="margin-bottom: 0.2rem;">Saldo: $ {{
-                                '{:,.0f}'.format(client['Total Outstanding Amount']
-                                | float | int) }}</p>
-                            <p  style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{
-                                '{:,.0f}'.format(client['Total Amount Paid']
-                                | float | int) }}</p>
-                            <p  style="margin-bottom: 0.2rem;">Valor cuota: $ {{
-                                '{:,.0f}'.format(client['Installment Value']
-                                | float | int) }}</p>
-                            <p  style="margin-bottom: 0.2rem;">En mora: $ {{
-                                '{:,.0f}'.format(client['Total Overdue Amount']
-                                | float | int) }}</p>
+                            <p style="margin-bottom: 0.2rem;">Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
+                            <p style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p>
+                            <p style="margin-bottom: 0.2rem;">Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
+                            <p style="margin-bottom: 0.2rem;">En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p>
                             <!-- Mostrar número de cuota -->
                         </div>
-                        <div
-                            style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-                            <a type="button"
-                                class="c-btn c-btn-primary btn-pagar"
-                                style="width: 60%; padding: 0.4rem 0;"
-                                data-id="{{ client['Loan ID'] }}"
-                                data-installment-value="{{ client['Installment Value'] }}"
-                                data-overdue-amount="{{ client['Total Overdue Amount'] }}"
-                                data-toggle="modal"
-                                data-target="#exampleModal">Pagar</a>
-                            <a class="c-btn c-btn-primary btn-mora"
-                                style="width: 40%; margin-left: 1rem; padding: 0.4rem 0;"
-                                href="#"
-                                data-id="{{ client['Loan ID'] }}">Mora</a>
+                        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                            <a type="button" class="c-btn c-btn-primary btn-pagar" style="width: 60%; padding: 0.4rem 0;" data-id="{{ client['Loan ID'] }}" data-installment-value="{{ client['Installment Value'] }}" data-overdue-amount="{{ client['Total Overdue Amount'] }}" data-toggle="modal" data-target="#exampleModal">Pagar</a>
+                            <a class="c-btn c-btn-primary btn-mora" style="width: 40%; margin-left: 1rem; padding: 0.4rem 0;" href="#" data-id="{{ client['Loan ID'] }}">Mora</a>
                         </div>
                     </li>
                     {% endfor %}
+
                 </ul>
             </div>
         </div>
@@ -241,6 +217,26 @@
             });
         });
     });
+`
+
+ // Espera a que el documento esté listo
+ document.addEventListener('DOMContentLoaded', function () {
+    // Obtén todas las cuotas listadas
+    var cuotas = document.querySelectorAll('.c-card__box-mannager');
+
+    // Itera sobre cada cuota
+    cuotas.forEach(function (cuota) {
+        // Obtén el estado de la cuota
+        var estadoCuota = cuota.querySelector('.c-card__internal p:nth-child(3)').textContent.split(':')[1].trim();
+
+        // Si el estado de la cuota no es "PENDIENTE", oculta el elemento
+        if (estadoCuota !== 'PAGADO') {
+            cuota.classList.add('u-hidden'); // Oculta el elemento
+            cuota.classList.remove('c-card__box-mannager'); // Remueve la clase c-card__box-mannager
+        }
+    });
+});
+`
 </script>
 
 <!-- Overlay -->
@@ -255,6 +251,6 @@
       height: 100%;
       z-index: 999;
       display: none;
-    }O
+    }
   </style>
 {% endblock %}

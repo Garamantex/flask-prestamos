@@ -25,9 +25,9 @@ class User(db.Model):
     first_name = db.Column(db.String(30), nullable=False, doc='Nombre')
     last_name = db.Column(db.String(30), nullable=False, doc='Apellido')
     cellphone = db.Column(db.String(20), nullable=False, doc='Celular')
-    creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
-                                  onupdate=datetime.datetime.utcnow)
+    creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
+    modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now,
+                                  onupdate=datetime.datetime.now)
 
     def to_json(self):
         return {
@@ -58,9 +58,9 @@ class Employee(db.Model):
     minimum_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Mínimo interés')
     percentage_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Porcentaje interés')
     fix_value = db.Column(db.Numeric(10, 2), nullable=False, doc='Valor fijo')
-    creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
-                                  onupdate=datetime.datetime.utcnow)
+    creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
+    modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now,
+                                  onupdate=datetime.datetime.now)
 
     user = db.relationship('User', backref='employee', uselist=False)
     manager = db.relationship('Manager', uselist=False, back_populates='employee')
@@ -141,9 +141,9 @@ class Client(db.Model):
     status = db.Column(db.Boolean, default=True, nullable=False, doc='Estado')
     debtor = db.Column(db.Boolean, default=False, nullable=False, doc='Deudor')
     black_list = db.Column(db.Boolean, default=False, nullable=False, doc='Lista Negra')
-    creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
-                                  onupdate=datetime.datetime.utcnow)
+    creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
+    modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now,
+                                  onupdate=datetime.datetime.now)
 
 
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=True)
@@ -182,9 +182,9 @@ class Loan(db.Model):
     status = db.Column(db.Boolean, default=True, nullable=False, doc='Estado')
     up_to_date = db.Column(db.Boolean, default=False, nullable=False, doc='Al día')
     is_renewal = db.Column(db.Boolean, default=False, nullable=False, doc='Renovación')
-    creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
-                                  onupdate=datetime.datetime.utcnow)
+    creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
+    modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now,
+                                  onupdate=datetime.datetime.now)
 
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
@@ -225,7 +225,7 @@ class Payment(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Numeric(10, 2), nullable=False, doc='Monto del pago')
-    payment_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow, doc='Fecha de pago')
+    payment_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now, doc='Fecha de pago')
     installment_id = db.Column(db.Integer, db.ForeignKey('loan_installment.id'), nullable=False)
 
     def to_json(self):
@@ -258,7 +258,7 @@ class LoanInstallment(db.Model):
             'installment_number': self.installment_number,
             'due_date': self.due_date.isoformat(),
             'amount': str(self.amount),
-            'status': self.status,
+            'status': self.status.value,
             'payment_date': self.payment_date.isoformat() if self.payment_date else None,
             'loan_id': self.loan_id,
             'payments': [payment.to_json() for payment in self.payments]
@@ -322,9 +322,9 @@ class Transaction(db.Model):
     concept = db.relationship('Concept', backref='transaction', uselist=False)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
 
-    creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow,
-                                  onupdate=datetime.datetime.utcnow)
+    creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
+    modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now,
+                                  onupdate=datetime.datetime.now)
 
     def to_json(self):
         return {
