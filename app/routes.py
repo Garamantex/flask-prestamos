@@ -697,7 +697,6 @@ def confirm_payment():
 
 
 
-
 @routes.route('/mark_overdue', methods=['POST'])
 def mark_overdue():
     if request.method == 'POST':
@@ -716,15 +715,24 @@ def mark_overdue():
             if client:
                 # Actualizar el campo debtor del cliente a True
                 client.debtor = True
+                
+                # Guardar el cambio en el cliente
+                db.session.add(client)
+
+            # Crear un nuevo pago asociado a la cuota pendiente
+            payment = Payment(amount=0, payment_date=datetime.now(), installment_id=last_pending_installment.id)
             
-            db.session.commit()  # Guardar los cambios en la base de datos
+            # Agregar el pago a la sesión
+            db.session.add(payment)
+
+            # Guardar los cambios en la base de datos
+            db.session.commit()
             
             return 'La última cuota pendiente ha sido marcada como MORA y el cliente ha sido marcado como deudor exitosamente'
         else:
             return 'No se encontraron cuotas pendientes para marcar como MORA'
     else:
         return 'Método no permitido'
-
 
 
 
@@ -808,8 +816,6 @@ def payments_list():
 
     # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
     return render_template('payments-route.html', clients=filtered_clients_information)
-
-
 
 
 
