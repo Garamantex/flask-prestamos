@@ -356,6 +356,7 @@ class EmployeeRecord(db.Model):
     overdue_installments = db.Column(db.Integer, nullable=False)
     total_collected = db.Column(db.Float, nullable=False)
     payment_ids = db.Column(db.Text, nullable=True)  # Guarda los IDs separados por comas
+    closing_total = db.Column(db.Float, nullable=False)
     creation_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     # Relación con el modelo Employee
@@ -372,6 +373,7 @@ class EmployeeRecord(db.Model):
             'overdue_installments': self.overdue_installments,
             'total_collected': self.total_collected,
             'payment_ids': self.payment_ids,
+            'closing_total': self.closing_total,
             'creation_date': self.creation_date.isoformat()
         }
 
