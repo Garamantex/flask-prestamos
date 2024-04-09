@@ -1967,7 +1967,7 @@ def debtor_manager():
 def add_employee_record():
     # Obtener el ID del empleado desde la solicitud
     employee_id = request.form.get('employee_id')
-    fecha_actual = datetime.utcnow().date()
+    fecha_actual = datetime.now().date()
 
     # Buscar el último registro de caja del día anterior
     last_record = EmployeeRecord.query.filter_by(employee_id=employee_id)\
@@ -1989,12 +1989,17 @@ def add_employee_record():
     partial_installments = LoanInstallment.query.filter_by(employee_id=employee_id, status='ABONADA', payment_date=fecha_actual).count()
     overdue_installments = LoanInstallment.query.filter_by(employee_id=employee_id, status='MORA', due_date=fecha_actual).count()
 
-    # Calcular el total recaudado
-    total_collected = db.session.query(func.sum(LoanInstallment.amount)).filter_by(employee_id=employee_id, payment_date=fecha_actual).scalar()
-
-    # Concatenar los IDs de los pagos en una cadena de texto separada por comas
-    payment_ids_list = Payment.query.filter_by(employee_id=employee_id, payment_date=fecha_actual).all()
-    payment_ids = ','.join([str(payment.id) for payment in payment_ids_list])
+    # Calcular el total recaudado y obtener información detallada sobre los pagos
+    total_collected = 0
+    payment_details = []
+    payments = Payment.query.filter_by(employee_id=employee_id, payment_date=fecha_actual).all()
+    for payment in payments:
+        client_name = Client.query.get(payment.client_id).alias
+        payment_details.append({
+            'client_name': client_name,
+            'payment_amount': payment.amount
+        })
+        total_collected += payment.amount
 
     # Crear una instancia de EmployeeRecord
     employee_record = EmployeeRecord(
@@ -2004,9 +2009,9 @@ def add_employee_record():
         paid_installments=paid_installments,
         partial_installments=partial_installments,
         overdue_installments=overdue_installments,
-        total_collected=total_collected if total_collected is not None else 0,
-        payment_ids=payment_ids,
-        creation_date=fecha_actual  # Asegurarse de que la fecha de creación sea la fecha actual
+        total_collected=total_collected,
+        payment_details=payment_details,
+        creation_date=fecha_actual
     )
 
     # Agregar la instancia a la sesión de la base de datos y guardar los cambios
