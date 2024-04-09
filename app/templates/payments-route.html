@@ -55,23 +55,40 @@
             <div class="col">
                 <ul class="list-group " style="padding: 0 0.5em;">
                     {% for client in clients %}
-                    <li class="c-card__box-mannager mb-4{% if client['Status'] != 'PENDIENTE' %} u-hidden{% endif %}">
-                        <div class="c-card__internal" >
-                            <p style="margin-bottom: 0.2rem;">{{ client['First Name'] | capitalize }} {{ client['Last Name'] | capitalize }}</p>
-                            <p style="margin-bottom: 0.2rem;">{{ client['Alias Client'] | capitalize }}</p>
-                            <p style="margin-bottom: 0.2rem;">Cuota: {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}</p>
-                        </div>
-                        <div class="c-card__internal">
-                            <p style="margin-bottom: 0.2rem;">Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
-                            <p style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p>
-                            <p style="margin-bottom: 0.2rem;">Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
-                            <p style="margin-bottom: 0.2rem;">En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p>
-                            <!-- Mostrar número de cuota -->
-                        </div>
-                        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-                            <a type="button" class="c-btn c-btn-primary btn-pagar" style="width: 60%; padding: 0.4rem 0;" data-id="{{ client['Loan ID'] }}" data-installment-value="{{ client['Installment Value'] }}" data-overdue-amount="{{ client['Total Overdue Amount'] }}" data-toggle="modal" data-target="#exampleModal">Pagar</a>
-                            <a class="c-btn c-btn-primary btn-mora" style="width: 40%; margin-left: 1rem; padding: 0.4rem 0;" href="#" data-id="{{ client['Loan ID'] }}">Mora</a>
-                        </div>
+                    <li class="c-card__box-mannager mb-4"
+                        data-due-date="{{ client['Due Date'] }}"
+                        data-last-payment-date="{{ client['Last Payment Date'] }}"
+                        data-installment-status="{{ client['Previous Installment Status'] }}" >
+
+                            <div class="c-card__internal" >
+                                <p style="margin-bottom: 0.2rem;">{{ client['First Name'] | capitalize }} {{ client['Last Name'] | capitalize }}</p>
+                                <p style="margin-bottom: 0.2rem;">{{ client['Alias Client'] | capitalize }}</p>
+                                <p style="margin-bottom: 0.2rem;">Cuota: {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}</p>
+                            </div>
+                            <div class="c-card__internal">
+                                <p style="margin-bottom: 0.2rem;">Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
+                                <p style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p>
+                                <p style="margin-bottom: 0.2rem;">Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
+                                <p style="margin-bottom: 0.2rem;">En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p>
+                                    <!-- Mostrar número de cuota -->
+                                <p style="margin-bottom: 0.2rem;">Última fecha de pago: {{ client['Last Payment Date'] }}</p>
+                                <p style="margin-bottom: 0.2rem;">Fecha de creación: {{ client['Due Date'] }}</p>
+
+                                <!-- Mostrar número de cuota -->
+                            </div>
+                            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                                <a type="button" class="c-btn c-btn-primary btn-pagar" style="width: 60%; padding: 0.4rem 0;" 
+                                    data-id="{{ client['Loan ID'] }}" 
+                                    data-installment-value="{{ client['Installment Value'] }}" 
+                                    data-overdue-amount="{{ client['Total Overdue Amount'] }}" 
+                                    
+                                    
+                                    
+                                    data-toggle="modal" data-target="#exampleModal">
+                                    Pagar
+                                </a>
+                                <a class="c-btn c-btn-primary btn-mora" style="width: 40%; margin-left: 1rem; padding: 0.4rem 0;" href="#" data-id="{{ client['Loan ID'] }}">Mora</a>
+                            </div>
                     </li>
                     {% endfor %}
 
@@ -131,114 +148,131 @@
 </div><!-- Agrega un script adicional -->
 
 <script>
-    // Función para actualizar los valores en la modal
-    function updateModalValues(installmentValue, overdueAmount) {
-        document.getElementById('installmentValue').textContent = installmentValue.toLocaleString();
-        document.getElementById('overdueAmount').textContent = overdueAmount.toLocaleString();
-    }
+// Función para actualizar los valores en la modal
+function updateModalValues(installmentValue, overdueAmount) {
+    document.getElementById('installmentValue').textContent = installmentValue.toLocaleString();
+    document.getElementById('overdueAmount').textContent = overdueAmount.toLocaleString();
+}
 
-    // Espera a que el documento esté listo
-    document.addEventListener('DOMContentLoaded', function () {
-        // Obtén todos los botones de pago
-        var btnsPagar = document.querySelectorAll('.btn-pagar');
+// Espera a que el documento esté listo
+document.addEventListener('DOMContentLoaded', function () {
+    // Obtén todos los botones de pago
+    var btnsPagar = document.querySelectorAll('.btn-pagar');
 
-        // Agrega un evento de clic a cada botón de pago
-        btnsPagar.forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                // Obtén el valor de la cuota del botón de pago
-                var installmentValue = parseFloat(this.getAttribute('data-installment-value'));
-                
-                // Obtén el valor vencido del botón de pago
-                var overdueAmount = parseFloat(this.getAttribute('data-overdue-amount'));
+    // Agrega un evento de clic a cada botón de pago
+    btnsPagar.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            // Obtén el valor de la cuota del botón de pago
+            var installmentValue = parseFloat(this.getAttribute('data-installment-value'));
+            var overdueAmount = parseFloat(this.getAttribute('data-overdue-amount'));
+            var loanId = this.getAttribute('data-id');
 
-                // Obtén el ID del préstamo del botón de pago
-                var loanId = this.getAttribute('data-id');
+            // Calcula la suma de los valores
+            var totalAmount = installmentValue + overdueAmount;
 
-                // Calcula la suma de los valores
-                var totalAmount = installmentValue + overdueAmount;
+            // Establece el valor del monto a pagar en el campo de entrada con formato de miles
+            document.getElementById('customPayment').value = totalAmount;
 
-                // Establece el valor del monto a pagar en el campo de entrada con formato de miles
-                document.getElementById('customPayment').value = totalAmount;
+            // Actualiza los valores en la modal
+            updateModalValues(installmentValue, overdueAmount);
 
-                // Actualiza los valores en la modal
-                updateModalValues(installmentValue, overdueAmount);
-
-                // Almacena el ID del préstamo en un campo oculto
-                document.getElementById('loanId').value = loanId;
-            });
+            // Almacena el ID del préstamo en un campo oculto
+            document.getElementById('loanId').value = loanId;
         });
+    });
 
-        // Agrega un evento de clic al botón de "Confirmar Pago"
-        document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
-            var loanId = document.getElementById('loanId').value; // Obtener ID de préstamo desde el campo oculto
-            var customPayment = document.getElementById('customPayment').value; // Obtener valor de pago personalizado
+    // Agrega un evento de clic al botón de "Confirmar Pago"
+    document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
+        var loanId = document.getElementById('loanId').value; // Obtener ID de préstamo desde el campo oculto
+        var customPayment = document.getElementById('customPayment').value; // Obtener valor de pago personalizado
 
-            // Enviar solicitud POST al servidor con los datos del pago
+        // Enviar solicitud POST al servidor con los datos del pago
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/confirm_payment', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                // Verificar el estado de la respuesta
+                if (xhr.status === 200) {
+                    // Procesar respuesta del servidor
+                    console.log(xhr.responseText);
+                    // Recargar la página después de confirmar el pago
+                    window.location.reload();
+                } else {
+                    // Mostrar un mensaje de error al usuario
+                    console.error('Error al procesar el pago:', xhr.responseText);
+                }
+            }
+        };
+        xhr.send('loan_id=' + loanId + '&customPayment=' + customPayment);
+    });
+
+    var btnsMora = document.querySelectorAll('.btn-mora');
+    btnsMora.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var loanId = this.getAttribute('data-id');
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/confirm_payment', true);
+            xhr.open('POST', '/mark_overdue', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
-                    // Verificar el estado de la respuesta
                     if (xhr.status === 200) {
-                        // Procesar respuesta del servidor
                         console.log(xhr.responseText);
-                        // Recargar la página después de confirmar el pago
                         window.location.reload();
                     } else {
-                        // Mostrar un mensaje de error al usuario
-                        console.error('Error al procesar el pago:', xhr.responseText);
+                        console.error('Error al marcar como MORA:', xhr.responseText);
                     }
                 }
             };
-            xhr.send('loan_id=' + loanId + '&customPayment=' + customPayment);
+            xhr.send('loan_id=' + loanId);
         });
     });
 
-    document.addEventListener('DOMContentLoaded', function () {
-        var btnsMora = document.querySelectorAll('.btn-mora');
-        btnsMora.forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var loanId = this.getAttribute('data-id');
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', '/mark_overdue', true);
-                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status === 200) {
-                            console.log(xhr.responseText);
-                            window.location.reload();
-                        } else {
-                            console.error('Error al marcar como MORA:', xhr.responseText);
-                        }
-                    }
-                };
-                xhr.send('loan_id=' + loanId);
-            });
-        });
-    });
-`
 
- // Espera a que el documento esté listo
- document.addEventListener('DOMContentLoaded', function () {
     // Obtén todas las cuotas listadas
     var cuotas = document.querySelectorAll('.c-card__box-mannager');
 
-    // Itera sobre cada cuota
-    cuotas.forEach(function (cuota) {
-        // Obtén el estado de la cuota
-        var estadoCuota = cuota.querySelector('.c-card__internal p:nth-child(3)').textContent.split(':')[1].trim();
+    
 
-        // Si el estado de la cuota no es "PENDIENTE", oculta el elemento
-        if (estadoCuota !== 'PAGADO') {
+    // Itera sobre cada cuota
+    cuotas.forEach(function(cuota) {
+        // Obtén el estado de la cuota desde el atributo data
+        var estadoCuota = cuota.getAttribute('data-installment-status');
+
+        // Obtén la fecha de pago de la cuota desde el atributo data y formatea la fecha
+        var fechaPagoString = cuota.getAttribute('data-last-payment-date');
+        var fechaPago = new Date(fechaPagoString).toISOString().split('T')[0];
+    
+        // Obtén la fecha de creación de la cuota desde el atributo data y formatea la fecha
+        var fechaCreacionString = cuota.getAttribute('data-due-date');
+        var fechaCreacion = new Date(fechaCreacionString).toISOString().split('T')[0];
+    
+        // Obtén la fecha actual y formatea la fecha
+        var fechaActual = new Date().toISOString().split('T')[0];
+
+        // Mostrar los datos por consola solo si no son null
+        if (estadoCuota && fechaPago && fechaCreacion) {
+            console.log("Estado de la cuota:", estadoCuota);
+            console.log("Fecha de pago de la cuota:", fechaPago);
+            console.log("Fecha de creación de la cuota:", fechaCreacion);
+            console.log("Fecha actual:", fechaActual);
+        }
+
+        // Si el estado de la cuota no es "PENDIENTE" y la fecha de pago es menor o igual a hoy, oculta el elemento
+        if ((estadoCuota == 'PAGADA' || estadoCuota == 'ABONADA' || estadoCuota == 'MORA') && fechaPago <= fechaActual) {
             cuota.classList.add('u-hidden'); // Oculta el elemento
             cuota.classList.remove('c-card__box-mannager'); // Remueve la clase c-card__box-mannager
         }
+        // Si el estado de la cuota no es "PAGADO" y la fecha de creación es mayor o igual a hoy, oculta el elemento
+        if (estadoCuota == 'PENDIENTE' && fechaCreacion >= fechaActual) {
+            cuota.classList.remove('c-card__box-mannager'); // Remueve la clase c-card__box-mannager
+        }
     });
-});
-`
-</script>
 
+
+});
+</script>
+    
 <!-- Overlay -->
 <div class="modal-overlay"></div>
 <style>

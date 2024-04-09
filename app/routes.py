@@ -768,24 +768,25 @@ def payments_list():
                 total_outstanding_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id, status=InstallmentStatus.PENDIENTE).scalar() or 0
 
                 total_amount_paid = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id, status=InstallmentStatus.ABONADA).scalar() or 0
+                
 
-                # Calcula el monto total vencido
-
-                '''
-                Se debe calcular el valor vencido y la cantidad de cuotas vencidas, Vencido es diferente de MORA, vencido es cuando la fecha de pago de una cuota es 
-                inferior a la fecha actual, se toma como VENCIDA                
-                '''
                 total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id, status=InstallmentStatus.MORA).scalar() or 0
 
-                # Encuentra la última cuota pendiente a la fecha actual
+               # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
                 last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PENDIENTE).order_by(LoanInstallment.due_date.asc()).first()
-
-                print(last_pending_installment)
+                
 
                 # Obtiene la fecha del último pago
                 last_payment_date = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).order_by(LoanInstallment.payment_date.desc()).first()
+                
+                # Encuentra la cuota anterior a la fecha actual
+                previous_installment = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).order_by(LoanInstallment.payment_date.desc()).first()
 
-                # Agrega la información del cliente y su crédito a la lista de información de clientes
+                # Agrega el estado de la cuota anterior al diccionario client_info
+                previous_installment_status = previous_installment.status.value if previous_installment else None
+
+
+               # Agrega la información del cliente y su crédito a la lista de información de clientes
                 client_info = {
                     'First Name': client.first_name,
                     'Last Name': client.last_name,
@@ -795,13 +796,16 @@ def payments_list():
                     'Total Outstanding Amount': total_outstanding_amount,
                     'Total Amount Paid': total_amount_paid,
                     'Total Overdue Amount': total_overdue_amount,
-                    'Last Payment Date': last_payment_date.payment_date.isoformat() if last_payment_date else 'No se registraron pagos',
+                    'Last Payment Date': last_payment_date.payment_date.isoformat() if last_payment_date else 0,
                     'Loan ID': loan.id,
                     'Installment Value': last_pending_installment.amount if last_pending_installment else 0,
                     'Total Installments': loan.dues,
                     'Sales Date': loan.creation_date.isoformat(),
-                    'Next Installment Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 'No se registró próxima cuota',
-                    'Cuota Number': last_pending_installment.installment_number if last_pending_installment else 0  # Agrega el número de la cuota actual
+                    'Next Installment Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
+                    'Cuota Number': last_pending_installment.installment_number if last_pending_installment else 0,  # Agrega el número de la cuota actual
+                    'Due Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,  # Agrega la fecha de vencimiento de la cuota
+                    'Installment Status': last_pending_installment.status.value if last_pending_installment else None,  # Agrega el estado de la cuota
+                    'Previous Installment Status': previous_installment_status
                 }
 
                 clients_information.append(client_info)
