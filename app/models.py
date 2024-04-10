@@ -342,3 +342,40 @@ class Transaction(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+
+
+class EmployeeRecord(db.Model):
+    """Modelo para registrar la información de caja y préstamos de un empleado"""
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    initial_state = db.Column(db.Float, nullable=False)
+    loans_to_collect = db.Column(db.Integer, nullable=False)
+    paid_installments = db.Column(db.Integer, nullable=False)
+    partial_installments = db.Column(db.Integer, nullable=False)
+    overdue_installments = db.Column(db.Integer, nullable=False)
+    total_collected = db.Column(db.Float, nullable=False)
+    payment_ids = db.Column(db.Text, nullable=True)  # Guarda los IDs separados por comas
+    closing_total = db.Column(db.Float, nullable=False)
+    creation_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    # Relación con el modelo Employee
+    employee = db.relationship('Employee', backref=db.backref('employee_records', lazy=True))
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'employee_id': self.employee_id,
+            'initial_state': self.initial_state,
+            'loans_to_collect': self.loans_to_collect,
+            'paid_installments': self.paid_installments,
+            'partial_installments': self.partial_installments,
+            'overdue_installments': self.overdue_installments,
+            'total_collected': self.total_collected,
+            'payment_ids': self.payment_ids,
+            'closing_total': self.closing_total,
+            'creation_date': self.creation_date.isoformat()
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), indent=4)

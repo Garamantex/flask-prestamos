@@ -14,7 +14,7 @@ from flask import Blueprint, render_template, session, redirect, url_for, abort,
 
 # Importaciones de tu aplicación (módulos locales)
 from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Payment, Salesman, TransactionType, \
-    ApprovalStatus
+    ApprovalStatus, EmployeeRecord
 
 # Importaciones de modelos y otros componentes específicos de tu aplicación
 from .models import User, Client, Loan, Employee, LoanInstallment
@@ -1965,3 +1965,61 @@ def debtor_manager():
                         
     print(debtors_info)
     return render_template('debtor-manager.html', debtors_info=debtors_info, total_mora=total_mora)
+
+
+@routes.route('/add-employee-record', methods=['POST'])
+def add_employee_record():
+    # Obtener el ID del empleado desde la solicitud
+    employee_id = request.form.get('employee_id')
+    fecha_actual = datetime.now().date()
+
+    # Buscar el último registro de caja del día anterior
+    last_record = EmployeeRecord.query.filter_by(employee_id=employee_id)\
+        .filter(EmployeeRecord.creation_date < fecha_actual)\
+        .order_by(EmployeeRecord.creation_date.desc()).first()
+
+    # Usar el cierre de caja del último registro como el estado inicial, si existe
+    if last_record:
+        initial_state = last_record.closing_total
+    else:
+        employee = Employee.query.get(employee_id)
+        initial_state = employee.maximum_cash
+
+    # Calcular la cantidad de préstamos por cobrar
+    loans_to_collect = Loan.query.filter_by(employee_id=employee_id, status=True, creation_date=fecha_actual).count()
+
+    # Calcular la cantidad de cuotas pagadas, abonadas y en mora
+    paid_installments = LoanInstallment.query.filter_by(employee_id=employee_id, status='PAGADA', payment_date=fecha_actual).count()
+    partial_installments = LoanInstallment.query.filter_by(employee_id=employee_id, status='ABONADA', payment_date=fecha_actual).count()
+    overdue_installments = LoanInstallment.query.filter_by(employee_id=employee_id, status='MORA', due_date=fecha_actual).count()
+
+    # Calcular el total recaudado y obtener información detallada sobre los pagos
+    total_collected = 0
+    payment_details = []
+    payments = Payment.query.filter_by(employee_id=employee_id, payment_date=fecha_actual).all()
+    for payment in payments:
+        client_name = Client.query.get(payment.client_id).alias
+        payment_details.append({
+            'client_name': client_name,
+            'payment_amount': payment.amount
+        })
+        total_collected += payment.amount
+
+    # Crear una instancia de EmployeeRecord
+    employee_record = EmployeeRecord(
+        employee_id=employee_id,
+        initial_state=initial_state,
+        loans_to_collect=loans_to_collect,
+        paid_installments=paid_installments,
+        partial_installments=partial_installments,
+        overdue_installments=overdue_installments,
+        total_collected=total_collected,
+        payment_details=payment_details,
+        creation_date=fecha_actual
+    )
+
+    # Agregar la instancia a la sesión de la base de datos y guardar los cambios
+    db.session.add(employee_record)
+    db.session.commit()
+
+    return jsonify({"message": "Registro de empleado agregado exitosamente"}), 201
