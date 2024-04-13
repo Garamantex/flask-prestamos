@@ -20,6 +20,18 @@
         background-color: black;
         border: 0.1rem solid white;
         padding: 10px;
+
+        &--pagada {
+            background-color: #8FC0A9;
+        }
+
+        &--mora {
+            background-color: #EF476F;
+        }
+
+        &--abonada {
+            background-color: #F28F3B;
+        }
     }
     &__internal {
         width: 50%;
