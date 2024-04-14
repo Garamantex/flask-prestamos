@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     calcularCuotaAproximada();
 });
 
+
 async function obtenerValoresMaximos() {
     try {
         const response = await fetch("/maximum-values-loan");
@@ -74,7 +75,9 @@ async function obtenerValoresMaximos() {
     }
 }
 
+
 obtenerValoresMaximos();
+
 
 /* $(document).ready(function () {
     // Obtener el valor máximo del coordinador cuando la página se carga

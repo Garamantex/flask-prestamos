@@ -64,7 +64,7 @@
                             <p style="margin-bottom: 0.2rem;">Cuota: {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}</p>
                             <p style="margin-bottom: 0.2rem;">{{ client['Previous Installment Status'] | capitalize }}</p>
                             <p style="margin-bottom: 0.2rem;">Ultima fecha de pago: {{ client['Last Payment Date'] | capitalize }}</p>
-                            <p style="margin-bottom: 0.2rem;">Fecha modificacion: {{ client['Last Loan Modification Date'] | capitalize }}</p>
+                            <p class="u-hidden" style="margin-bottom: 0.2rem;">Fecha modificacion: {{ client['Last Loan Modification Date'] | capitalize }}</p>
                         </div>
                         <div class="c-card__internal">
                             <p style="margin-bottom: 0.2rem;">Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
