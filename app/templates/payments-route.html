@@ -71,6 +71,7 @@
                             <p style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p>
                             <p style="margin-bottom: 0.2rem;">Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
                             <p style="margin-bottom: 0.2rem;">En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p>
+                            <p class="" style="margin-bottom: 0.2rem;">Valor Pagado: $ {{ '{:,.0f}'.format(client['Previous Installment Paid Amount'] | float | int) }}</p>
                         </div>
                         <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
                             <a type="button" class="c-btn c-btn-primary btn-pagar cuota-label"
@@ -151,6 +152,13 @@
         document.getElementById('installmentValue').textContent = installmentValue.toLocaleString();
         document.getElementById('overdueAmount').textContent = overdueAmount.toLocaleString();
     }
+        function toggleHiddenParagraphs() {
+        var hiddenParagraphs = document.querySelectorAll('.u-hidden');
+        hiddenParagraphs.forEach(function(paragraph) {
+            paragraph.classList.toggle('u-hidden');
+        });
+    }
+
 
     // Espera a que el documento esté listo
     document.addEventListener('DOMContentLoaded', function () {
@@ -278,7 +286,7 @@
             cuotasArray.forEach(function (cuota) {
                 contenedor.appendChild(cuota);
             });
-        
+
             cuotasArray.forEach(function (cuota) {
                 if (cuota.classList.contains("u-hidden")) {
                     cuota.classList.toggle('u-hidden'); // Alternar entre ocultar y mostrar
@@ -296,9 +304,10 @@
             });
         });
         
-
          // Función para cambiar el ícono del botón btn-ocultar
         document.getElementById('btn-ocultar').addEventListener('click', function () {
+
+
             // Obtener el ícono del botón
             var icono = document.getElementById('icono-ocultar');
 

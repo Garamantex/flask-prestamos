@@ -800,6 +800,14 @@ def payments_list():
                 # Agrega el estado de la cuota anterior al diccionario client_info
                 previous_installment_status = previous_installment.status.value if previous_installment else None
 
+                                
+                # Obtener el valor pagado de la cuota anterior si existe
+                previous_installment_paid_amount = 0
+                if previous_installment:
+                    previous_installment_paid_amount = sum(payment.amount for payment in previous_installment.payments)
+
+
+
                # Agrega la información del cliente y su crédito a la lista de información de clientes
                 client_info = {
                     'First Name': client.first_name,
@@ -820,7 +828,8 @@ def payments_list():
                     'Due Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,  # Agrega la fecha de vencimiento de la cuota
                     'Installment Status': last_pending_installment.status.value if last_pending_installment else None,  # Agrega el estado de la cuota
                     'Previous Installment Status': previous_installment_status,
-                    'Last Loan Modification Date': last_loan_modification_date.modification_date.isoformat() if last_loan_modification_date else None
+                    'Last Loan Modification Date': last_loan_modification_date.modification_date.isoformat() if last_loan_modification_date else None,
+                    'Previous Installment Paid Amount': previous_installment_paid_amount
                 }
 
                 clients_information.append(client_info)
