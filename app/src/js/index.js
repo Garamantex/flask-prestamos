@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', function () {
         cuotasArray.sort(function (a, b) {
             var fechaA = new Date(a.getAttribute('data-last-loan-modification-date')).getTime();
             var fechaB = new Date(b.getAttribute('data-last-loan-modification-date')).getTime();
-            return fechaB - fechaA;
+            return fechaA - fechaB;
         });
     
         // Limpiar el contenedor antes de mostrar los elementos ordenados

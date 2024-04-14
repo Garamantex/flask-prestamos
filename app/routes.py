@@ -663,7 +663,8 @@ def confirm_payment():
                 db.session.add(payment)
         # Actualizar el estado del préstamo y el campo up_to_date
         loan.status = False  # 0 indica que el préstamo está pagado en su totalidad
-        loan.up_to_date = True  # El préstamo está al día
+        loan.up_to_date = True
+        loan.modification_date = datetime.now()  # El préstamo está al día
         db.session.commit()
         return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
     else:
@@ -690,6 +691,8 @@ def confirm_payment():
                     remaining_payment = 0
                 # Crear el pago asociado a esta cuota                
                 db.session.add(payment)
+        # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
+        loan.modification_date = datetime.now()   
         db.session.commit()
     
         return jsonify({"message": "El pago se ha registrado correctamente."}), 200
@@ -794,7 +797,7 @@ def payments_list():
                 previous_installment = LoanInstallment.query \
                     .filter(LoanInstallment.loan_id == loan.id) \
                     .filter(LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA])) \
-                    .order_by(LoanInstallment.payment_date.desc()) \
+                    .order_by(LoanInstallment.due_date.desc()) \
                     .first()
 
                 # Agrega el estado de la cuota anterior al diccionario client_info
