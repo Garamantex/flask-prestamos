@@ -55,6 +55,7 @@
                         <li class="mb-4 c-card__box-mannager {% if client['Previous Installment Status'] == 'MORA' %}c-card__box-mannager--mora{% elif client['Previous Installment Status'] == 'ABONADA' %}c-card__box-mannager--abonada{% elif client['Previous Installment Status'] == 'PAGADA' %}c-card__box-mannager--pagada{% endif %}"
                             data-due-date="{{ client['Due Date'] }}"
                             data-last-payment-date="{{ client['Last Payment Date'] }}"
+                            data-last-loan-modification-date="{{ client['Last Loan Modification Date'] }}"
                             data-previous-installment-status="{{ client['Previous Installment Status'] }}"
                             data-installment-status="{{ client['Installment Status'] }}">
                         <div class="c-card__internal">
@@ -62,7 +63,8 @@
                             <p style="margin-bottom: 0.2rem;">{{ client['Alias Client'] | capitalize }}</p>
                             <p style="margin-bottom: 0.2rem;">Cuota: {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}</p>
                             <p style="margin-bottom: 0.2rem;">{{ client['Previous Installment Status'] | capitalize }}</p>
-                            <p style="margin-bottom: 0.2rem;">{{ client['Last Payment Date'] | capitalize }}</p>
+                            <p style="margin-bottom: 0.2rem;">Ultima fecha de pago: {{ client['Last Payment Date'] | capitalize }}</p>
+                            <p style="margin-bottom: 0.2rem;">Fecha modificacion: {{ client['Last Loan Modification Date'] | capitalize }}</p>
                         </div>
                         <div class="c-card__internal">
                             <p style="margin-bottom: 0.2rem;">Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
@@ -258,23 +260,42 @@
         });
 
         document.getElementById('btn-ocultar').addEventListener('click', function () {
-            cuotas.forEach(function (cuota) {
+            // Convertir NodeList a un array para usar el método sort()
+            var cuotasArray = Array.from(cuotas);
+        
+            // Ordenar los elementos por fecha de modificación del más viejo al más reciente
+            cuotasArray.sort(function (a, b) {
+                var fechaA = new Date(a.getAttribute('data-last-loan-modification-date')).getTime();
+                var fechaB = new Date(b.getAttribute('data-last-loan-modification-date')).getTime();
+                return fechaB - fechaA;
+            });
+        
+            // Limpiar el contenedor antes de mostrar los elementos ordenados
+            var contenedor = document.querySelector('.list-group');
+            contenedor.innerHTML = '';
+        
+            // Mostrar los elementos ordenados en el DOM
+            cuotasArray.forEach(function (cuota) {
+                contenedor.appendChild(cuota);
+            });
+        
+            cuotasArray.forEach(function (cuota) {
                 if (cuota.classList.contains("u-hidden")) {
                     cuota.classList.toggle('u-hidden'); // Alternar entre ocultar y mostrar
                     cuota.classList.add('c-card__box-mannager');
                     cuota.querySelectorAll('.cuota-label').forEach(function (boton) {
-                        console.log("Prueba for boton A")
                         boton.classList.remove("c-btn");
                         boton.classList.add("u-hidden");
                     });
-                }else if (cuota.classList.contains("u-block")) {
-
-                }else{
+                } else if (cuota.classList.contains("u-block")) {
+                    // Si la cuota está bloqueada, no hacemos nada
+                } else {
                     cuota.classList.add('u-hidden');
                     cuota.classList.remove('c-card__box-mannager');
-                };     
+                };
             });
         });
+        
 
          // Función para cambiar el ícono del botón btn-ocultar
         document.getElementById('btn-ocultar').addEventListener('click', function () {

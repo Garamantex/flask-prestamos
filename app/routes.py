@@ -758,6 +758,7 @@ def payments_list():
                 # Calcula el número de cuotas pagadas
                 paid_installments = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).count()
 
+
                 total_credits = LoanInstallment.query.filter_by(loan_id=loan.id).count()
 
                 # Calcula el número de cuotas vencidas 
@@ -771,6 +772,9 @@ def payments_list():
 
                # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
                 last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PENDIENTE).order_by(LoanInstallment.due_date.asc()).first()
+
+                # Encuentra la fecha de modificación más reciente del préstamo
+                last_loan_modification_date = Loan.query.filter_by(client_id=client.id).order_by(Loan.modification_date.desc()).first()
 
                 # Obtiene la fecha del último pago
                 # last_payment_date = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).order_by(LoanInstallment.payment_date.desc()).first()
@@ -815,7 +819,8 @@ def payments_list():
                     'Cuota Number': last_pending_installment.installment_number if last_pending_installment else 0,  # Agrega el número de la cuota actual
                     'Due Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,  # Agrega la fecha de vencimiento de la cuota
                     'Installment Status': last_pending_installment.status.value if last_pending_installment else None,  # Agrega el estado de la cuota
-                    'Previous Installment Status': previous_installment_status
+                    'Previous Installment Status': previous_installment_status,
+                    'Last Loan Modification Date': last_loan_modification_date.modification_date.isoformat() if last_loan_modification_date else None
                 }
 
                 clients_information.append(client_info)
@@ -829,7 +834,7 @@ def payments_list():
     filtered_clients_information = [client_info for client_info in clients_information if search_term.lower() in f"{client_info['First Name']} {client_info['Last Name']}".lower()]
 
     # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
-    return render_template('payments-route.html', clients=filtered_clients_information, total_credits=total_credits, paid_installments=paid_installments)
+    return render_template('payments-route.html', clients=filtered_clients_information)
 
 
 
