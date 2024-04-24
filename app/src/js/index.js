@@ -410,3 +410,55 @@ document.addEventListener('DOMContentLoaded', function () {
     });
    
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtenemos todos los elementos con la clase c-card__box-mannager
+    var cards = document.querySelectorAll('.u-hidden');
+
+    // Iteramos sobre cada tarjeta
+    cards.forEach(function(card) {
+        // Obtenemos los datos necesarios de la tarjeta
+        var previousInstallmentStatus = card.getAttribute('data-previous-installment-status');
+        var installmentStatus = card.getAttribute('data-installment-status');
+        var dueDate = new Date(card.getAttribute('data-due-date'));
+        var today = new Date();
+
+        // Removemos cualquier clase existente en la tarjeta
+        card.classList.remove('c-card__box-mannager--pendiente', 'c-card__box-mannager--mora', 'c-card__box-mannager--abonada', 'c-card__box-mannager--pagada');
+
+        // Aplicamos la clase correspondiente según la lógica
+        if (installmentStatus === 'PENDIENTE' && 0 == 1) {
+            card.classList.add('c-card__box-mannager');
+        } else if (previousInstallmentStatus === 'MORA') {
+            card.classList.add('c-card__box-mannager--mora');
+        } else if (previousInstallmentStatus === 'ABONADA') {
+            card.classList.add('c-card__box-mannager--abonada');
+        } else if (previousInstallmentStatus === 'PAGADA') {
+            card.classList.add('c-card__box-mannager--pagada');
+        }
+    });
+});
+
+// Esperamos a que el documento esté completamente cargado
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtenemos todos los elementos <li> que representan las tarjetas de cliente
+    var cards = document.querySelectorAll('.c-card__box-mannager');
+
+    // Iteramos sobre cada tarjeta
+    cards.forEach(function(card) {
+        // Obtenemos el estado de la cuota de la tarjeta
+        var installmentStatus = card.getAttribute('data-installment-status');
+
+        // Si el estado de la cuota es "PENDIENTE", ocultamos los elementos relevantes
+        if (installmentStatus === 'PENDIENTE') {
+            card.querySelectorAll('.hidden').forEach(function(hiddenElement) {
+                hiddenElement.classList.add('u-hidden'); // Agregamos la clase 'hidden' para ocultarlos
+            });
+        } else {
+            // Si el estado de la cuota no es "PENDIENTE", aseguramos que los elementos relevantes estén visibles
+            card.querySelectorAll('.hidden').forEach(function(hiddenElement) {
+                hiddenElement.classList.remove('u-hidden'); // Removemos la clase 'hidden' para mostrarlos
+            });
+        }
+    });
+});

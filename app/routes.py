@@ -822,11 +822,13 @@ def payments_list():
                     'Total Amount Paid': total_amount_paid,
                     'Total Overdue Amount': total_overdue_amount,
                     'Last Payment Date': last_payment_date.payment_date.isoformat() if last_payment_date else 0,
+                    'Last Payment Date front': last_payment_date.payment_date.strftime('%Y-%m-%d') if last_payment_date else '0',
                     'Loan ID': loan.id,
                     'Installment Value': last_pending_installment.amount if last_pending_installment else 0,
                     'Total Installments': loan.dues,
                     'Sales Date': loan.creation_date.isoformat(),
                     'Next Installment Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
+                    'Next Installment Date front': last_pending_installment.due_date.strftime('%Y-%m-%d') if last_pending_installment else '0',
                     'Cuota Number': last_pending_installment.installment_number if last_pending_installment else 0,  # Agrega el número de la cuota actual
                     'Due Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,  # Agrega la fecha de vencimiento de la cuota
                     'Installment Status': last_pending_installment.status.value if last_pending_installment else None,  # Agrega el estado de la cuota

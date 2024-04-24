@@ -61,18 +61,18 @@
                         <div class="c-card__internal">
                             <p style="margin-bottom: 0.2rem;">{{ client['First Name'] | capitalize }} {{ client['Last Name'] | capitalize }}</p>
                             <p style="margin-bottom: 0.2rem;">{{ client['Alias Client'] | capitalize }}</p>
-                            <p style="margin-bottom: 0.2rem;">Cuota: {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}</p>
-                            <p style="margin-bottom: 0.2rem;">{{ client['Previous Installment Status'] | capitalize }}</p>
-                            <p style="margin-bottom: 0.2rem;">{{ client['Installment Status'] | capitalize }}</p>
-                            <p style="margin-bottom: 0.2rem;">Ultima fecha de pago: {{ client['Last Payment Date'] | capitalize }}</p>
-                            <p class="" style="margin-bottom: 0.2rem;">Fecha modificacion: {{ client['Last Loan Modification Date'] | capitalize }}</p>
+                            <p style="margin-bottom: 1rem;">Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
+                            <p class="hidden" style="margin-bottom: 0.2rem;">Estado: {{ client['Previous Installment Status'] | capitalize }}</p>
+                            <p class="u-hidden" style="margin-bottom: 0.2rem;">{{ client['Installment Status'] | capitalize }}</p>
+                            <p class="hidden dates" style="margin-bottom: 0.2rem;">Ultima fecha de pago: <br> {{ client['Last Payment Date front'] | capitalize }}</p>
+                            <p class="u-hidden dates" style="margin-bottom: 0.2rem;">Fecha modificacion: {{ client['Last Loan Modification Date'] | capitalize }}</p>
                         </div>
                         <div class="c-card__internal">
-                            <p style="margin-bottom: 0.2rem;">Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
-                            <p style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p>
-                            <p style="margin-bottom: 0.2rem;">Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
-                            <p style="margin-bottom: 0.2rem;">En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p>
-                            <p class="" style="margin-bottom: 0.2rem;">Valor Pagado: $ {{ '{:,.0f}'.format(client['Previous Installment Paid Amount'] | float | int) }}</p>
+                            <p style="margin-bottom: 0.2rem;">Cuota: {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}</p>
+                            <p class="hidden" style="margin-bottom: 2rem;">Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
+                            <p class="hidden" style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p>
+                            <p class="hidden" style="margin-bottom: 0.2rem;">En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p>
+                            <p class="hidden" class="" style="margin-bottom: 0.2rem;">Valor Pagado: $ {{ '{:,.0f}'.format(client['Previous Installment Paid Amount'] | float | int) }}</p>
                         </div>
                         <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
                             <a type="button" class="c-btn c-btn-primary btn-pagar cuota-label"
@@ -146,34 +146,7 @@
 
 <!-- Agrega un script adicional -->
 <script>
-// Esperamos a que el documento esté completamente cargado
-document.addEventListener('DOMContentLoaded', function() {
-    // Obtenemos todos los elementos con la clase c-card__box-mannager
-    var cards = document.querySelectorAll('.u-hidden');
 
-    // Iteramos sobre cada tarjeta
-    cards.forEach(function(card) {
-        // Obtenemos los datos necesarios de la tarjeta
-        var previousInstallmentStatus = card.getAttribute('data-previous-installment-status');
-        var installmentStatus = card.getAttribute('data-installment-status');
-        var dueDate = new Date(card.getAttribute('data-due-date'));
-        var today = new Date();
-
-        // Removemos cualquier clase existente en la tarjeta
-        card.classList.remove('c-card__box-mannager--pendiente', 'c-card__box-mannager--mora', 'c-card__box-mannager--abonada', 'c-card__box-mannager--pagada');
-
-        // Aplicamos la clase correspondiente según la lógica
-        if (installmentStatus === 'PENDIENTE' && 0 == 1) {
-            card.classList.add('c-card__box-mannager');
-        } else if (previousInstallmentStatus === 'MORA') {
-            card.classList.add('c-card__box-mannager--mora');
-        } else if (previousInstallmentStatus === 'ABONADA') {
-            card.classList.add('c-card__box-mannager--abonada');
-        } else if (previousInstallmentStatus === 'PAGADA') {
-            card.classList.add('c-card__box-mannager--pagada');
-        }
-    });
-});
 </script>
 
 <!-- Overlay -->
