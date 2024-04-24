@@ -15,7 +15,7 @@
         <div class="row">
             <div class="col">
                 <div class="c-users">
-                    <p class="c-users__title">Registro de Gastos</p>
+                    <p class="c-users__title">Registro de Transacciones</p>
                 </div>
             </div>
         </div>
@@ -23,7 +23,7 @@
             <div id="select-container" class="col">
                 <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data">
                     <fieldset>
-                        <legend style="color: white;">Tipo de transacción</legend>
+                        <legend style="color: white;">Tipo</legend>
                         <div class="mb-3">
                             <select id="transactionType" name="transaction_type" class="c-form c-form__dropdown" aria-label="Default select example">
                                 <option value="">Selecciona un tipo de transacción</option>
