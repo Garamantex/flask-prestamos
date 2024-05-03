@@ -88,6 +88,8 @@ def menu_manager():
     return render_template('menu-manager.html')
 
 
+import datetime
+
 # ruta para el menú del vendedor
 @routes.route('/menu-salesman')
 def menu_salesman():
@@ -116,26 +118,33 @@ def menu_salesman():
         status=1
     ).distinct(Loan.client_id).count()
 
-    # Recaudo realizado en el día
+
+    # Recaudo realizado en el día (Ingresos del día)
     today_revenue = db.session.query(
-        db.func.sum(LoanInstallment.amount)
-    ).join(Loan).filter(
-        Loan.employee_id == employee_id,
-        LoanInstallment.payment_date == dt_date.today()  # Utiliza date.today() directamente
+        db.func.sum(Payment.amount)
+    ).filter(
+        db.func.date(Payment.payment_date) == datetime.now().date(),
+        Payment.installment.has(Loan.employee_id == employee_id)
     ).scalar()
-    
+        
     # Si no hay recaudo, establecerlo como 0
     today_revenue = today_revenue or 0
     
     # Calcular el valor total en mora
-
-    #SE DEBE CALCULAR LA LOGICA DESDE LA TABLA "payments"
     total_arrears_value = db.session.query(
         db.func.sum(LoanInstallment.amount)
-    ).join(Loan).filter(
+    ).join(
+        Loan
+    ).filter(
+        LoanInstallment.loan_id == Loan.id,  # Añadimos la condición de unión entre las tablas
         Loan.employee_id == employee_id,
         LoanInstallment.status == InstallmentStatus.MORA
     ).scalar()
+
+    print(total_arrears_value)
+
+    # Si no hay valor en mora, establecerlo como 0
+    total_arrears_value = total_arrears_value or 0
 
     # Mostrar el menú del vendedor y la información obtenida
     return render_template('menu-salesman.html', salesman_name=salesman_name,
@@ -664,7 +673,7 @@ def confirm_payment():
         # Actualizar el estado del préstamo y el campo up_to_date
         loan.status = False  # 0 indica que el préstamo está pagado en su totalidad
         loan.up_to_date = True
-        loan.modification_date = datetime.now()  # El préstamo está al día
+        loan.modification_date = datetime.now()  # El préstamo está al día  
         db.session.commit()
         return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
     else:
@@ -692,7 +701,8 @@ def confirm_payment():
                 # Crear el pago asociado a esta cuota                
                 db.session.add(payment)
         # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
-        loan.modification_date = datetime.now()   
+        loan.modification_date = datetime.now()
+        client.debtor = False
         db.session.commit()
     
         return jsonify({"message": "El pago se ha registrado correctamente."}), 200

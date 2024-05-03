@@ -58,7 +58,7 @@
                             <input type="file" class="form-control" id="photo" accept="image/*" capture="user" name="photo">
                         </div>
                     </fieldset>
-                    <button class="c-btn c-btn-primary mb-4" type="submit">Enviar</button>
+                    <button class="c-btn c-btn-primary mb-4" disabled type="submit">Enviar</button>
                 </form>    
             </div>
         </div>
@@ -67,30 +67,45 @@
 
 
 <script>
-    // Obtener el tipo de transacción pasado desde el backend
-    var transactionType = "{{ transaction_type }}";
-    // Filtrar las opciones del segundo select basado en el tipo de transacción inicial
-    filterConceptOptions(transactionType);
-
-    document.getElementById('transactionType').addEventListener('change', function() {
-        var transactionType = this.value;
-        // Llamar a la función de filtrado cuando cambia el tipo de transacción
+        // Obtener el tipo de transacción pasado desde el backend
+        var transactionType = "{{ transaction_type }}";
+        // Filtrar las opciones del segundo select basado en el tipo de transacción inicial
         filterConceptOptions(transactionType);
-    });
-
-    function filterConceptOptions(transactionType) {
-        console.log("Transaction Type:", transactionType);
-        var conceptOptions = document.querySelectorAll('#concept option');
-        conceptOptions.forEach(function(option) {
-            var dataTransactionType = option.getAttribute('data-transaction-type');
-            console.log("Data Transaction Type:", dataTransactionType);
-            if (transactionType === '' || dataTransactionType === transactionType) {
-                option.style.display = '';
-            } else {
-                option.style.display = 'none';
-            }
+    
+        document.getElementById('transactionType').addEventListener('change', function() {
+            var transactionType = this.value;
+            // Llamar a la función de filtrado cuando cambia el tipo de transacción
+            filterConceptOptions(transactionType);
         });
-    }
+    
+        document.getElementById('photo').addEventListener('change', function() {
+            checkImageFilled();
+        });
+    
+        function checkImageFilled() {
+            var photoInput = document.getElementById('photo');
+            var submitButton = document.querySelector('button[type="submit"]');
+            
+            if (photoInput.files.length > 0) {
+                submitButton.removeAttribute('disabled');
+            } else {
+                submitButton.setAttribute('disabled', 'disabled');
+            }
+        }
+    
+        function filterConceptOptions(transactionType) {
+            console.log("Transaction Type:", transactionType);
+            var conceptOptions = document.querySelectorAll('#concept option');
+            conceptOptions.forEach(function(option) {
+                var dataTransactionType = option.getAttribute('data-transaction-type');
+                console.log("Data Transaction Type:", dataTransactionType);
+                if (transactionType === '' || dataTransactionType === transactionType) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
 </script>
 
 

@@ -69,7 +69,7 @@
                         </div>
                         <div class="c-card__internal">
                             <p style="margin-bottom: 0.2rem;">Cuota: {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}</p>
-                            <p class="hidden" style="margin-bottom: 2rem;">Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
+                            <p class="" style="margin-bottom: 2rem;">Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
                             <p class="hidden" style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p>
                             <p class="hidden" style="margin-bottom: 0.2rem;">En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p>
                             <p class="hidden" class="" style="margin-bottom: 0.2rem;">Valor Pagado: $ {{ '{:,.0f}'.format(client['Previous Installment Paid Amount'] | float | int) }}</p>
