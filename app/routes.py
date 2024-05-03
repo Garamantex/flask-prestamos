@@ -346,11 +346,13 @@ def get_maximum_values_loan():
     })
 
 
+
 @routes.route('/create-client', methods=['GET', 'POST'])
 def create_client():
     try:
         if 'user_id' in session and (
                 session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
+                
             if request.method == 'POST':
                 # Obtener el ID del empleado desde la sesión
                 user_id = session['user_id']
@@ -358,6 +360,7 @@ def create_client():
 
                 if not employee:
                     raise Exception("Error: No se encontró el empleado correspondiente al usuario.")
+                
 
                 # Recopilar datos del formulario POST
                 first_name = request.form.get('first_name')
@@ -372,9 +375,11 @@ def create_client():
                 interest = request.form.get('interest')
                 payment = request.form.get('amountPerPay')
 
+
                 # Validar que los campos obligatorios no estén vacíos
                 if not first_name or not last_name or not document or not cellphone:
                     raise Exception("Error: Los campos obligatorios deben estar completos.")
+ 
 
                 # Crear una instancia del cliente con los datos proporcionados
                 client = Client(
@@ -395,6 +400,13 @@ def create_client():
                 # Obtener el ID del cliente recién creado
                 client_id = client.id
 
+               
+                # Obtener maximum_sale del empleado
+                maximum_sale = employee.maximum_sale
+                print(maximum_sale)
+                print(float(amount))
+                approved = float(amount) <= maximum_sale
+                
                 # Crear una instancia del préstamo con los datos proporcionados
                 loan = Loan(
                     amount=amount,
@@ -402,6 +414,7 @@ def create_client():
                     interest=interest,
                     payment=payment,
                     status=True,
+                    approved=approved,
                     up_to_date=False,
                     client_id=client_id,
                     employee_id=employee.id
@@ -409,6 +422,26 @@ def create_client():
 
                 # Guardar el préstamo en la base de datos
                 db.session.add(loan)
+                db.session.commit()
+
+                current_date = datetime.now()
+                filename = ""
+
+                # Usar el employee_id obtenido para crear la transacción
+                transaction = Transaction(
+                    transaction_types="INGRESO",
+                    concept_id=14,
+                    description="Solicitud Prestamo NO APROBADO",
+                    amount=float(amount),
+                    attachment=filename,  # Usar el nombre único del archivo
+                    approval_status="PENDIENTE",
+                    employee_id=employee.id,
+                    loan_id=loan.id,
+                    creation_date=current_date
+                )
+
+
+                db.session.add(transaction)
                 db.session.commit()
 
                 return redirect(url_for('routes.credit_detail', id=loan.id))
@@ -420,6 +453,11 @@ def create_client():
         # Manejo de excepciones: mostrar un mensaje de error y registrar la excepción
         error_message = str(e)
         return render_template('error.html', error_message=error_message), 500
+
+
+
+
+
 
 
 @routes.route('/edit-client/<int:client_id>', methods=['GET', 'POST'])
@@ -820,6 +858,8 @@ def payments_list():
                     previous_installment_paid_amount = sum(payment.amount for payment in previous_installment.payments)
 
 
+                approved = 'Aprobado' if loan.approved else 'Pendiente de Aprobación'
+
 
                # Agrega la información del cliente y su crédito a la lista de información de clientes
                 client_info = {
@@ -834,6 +874,7 @@ def payments_list():
                     'Last Payment Date': last_payment_date.payment_date.isoformat() if last_payment_date else 0,
                     'Last Payment Date front': last_payment_date.payment_date.strftime('%Y-%m-%d') if last_payment_date else '0',
                     'Loan ID': loan.id,
+                    'Approved': approved,
                     'Installment Value': last_pending_installment.amount if last_pending_installment else 0,
                     'Total Installments': loan.dues,
                     'Sales Date': loan.creation_date.isoformat(),
@@ -982,67 +1023,6 @@ def update_concept(concept_id):
 
     return jsonify(concept.to_json())
 
-
-import os
-import uuid
-from flask import request, render_template, session, redirect, url_for
-from werkzeug.utils import secure_filename
-@routes.route('/transaction', methods=['GET', 'POST'])
-def transactions():
-    if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
-        user_id = session['user_id']
-
-        # Obtener el empleado asociado al user_id
-        employee = Employee.query.filter_by(user_id=user_id).first()
-        
-        transaction_type = ''  # Definir transaction_type por defecto
-
-        if request.method == 'POST':
-            # Manejar la creación de la transacción
-            transaction_type = request.form.get('transaction_type')
-            concept_id = request.form.get('concept_id')
-            description = request.form.get('description')
-            amount = request.form.get('quantity')
-            attachment = request.files['photo']  # Obtener el archivo de imagen
-            approval_status = request.form.get('status')
-            concepts = Concept.query.filter_by(transaction_types=transaction_type).all()
-
-            # Generar un nombre único para el archivo
-            filename = str(uuid.uuid4()) + secure_filename(attachment.filename)
-
-            # Guardar el archivo en la carpeta 'static/images'
-            upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'images')
-            attachment.save(os.path.join(upload_folder, filename))
-            
-            current_date = datetime.now()
-
-            # Usar el employee_id obtenido para crear la transacción
-            transaction = Transaction(
-                transaction_types=transaction_type,
-                concept_id=concept_id,
-                description=description,
-                amount=amount,
-                attachment=filename,  # Usar el nombre único del archivo
-                approval_status=approval_status,
-                employee_id=employee.id,
-                creation_date=current_date
-            )
-
-            db.session.add(transaction)
-            db.session.commit()
-
-            return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',
-                                   concepts=concepts)
-
-        else:
-            # Obtener todos los conceptos disponibles
-            concepts = Concept.query.all()
-
-
-            return render_template('transactions.html', concepts=concepts)
-    else:
-        # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
-        return "Acceso no autorizado."
 
 
 
@@ -1589,14 +1569,106 @@ def approval_expenses():
                     'attachment': transaccion.attachment,
                     'vendedor': vendedor.user.first_name + ' ' + vendedor.user.last_name  # Obtener el nombre del vendedor
                 }
+
                 # Agregar los detalles a la lista
                 detalles_transacciones.append(detalle_transaccion)
+
+                # Verificar si la transacción tiene un loan_id
+                if transaccion.loan_id:
+                    # Buscar el préstamo correspondiente en el modelo Loan
+                    prestamo = Loan.query.get(transaccion.loan_id)
+                    print(prestamo)
+                    if prestamo:
+                        if transaccion.approval_status == ApprovalStatus.RECHAZADA:
+                            # Eliminar el préstamo si la transacción se marca como rechazada
+                            loan = Loan.query.get(transaccion.loan_id)
+                            if loan:
+                                db.session.delete(loan)
+                            # Cambiar el estado del cliente a 0
+                            cliente = Client.query.filter_by(id=prestamo.client_id).first()
+                            if cliente:
+                                cliente.status = 0
+                                db.session.add(cliente)
+                        else:
+                            # Actualizar el campo approved a True si la transacción se aprueba
+                            prestamo.approved = True
+                            db.session.add(prestamo)
+
+        # Confirmar la sesión de la base de datos después de la actualización
+        db.session.commit()
 
         return render_template('approval-expenses.html', detalles_transacciones=detalles_transacciones)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
+
+
+
+
+import os
+import uuid
+from flask import request, render_template, session, redirect, url_for
+from werkzeug.utils import secure_filename
+@routes.route('/transaction', methods=['GET', 'POST'])
+def transactions():
+    if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
+        user_id = session['user_id']
+
+        # Obtener el empleado asociado al user_id
+        employee = Employee.query.filter_by(user_id=user_id).first()
+        
+        transaction_type = ''  # Definir transaction_type por defecto
+
+        if request.method == 'POST':
+            # Manejar la creación de la transacción
+            transaction_type = request.form.get('transaction_type')
+            concept_id = request.form.get('concept_id')
+            description = request.form.get('description')
+            amount = request.form.get('quantity')
+            attachment = request.files['photo']  # Obtener el archivo de imagen
+            approval_status = request.form.get('status')
+            concepts = Concept.query.filter_by(transaction_types=transaction_type).all()
+
+            # Generar un nombre único para el archivo
+            filename = str(uuid.uuid4()) + secure_filename(attachment.filename)
+
+            # Guardar el archivo en la carpeta 'static/images'
+            upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'images')
+            attachment.save(os.path.join(upload_folder, filename))
+            
+            current_date = datetime.now()
+
+            # Usar el employee_id obtenido para crear la transacción
+            transaction = Transaction(
+                transaction_types=transaction_type,
+                concept_id=concept_id,
+                description=description,
+                amount=amount,
+                attachment=filename,  # Usar el nombre único del archivo
+                approval_status=approval_status,
+                employee_id=employee.id,
+                loan_id=None,
+                creation_date=current_date
+            )
+
+
+            db.session.add(transaction)
+            db.session.commit()
+
+            return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',
+                                   concepts=concepts)
+
+        else:
+            # Obtener todos los conceptos disponibles
+            concepts = Concept.query.all()
+
+
+            return render_template('transactions.html', concepts=concepts)
+    else:
+        # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
+        return "Acceso no autorizado."
+        
 
 
 

@@ -52,8 +52,8 @@ async function obtenerValoresMaximos() {
             
             if (monto > data.maximum_sale) {
                 // Mostrar un mensaje de error
-                alert('El monto máximo permitido es de $' + data.maximum_sale);
-                montoInput.value =  data.maximum_sale; // Establecer el valor máximo
+                alert('El monto máximo permitido es de $' + data.maximum_sale + ' Quedara en estado Pendiente de Aprobación');
+                // montoInput.value =  data.maximum_sale; // Establecer el valor máximo
             }
         });
         

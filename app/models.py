@@ -180,6 +180,7 @@ class Loan(db.Model):
     interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Interés')
     payment = db.Column(db.Numeric(10, 2), nullable=False, doc='Pago')
     status = db.Column(db.Boolean, default=True, nullable=False, doc='Estado')
+    approved = db.Column(db.Boolean, default=True, nullable=False, doc='Aprobado')
     up_to_date = db.Column(db.Boolean, default=False, nullable=False, doc='Al día')
     is_renewal = db.Column(db.Boolean, default=False, nullable=False, doc='Renovación')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
@@ -199,6 +200,7 @@ class Loan(db.Model):
             'interest': str(self.interest),
             'payment': str(self.payment),
             'status': self.status,
+            'approved': self.approved,
             'up_to_date': self.up_to_date,
             'creation_date': self.creation_date.isoformat(),
             'modification_date': self.modification_date.isoformat(),
@@ -316,6 +318,7 @@ class Transaction(db.Model):
     description = db.Column(db.String(100), nullable=False, doc='Descripción')
     amount = db.Column(db.Numeric(10, 2), nullable=False, doc='Monto')
     attachment = db.Column(db.String(100), nullable=True, doc='Adjunto')
+    loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=True, doc='Préstamo')
     approval_status = db.Column(db.Enum(ApprovalStatus), default=ApprovalStatus.PENDIENTE, nullable=False,
                                 doc='Estado de Aprobación')
 

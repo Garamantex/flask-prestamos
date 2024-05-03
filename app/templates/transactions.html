@@ -26,7 +26,6 @@
                         <legend style="color: white;">Tipo</legend>
                         <div class="mb-3">
                             <select id="transactionType" name="transaction_type" class="c-form c-form__dropdown" aria-label="Default select example">
-                                <option value="">Selecciona un tipo de transacción</option>
                                 <option value="GASTO">Gasto</option>
                                 <option value="INGRESO">Ingreso</option>
                                 <option value="RETIRO">Retiro</option>
@@ -35,7 +34,6 @@
                         <legend style="color: white;">Concepto</legend>
                         <div class="mb-3">
                             <select id="concept" name="concept_id" class="c-form c-form__dropdown" aria-label="Default select example">
-                                <option value="">Selecciona un concepto</option>
                                 {% for concept in concepts %}
                                     <option value="{{ concept.id }}" data-transaction-type="{{ concept.transaction_types.value }}">{{ concept.name }}</option>
                                 {% endfor %}

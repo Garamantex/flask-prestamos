@@ -62,6 +62,9 @@
                             <p style="margin-bottom: 0.2rem;">{{ client['First Name'] | capitalize }} {{ client['Last Name'] | capitalize }}</p>
                             <p style="margin-bottom: 0.2rem;">{{ client['Alias Client'] | capitalize }}</p>
                             <p style="margin-bottom: 1rem;">Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
+                            <p style="margin-bottom: 1rem;" class="{{ 'badge bg-success' if client['Approved'] == 'Aprobado' else 'badge bg-warning text-dark' }}" >
+                                {{ client['Approved'] | capitalize }}
+                            </p>
                             <p class="hidden" style="margin-bottom: 0.2rem;">Estado: {{ client['Previous Installment Status'] | capitalize }}</p>
                             <p class="u-hidden" style="margin-bottom: 0.2rem;">{{ client['Installment Status'] | capitalize }}</p>
                             <p class="hidden dates" style="margin-bottom: 0.2rem;">Ultima fecha de pago: <br> {{ client['Last Payment Date front'] | capitalize }}</p>
