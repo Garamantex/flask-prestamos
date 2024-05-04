@@ -1,7 +1,6 @@
 from enum import Enum
 import datetime
 import json
-from sqlalchemy.exc import IntegrityError
 from app import db
 
 # Definición de enumeración para el campo 'role' en User
@@ -384,23 +383,3 @@ class EmployeeRecord(db.Model):
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
 
-def delete_loan(loan_id):
-    try:
-        loan = Loan.query.get(loan_id)
-        if loan:
-            # Eliminar pagos asociados a las cuotas del préstamo
-            for installment in loan.installments:
-                for payment in installment.payments:
-                    db.session.delete(payment)
-            # Eliminar cuotas del préstamo
-            for installment in loan.installments:
-                db.session.delete(installment)
-            # Eliminar el préstamo
-            db.session.delete(loan)
-            db.session.commit()
-            return {"message": "Préstamo eliminado exitosamente"}
-        else:
-            return {"error": "El préstamo no existe"}
-    except IntegrityError as e:
-        db.session.rollback()
-        return {"error": str(e.orig)}
