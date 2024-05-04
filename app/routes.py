@@ -621,6 +621,7 @@ def credit_detail(id):
     loan = Loan.query.get(id)
     client = Client.query.get(loan.client_id)
     installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+    payments = Payment.query.join(LoanInstallment).filter(LoanInstallment.loan_id == loan.id).all()
 
     # Verificar si ya se generaron las cuotas del préstamo
     if not installments and loan.approved == 1:
@@ -629,9 +630,10 @@ def credit_detail(id):
 
     loans = Loan.query.all()  # Obtener todos los créditos
     loan_detail = get_loan_details(id)
+    
 
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
-                           loan_detail=loan_detail)
+                           loan_detail=loan_detail, payments=payments)
 
 
 @routes.route('/modify-installments/<int:loan_id>', methods=['POST'])
@@ -919,7 +921,8 @@ def generate_loan_installments(loan):
     client_id = loan.client_id
     employee_id = loan.employee_id
 
-    installment_amount = (amount + (amount * interest / 100)) / dues
+
+    installment_amount = int((amount + (amount * interest / 100)) / dues) + 1
 
     # Establecer la fecha de vencimiento de la primera cuota
     if creation_date.weekday() == 4:  # 4 representa el viernes

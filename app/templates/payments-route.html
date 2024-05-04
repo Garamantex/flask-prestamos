@@ -76,6 +76,9 @@
                             <p class="hidden" style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p>
                             <p class="hidden" style="margin-bottom: 0.2rem;">En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p>
                             <p class="hidden" class="" style="margin-bottom: 0.2rem;">Valor Pagado: $ {{ '{:,.0f}'.format(client['Previous Installment Paid Amount'] | float | int) }}</p>
+                            <a class="c-btn c-btn-summit mt-4" href="{{ url_for('routes.credit_detail', id=client['Loan ID']) }}" title="credit_detail">
+                                <i id="icono-ocultar" class="bi bi-eye"></i>
+                            </a>
                         </div>
                         <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
                             <a type="button" class="c-btn c-btn-primary btn-pagar cuota-label"

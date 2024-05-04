@@ -11,73 +11,83 @@
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list') }}">Clientes</a>
             </div>
         </div>
-       
+
         <div class="row mt-4">
             <div class="col">
-                <div class="card">
-                    <div class="c-card__header">
-                        <h3>Información del crédito </h3>
-                        <button id="verDetallesBtn" class="btn btn-primary" type="button">Ver detalles</button>
-                    </div>
-                    <div id="detallesContainer" class="card-body" style="display: none;">
-                        <ul class="request-list">
-                            <li class="request-item">
-                                <p>Cuotas Totales: <span>{{ loan_detail.cuotas_totales }}</span></p>
-                            </li>
-                            <li class="request-item">
-                                <p>Cuotas Pagadas: <span>{{ loan_detail.cuotas_pagadas }}</span></p>
-                            </li>
-                            <li class="request-item">
-                                <p>Cuotas Abonadas: <span>Pendiente</span></p>
-                            </li>
-                            <li class="request-item">
-                                <p>Cuotas en mora: <span>{{ loan_detail.cuotas_vencidas }}</span></p>
-                            </li>
-                            <li class="request-item">
-                                <p>Valor Total: <span>${{ loan_detail.valor_total }}</span></p>
-                            </li>
-                            <li class="request-item">
-                                <p>Saldo Pendiente: <span>${{ loan_detail.saldo_pendiente }}</span></p>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+                <h3 class="c-cajas__item__title c-headings c-headings__h4">Información del crédito </h3>
+                <h2 class="c-cajas__item__title c-headings c-headings__h3">{{ client.first_name }} {{ client.last_name
+                    }}</h2>
+                <ul class="c-card__box-mannager">
+                    <li class="c-card__internal">
+                        <p>Cuotas Totales: <span>{{ loan_detail.cuotas_totales }}</span></p>
+                    </li>
+                    <li class="c-card__internal">
+                        <p>Cuotas Pagadas: <span>{{ loan_detail.cuotas_pagadas }}</span></p>
+                    </li>
+                    <li class="c-card__internal">
+                        <p>Cuotas Abonadas: <span>{{ installments|selectattr('status.value', 'equalto',
+                                'ABONADA')|list|length }}</span></p>
+                    </li>
+                    <li class="c-card__internal">
+                        <p>Cuotas en mora: <span>{{ loan_detail.cuotas_vencidas }}</span></p>
+                    </li>
+                    <li class="c-card__internal">
+                        <p>Valor Total: <span>$ {{ '{:,.0f}'.format(loan_detail.valor_total | float | int) }}</span></p>
+                    </li>
+                    <li class="c-card__internal">
+                        <p>Saldo Pendiente: <span>$ {{ '{:,.0f}'.format(loan_detail.saldo_pendiente | float | int)
+                                }}</span></p>
+                    </li>
+                </ul>
             </div>
         </div>
-        <div class="row mt-4">
+        <div class="row mt-2">
             <div class="col">
-                <div class="card">
-                    <div class="card-header">
-                       <h3 style="text-align: center;">Detalle de Cuotas</h3>
-                    </div>
-                    <div id="installmentsContainer" class="card-body">
-                        <form method="post" action="{{ url_for('routes.modify_installments', loan_id=loan.id) }}">
-                            <div class="c-overflow">
-                                <ul class="request-list">
-                                    {% for installment in installments %}
-                                    <li class="request-item request-item--column" id="installment_{{ installment.id }}">
-                                        <p>N° Cuota: <span>{{ installment.installment_number }}</span></p>
-                                        <p>Estado: <span>{{ installment.status.value }}</span></p>
-                                        <p>Fecha de Pago: <span>{{ installment.due_date.strftime('%d/%m/%Y') }}</span></p>
-                                        <p>Valor de Cuota: <span>${{ installment.amount }}</span></p>
-                                        <p>
-                                            {% if installment.status.value == 'PENDIENTE' or installment.status.value == 'MORA' %}
-                                                <label for="estado_cuota_{{ installment.id }}">Modificar Estado:</label>
-                                                <select class="request-dropdown mt-3 mb-3" name="estado_cuota_{{ installment.id }}">
-                                                    <option value="PAGADA">PAGADA</option>
-                                                    <option value="PENDIENTE" {% if installment.status.value == 'PENDIENTE' %}selected{% endif %}>PENDIENTE</option>
-                                                    <option value="MORA" {% if installment.status.value == 'MORA' %}selected{% endif %}>MORA</option>
-                                                </select>
-                                            {% else %}
-                                                <span>Modificar Estado: {{ installment.status.value }}</span>
-                                            {% endif %}
-                                        </p>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                            <button class="btn btn-primary" type="submit">Guardar Cambios</button>
-                        </form>
+                        <div class="card-header mb-4">
+                            <h3 style="text-align: center;">Detalle de Cuotas</h3>
+                        </div>
+
+                        <table class="c-table">
+                            <thead>
+                                <tr>
+                                    <th class="c-table__box">N° Cuota</th>
+                                    <th class="c-table__box">Estado</th>
+                                    <th class="c-table__box">Fecha de Pago</th>
+                                    <th class="c-table__box">Valor de Cuota</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for installment in installments %}
+                                <tr id="installment_{{ installment.id }}">
+                                    <td class="c-table__box">{{ installment.installment_number }}</td>
+                                    <td class="c-table__box">{{ installment.status.value }}</td>
+                                    <td class="c-table__box">{{ installment.due_date.strftime('%d/%m/%Y') }}</td>
+                                    <td class="c-table__box">$ {{ '{:,.0f}'.format(installment.amount | float | int) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
+                        <div class="card-header mb-4 mt-4">
+                            <h3 style="text-align: center;">Pagos</h3>
+                        </div>
+        
+                        <table class="c-table">
+                            <thead>
+                                <tr>
+                                    <th class="c-table__box">Fecha de Pago</th>
+                                    <th class="c-table__box">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr id="payment_{{ payment.id }}">
+                                    <td class="c-table__box">{{ payment.payment_date.strftime('%d/%m/%Y') }}</td>
+                                    <td class="c-table__box">$ {{ '{:,.0f}'.format(payment.amount | float | int) }}</td> <!-- Ajustar el formato del monto -->
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
