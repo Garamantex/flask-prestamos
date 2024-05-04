@@ -379,7 +379,6 @@ def create_client():
                 # Validar que los campos obligatorios no estén vacíos
                 if not first_name or not last_name or not document or not cellphone:
                     raise Exception("Error: Los campos obligatorios deben estar completos.")
- 
 
                 # Crear una instancia del cliente con los datos proporcionados
                 client = Client(
@@ -400,7 +399,6 @@ def create_client():
                 # Obtener el ID del cliente recién creado
                 client_id = client.id
 
-               
                 # Obtener maximum_sale del empleado
                 maximum_sale = employee.maximum_sale
                 print(maximum_sale)
@@ -426,23 +424,23 @@ def create_client():
 
                 current_date = datetime.now()
                 filename = ""
-
                 # Usar el employee_id obtenido para crear la transacción
-                transaction = Transaction(
-                    transaction_types="INGRESO",
-                    concept_id=14,
-                    description="Solicitud Prestamo NO APROBADO",
-                    amount=float(amount),
-                    attachment=filename,  # Usar el nombre único del archivo
-                    approval_status="PENDIENTE",
-                    employee_id=employee.id,
-                    loan_id=loan.id,
-                    creation_date=current_date
-                )
+                if not approved:                        
+                    # Usar el employee_id obtenido para crear la transacción
+                    transaction = Transaction(
+                        transaction_types="INGRESO",
+                        concept_id=14,
+                        description="Solicitud Prestamo NO APROBADO",
+                        amount=float(amount),
+                        attachment=filename,  # Usar el nombre único del archivo
+                        approval_status="PENDIENTE",
+                        employee_id=employee.id,
+                        loan_id=loan.id,
+                        creation_date=current_date
+                    )
 
-
-                db.session.add(transaction)
-                db.session.commit()
+                    db.session.add(transaction)
+                    db.session.commit()
 
                 return redirect(url_for('routes.credit_detail', id=loan.id))
 
@@ -453,10 +451,6 @@ def create_client():
         # Manejo de excepciones: mostrar un mensaje de error y registrar la excepción
         error_message = str(e)
         return render_template('error.html', error_message=error_message), 500
-
-
-
-
 
 
 
@@ -629,7 +623,7 @@ def credit_detail(id):
     installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
 
     # Verificar si ya se generaron las cuotas del préstamo
-    if not installments:
+    if not installments and loan.approved == 1:
         generate_loan_installments(loan)
         installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
 
@@ -1685,9 +1679,10 @@ def modify_transaction(transaction_id):
                  if transaction.approval_status == ApprovalStatus.APROBADA:
                      prestamo.approved = True
                      db.session.add(prestamo)
+                     generate_loan_installments(prestamo)
                  elif transaction.approval_status == ApprovalStatus.RECHAZADA:
                      # Eliminar el préstamo si la transacción se marca como rechazada
-                     db.session.delete(prestamo)
+                     prestamo.status = 0
                      # Cambiar el estado del cliente a 0
                      cliente = Client.query.filter_by(id=prestamo.client_id).first()
                      if cliente:
