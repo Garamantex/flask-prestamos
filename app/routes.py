@@ -884,9 +884,11 @@ def payments_list():
                     'Previous Installment Paid Amount': previous_installment_paid_amount
                 }
 
+                
+
                 clients_information.append(client_info)
 
-                # print(clients_information)
+                print(clients_information)
 
     # Obtén el término de búsqueda del formulario
     search_term = request.args.get('search', '')

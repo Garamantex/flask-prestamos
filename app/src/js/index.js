@@ -257,6 +257,36 @@ document.addEventListener('DOMContentLoaded', function () {
     var cuotasLabels = document.querySelectorAll('.cuota-label');
 
 
+    
+    // Itera sobre cada cuota
+    cuotas.forEach(function (cuota) {
+        console.log(cuota);
+        
+        // Obtén el estado de la cuota desde el atributo data
+        var estadoCuotaAnterior = cuota.getAttribute('data-previous-installment-status');
+        var estadoCuota = cuota.getAttribute('data-installment-status');
+
+
+        // Obtén la fecha de pago de la cuota desde el atributo data y formatea la fecha
+        var fechaPago = cuota.getAttribute('data-last-payment-date');
+        
+
+        // Obtén la fecha de creación de la cuota desde el atributo data y formatea la fecha
+        var fechaCreacionString = cuota.getAttribute('data-due-date');
+        var fechaCreacion = new Date(fechaCreacionString).toISOString().split('T')[0];
+
+        // Obtén la fecha actual y formatea la fecha
+        var fechaActual = new Date().toISOString().split('T')[0];
+
+
+        if ((estadoCuotaAnterior === 'PAGADA' || estadoCuotaAnterior === 'ABONADA' || estadoCuotaAnterior === 'MORA') && fechaPago == fechaActual) {
+            cuota.classList.add('u-hidden'); // Oculta el elemento
+            cuota.classList.remove('c-card__box-mannager'); // Remueve la clase c-card__box-mannager
+        } else  {
+            cuota.classList.add('u-block');
+        }
+    });
+
 
     // Agrega un evento de clic a cada botón de pago
     btnsPagar.forEach(function (btn) {
@@ -327,31 +357,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-
-    // Itera sobre cada cuota
-    cuotas.forEach(function (cuota) {
-        // Obtén el estado de la cuota desde el atributo data
-        var estadoCuotaAnterior = cuota.getAttribute('data-previous-installment-status');
-        var estadoCuota = cuota.getAttribute('data-installment-status');
-
-        // Obtén la fecha de pago de la cuota desde el atributo data y formatea la fecha
-        var fechaPagoString = cuota.getAttribute('data-last-payment-date');
-        var fechaPago = new Date(fechaPagoString).toISOString().split('T')[0];
-
-        // Obtén la fecha de creación de la cuota desde el atributo data y formatea la fecha
-        var fechaCreacionString = cuota.getAttribute('data-due-date');
-        var fechaCreacion = new Date(fechaCreacionString).toISOString().split('T')[0];
-
-        // Obtén la fecha actual y formatea la fecha
-        var fechaActual = new Date().toISOString().split('T')[0];
-
-        if ((estadoCuotaAnterior === 'PAGADA' || estadoCuotaAnterior === 'ABONADA' || estadoCuotaAnterior === 'MORA') && fechaPago == fechaActual) {
-            cuota.classList.add('u-hidden'); // Oculta el elemento
-            cuota.classList.remove('c-card__box-mannager'); // Remueve la clase c-card__box-mannager
-        } else if (estadoCuota === 'PENDIENTE') {
-            cuota.classList.add('u-block');
-        }
-    });
 
     document.getElementById('btn-ocultar').addEventListener('click', function () {
         // Convertir NodeList a un array para usar el método sort()
