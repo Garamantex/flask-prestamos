@@ -1573,26 +1573,8 @@ def approval_expenses():
                 # Agregar los detalles a la lista
                 detalles_transacciones.append(detalle_transaccion)
 
-                # Verificar si la transacción tiene un loan_id
-                if transaccion.loan_id:
-                    # Buscar el préstamo correspondiente en el modelo Loan
-                    prestamo = Loan.query.get(transaccion.loan_id)
-                    print(prestamo)
-                    if prestamo:
-                        if transaccion.approval_status == ApprovalStatus.RECHAZADA:
-                            # Eliminar el préstamo si la transacción se marca como rechazada
-                            loan = Loan.query.get(transaccion.loan_id)
-                            if loan:
-                                db.session.delete(loan)
-                            # Cambiar el estado del cliente a 0
-                            cliente = Client.query.filter_by(id=prestamo.client_id).first()
-                            if cliente:
-                                cliente.status = 0
-                                db.session.add(cliente)
-                        else:
-                            # Actualizar el campo approved a True si la transacción se aprueba
-                            prestamo.approved = True
-                            db.session.add(prestamo)
+
+
 
         # Confirmar la sesión de la base de datos después de la actualización
         db.session.commit()
@@ -1693,6 +1675,26 @@ def modify_transaction(transaction_id):
 
         # Actualizar el estado de la transacción
         transaction.approval_status = ApprovalStatus(new_status)
+
+        # Verificar si la transacción tiene un loan_id
+        if transaction.loan_id:
+             # Buscar el préstamo correspondiente en el modelo Loan
+             prestamo = Loan.query.get(transaction.loan_id)
+             print(prestamo)
+             if prestamo:
+                 if transaction.approval_status == ApprovalStatus.APROBADA:
+                     prestamo.approved = True
+                     db.session.add(prestamo)
+                 elif transaction.approval_status == ApprovalStatus.RECHAZADA:
+                     # Eliminar el préstamo si la transacción se marca como rechazada
+                     db.session.delete(prestamo)
+                     # Cambiar el estado del cliente a 0
+                     cliente = Client.query.filter_by(id=prestamo.client_id).first()
+                     if cliente:
+                         cliente.status = 0
+                         db.session.add(cliente)
+             else:
+                return redirect('/approval-expenses')
 
         # Guardar los cambios en la base de datos
         db.session.commit()
