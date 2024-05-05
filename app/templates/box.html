@@ -75,6 +75,9 @@
                 type="submit"
                 >Ver
               </a>
+              <form action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST">
+                <button type="submit" class="c-btn c-btn-primary" style="margin-right: 10px;">Registrar Empleado</button>
+              </form>
             </div>
             <ul class="c-card__box-mannager">
               <li class="c-card__internal">
@@ -130,6 +133,9 @@
           </li>
           {% endfor %}
         </ul>
+      </div>
+      <div class="col">
+        
       </div>
     </div>
   </div>

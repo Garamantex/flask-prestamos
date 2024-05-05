@@ -360,7 +360,7 @@ class EmployeeRecord(db.Model):
     total_collected = db.Column(db.Float, nullable=False)
     payment_ids = db.Column(db.Text, nullable=True)  # Guarda los IDs separados por comas
     closing_total = db.Column(db.Float, nullable=False)
-    creation_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    creation_date = db.Column(db.DateTime, default=datetime.datetime.now)
 
     # Relación con el modelo Employee
     employee = db.relationship('Employee', backref=db.backref('employee_records', lazy=True))

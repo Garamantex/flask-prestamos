@@ -4,6 +4,9 @@
     width: 100%;
 
     &__box {
-        padding: 10px;
+        padding: 0.5rem;
+        border-bottom: 0.1rem solid #FFFFFF;
+
+        @extend .c-text__small;
     }
 }

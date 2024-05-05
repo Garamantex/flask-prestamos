@@ -256,37 +256,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var btnsMora = document.querySelectorAll('.btn-mora');
     var cuotasLabels = document.querySelectorAll('.cuota-label');
 
-
     
-    // Itera sobre cada cuota
-    cuotas.forEach(function (cuota) {
-        console.log(cuota);
-        
-        // Obtén el estado de la cuota desde el atributo data
-        var estadoCuotaAnterior = cuota.getAttribute('data-previous-installment-status');
-        var estadoCuota = cuota.getAttribute('data-installment-status');
-
-
-        // Obtén la fecha de pago de la cuota desde el atributo data y formatea la fecha
-        var fechaPago = cuota.getAttribute('data-last-payment-date');
-        
-
-        // Obtén la fecha de creación de la cuota desde el atributo data y formatea la fecha
-        var fechaCreacionString = cuota.getAttribute('data-due-date');
-        var fechaCreacion = new Date(fechaCreacionString).toISOString().split('T')[0];
-
-        // Obtén la fecha actual y formatea la fecha
-        var fechaActual = new Date().toISOString().split('T')[0];
-
-
-        if ((estadoCuotaAnterior === 'PAGADA' || estadoCuotaAnterior === 'ABONADA' || estadoCuotaAnterior === 'MORA') && fechaPago == fechaActual) {
-            cuota.classList.add('u-hidden'); // Oculta el elemento
-            cuota.classList.remove('c-card__box-mannager'); // Remueve la clase c-card__box-mannager
-        } else  {
-            cuota.classList.add('u-block');
-        }
-    });
-
 
     // Agrega un evento de clic a cada botón de pago
     btnsPagar.forEach(function (btn) {
@@ -313,6 +283,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Agrega un evento de clic al botón de "Confirmar Pago"
     document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
+        console.log('Confirmar pago')
+        console.log('Hola Mundo')
         var loanId = document.getElementById('loanId').value; // Obtener ID de préstamo desde el campo oculto
         var customPayment = document.getElementById('customPayment').value; // Obtener valor de pago personalizado
         // Enviar solicitud POST al servidor con los datos del pago
@@ -393,6 +365,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 cuota.classList.remove('c-card__box-mannager');
             };
         });
+    });
+
+    
+
+
+    // Itera sobre cada cuota
+    cuotas.forEach(function (cuota) {
+        console.log(cuota);
+        
+        // Obtén el estado de la cuota desde el atributo data
+        var estadoCuotaAnterior = cuota.getAttribute('data-previous-installment-status');
+
+
+        // Obtén la fecha de pago de la cuota desde el atributo data y formatea la fecha
+        var fechaPago = cuota.getAttribute('data-last-payment-date');
+        console.log(fechaPago);
+
+        // Obtén la fecha actual y formatea la fecha
+        var fechaActual = cuota.getAttribute('data-current-date');
+
+        if ((estadoCuotaAnterior === 'PAGADA' || estadoCuotaAnterior === 'ABONADA' || estadoCuotaAnterior === 'MORA') && fechaPago == fechaActual) {
+            cuota.classList.add('u-hidden'); // Oculta el elemento
+            cuota.classList.remove('c-card__box-mannager'); // Remueve la clase c-card__box-mannager
+        } else  {
+            cuota.classList.add('u-block');
+        }
+        console.log(cuota);
     });
     
      // Función para cambiar el ícono del botón btn-ocultar
