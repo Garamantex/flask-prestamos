@@ -926,7 +926,7 @@ def generate_loan_installments(loan):
     employee_id = loan.employee_id
 
 
-    installment_amount = int((amount + (amount * interest / 100)) / dues) + 1
+    installment_amount = int((amount + (amount * interest / 100)) / dues)
 
     # Establecer la fecha de vencimiento de la primera cuota
     if creation_date.weekday() == 4:  # 4 representa el viernes
@@ -2091,8 +2091,6 @@ def add_employee_record(employee_id):
         .filter(EmployeeRecord.creation_date < fecha_actual)\
         .order_by(EmployeeRecord.creation_date.desc()).first()
 
-    print(last_record)
-
     # Usar el cierre de caja del último registro como el estado inicial, si existe
     if last_record:
         initial_state = last_record.closing_total
@@ -2101,9 +2099,7 @@ def add_employee_record(employee_id):
         initial_state = employee.maximum_cash
 
     # Calcular la cantidad de préstamos por cobrar
-    loans_to_collect = Loan.query.filter_by(employee_id=employee_id, creation_date=fecha_actual).count()
-
-    print(loans_to_collect)
+    loans_to_collect = Loan.query.filter(Loan.employee_id == employee_id, func.date(Loan.creation_date) == fecha_actual).count()
 
     # Subconsulta para obtener los IDs de las cuotas de préstamo del empleado
     subquery = db.session.query(LoanInstallment.id) \
@@ -2114,32 +2110,40 @@ def add_employee_record(employee_id):
     # Calcular la cantidad de cuotas pagadas, abonadas y en mora
     paid_installments = db.session.query(func.sum(Payment.amount)) \
         .join(subquery, Payment.installment_id == subquery.c.id) \
-        .filter(Payment.payment_date == fecha_actual,
+        .filter(func.date(Payment.payment_date) == fecha_actual,
                 LoanInstallment.status == InstallmentStatus.PAGADA).scalar() or 0
 
     partial_installments = db.session.query(func.sum(Payment.amount)) \
         .join(subquery, Payment.installment_id == subquery.c.id) \
-        .filter(Payment.payment_date == fecha_actual,
+        .filter(func.date(Payment.payment_date) == fecha_actual,
                 LoanInstallment.status == InstallmentStatus.ABONADA).scalar() or 0
 
     overdue_installments = db.session.query(func.sum(Payment.amount)) \
         .join(subquery, Payment.installment_id == subquery.c.id) \
-        .filter(Payment.payment_date == fecha_actual,
+        .filter(func.date(Payment.payment_date) == fecha_actual,
                 LoanInstallment.status == InstallmentStatus.MORA).scalar() or 0
     
+
     print(paid_installments, partial_installments, overdue_installments)
+
 
     # Calcular el total recaudado y obtener información detallada sobre los pagos
     total_collected = 0
     payment_ids = []  # Lista de IDs de pagos
-    loans = Loan.query.filter_by(employee_id=employee_id, creation_date=fecha_actual).all()
+    loans = Loan.query.filter_by(employee_id=employee_id).all()
     for loan in loans:
-        payments = Payment.query.filter_by(loan_id=loan.id).all()
-        for payment in payments:
-            total_collected += payment.amount
-            payment_ids.append(payment.id)
+        # Verificar si la fecha de creación del préstamo coincide con la fecha actual
+        if loan.creation_date.date() == fecha_actual:
+            installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+            for installment in installments:
+                payments = Payment.query.filter_by(installment_id=installment.id).all()
+                for payment in payments:
+                    total_collected += payment.amount
+                    payment_ids.append(payment.id)
 
-    print(payment_ids)
+
+    print(payment_ids, total_collected)
+    
 
     # Crear una instancia de EmployeeRecord
     employee_record = EmployeeRecord(
@@ -2152,7 +2156,7 @@ def add_employee_record(employee_id):
         total_collected=total_collected,
         payment_ids=','.join(map(str, payment_ids)),  # Convertir la lista de IDs a una cadena separada por comas
         closing_total=initial_state + total_collected,  # Calcular el cierre de caja
-        creation_date=fecha_actual
+        creation_date=datetime.now()
     )
 
     # Agregar la instancia a la sesión de la base de datos y guardar los cambios
