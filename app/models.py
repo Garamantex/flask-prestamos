@@ -65,6 +65,7 @@ class Employee(db.Model):
     user = db.relationship('User', backref='employee', uselist=False)
     manager = db.relationship('Manager', uselist=False, back_populates='employee')
     salesman = db.relationship('Salesman', uselist=False, back_populates='employee')
+    
 
     # Definir la relación inversa para acceder a los clientes de un empleado
     clients = db.relationship('Client', backref='employee', lazy=True)

@@ -2088,7 +2088,7 @@ def add_employee_record(employee_id):
 
     # Buscar el último registro de caja del día anterior
     last_record = EmployeeRecord.query.filter_by(employee_id=employee_id)\
-        .filter(EmployeeRecord.creation_date < fecha_actual)\
+        .filter(func.date(EmployeeRecord.creation_date) <= fecha_actual)\
         .order_by(EmployeeRecord.creation_date.desc()).first()
 
     # Usar el cierre de caja del último registro como el estado inicial, si existe
@@ -2107,24 +2107,51 @@ def add_employee_record(employee_id):
         .filter(Loan.employee_id == employee_id) \
         .subquery()
 
-    # Calcular la cantidad de cuotas pagadas, abonadas y en mora
-    paid_installments = db.session.query(func.sum(Payment.amount)) \
-        .join(subquery, Payment.installment_id == subquery.c.id) \
-        .filter(func.date(Payment.payment_date) == fecha_actual,
-                LoanInstallment.status == InstallmentStatus.PAGADA).scalar() or 0
 
-    partial_installments = db.session.query(func.sum(Payment.amount)) \
-        .join(subquery, Payment.installment_id == subquery.c.id) \
-        .filter(func.date(Payment.payment_date) == fecha_actual,
-                LoanInstallment.status == InstallmentStatus.ABONADA).scalar() or 0
-
-    overdue_installments = db.session.query(func.sum(Payment.amount)) \
-        .join(subquery, Payment.installment_id == subquery.c.id) \
-        .filter(func.date(Payment.payment_date) == fecha_actual,
-                LoanInstallment.status == InstallmentStatus.MORA).scalar() or 0
+        # Subconsulta para obtener los IDs de las cuotas de préstamo PAGADA del empleado
+    paid_installments_query = db.session.query(LoanInstallment.id) \
+        .join(Loan) \
+        .filter(Loan.employee_id == employee_id,
+                LoanInstallment.status == InstallmentStatus.PAGADA) \
+        .subquery()
     
+    # Calcular la cantidad de cuotas PAGADA y su total
+    paid_installments = db.session.query(func.sum(Payment.amount)) \
+        .join(paid_installments_query, Payment.installment_id == paid_installments_query.c.id) \
+        .filter(func.date(Payment.payment_date) == fecha_actual) \
+        .scalar() or 0
 
-    print(paid_installments, partial_installments, overdue_installments)
+
+
+        # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
+    partial_installments_query = db.session.query(LoanInstallment.id) \
+        .join(Loan) \
+        .filter(Loan.employee_id == employee_id,
+                LoanInstallment.status == InstallmentStatus.ABONADA) \
+        .subquery()
+
+    # Calcular la cantidad de cuotas ABONADAS y su total
+    partial_installments = db.session.query(func.sum(Payment.amount)) \
+        .join(partial_installments_query, Payment.installment_id == partial_installments_query.c.id) \
+        .filter(func.date(Payment.payment_date) == fecha_actual) \
+        .scalar() or 0
+
+
+    # Subconsulta para obtener los IDs de las cuotas de préstamo en mora del empleado
+    overdue_installments_query = db.session.query(LoanInstallment.id) \
+        .join(Loan) \
+        .filter(Loan.employee_id == employee_id,
+                LoanInstallment.status == InstallmentStatus.MORA) \
+        .subquery()
+
+    # Calcular la cantidad de cuotas vencidas y su total
+    overdue_installments_total = db.session.query(func.sum(LoanInstallment.amount)) \
+        .join(overdue_installments_query, LoanInstallment.id == overdue_installments_query.c.id) \
+        .join(Payment, Payment.installment_id == LoanInstallment.id) \
+        .filter(func.date(Payment.payment_date) == fecha_actual) \
+        .scalar() or 0
+
+    print("Total de cuotas en mora:", overdue_installments_total)
 
 
     # Calcular el total recaudado y obtener información detallada sobre los pagos
@@ -2152,10 +2179,10 @@ def add_employee_record(employee_id):
         loans_to_collect=loans_to_collect,
         paid_installments=paid_installments,
         partial_installments=partial_installments,
-        overdue_installments=overdue_installments,
+        overdue_installments=overdue_installments_total,
         total_collected=total_collected,
         payment_ids=','.join(map(str, payment_ids)),  # Convertir la lista de IDs a una cadena separada por comas
-        closing_total=initial_state + total_collected,  # Calcular el cierre de caja
+        closing_total=int(initial_state) + int(total_collected),  # Calcular el cierre de caja
         creation_date=datetime.now()
     )
 
