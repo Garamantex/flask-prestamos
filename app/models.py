@@ -359,7 +359,11 @@ class EmployeeRecord(db.Model):
     partial_installments = db.Column(db.Integer, nullable=False)
     overdue_installments = db.Column(db.Integer, nullable=False)
     total_collected = db.Column(db.Float, nullable=False)
-    payment_ids = db.Column(db.Text, nullable=True)  # Guarda los IDs separados por comas
+    sales = db.Column(db.Float, nullable=False)
+    renewals = db.Column(db.Float, nullable=False)
+    incomings = db.Column(db.Float, nullable=False)
+    withdrawals = db.Column(db.Float, nullable=False)
+    expenses = db.Column(db.Float, nullable=False)
     closing_total = db.Column(db.Float, nullable=False)
     creation_date = db.Column(db.DateTime, default=datetime.datetime.now)
 
@@ -376,7 +380,11 @@ class EmployeeRecord(db.Model):
             'partial_installments': self.partial_installments,
             'overdue_installments': self.overdue_installments,
             'total_collected': self.total_collected,
-            'payment_ids': self.payment_ids,
+            'sales': self.sales,
+            'renewals': self.renewals,
+            'incomings': self.incomings,
+            'withdrawals': self.withdrawals,
+            'expenses': self.expenses,
             'closing_total': self.closing_total,
             'creation_date': self.creation_date.isoformat()
         }
