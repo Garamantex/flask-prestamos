@@ -56,6 +56,7 @@ class Employee(db.Model):
     maximum_expense = db.Column(db.Numeric(10, 2), nullable=False, doc='Límite gasto')
     maximum_installments = db.Column(db.Numeric(10, 2), nullable=False, doc='Máximo de cuotas')
     minimum_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Mínimo interés')
+    status = db.Column(db.Boolean, default=True, nullable=False, doc='Estado')
     percentage_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Porcentaje interés')
     fix_value = db.Column(db.Numeric(10, 2), nullable=False, doc='Valor fijo')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
