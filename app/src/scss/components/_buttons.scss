@@ -9,10 +9,18 @@
     text-align: center;
     color: white;
     width: 100%;
-    margin-top: 5px;
     padding: 10px 50px;
     cursor: pointer;
     transition: .4s;
+    
+    &--closed {
+        background-color: #EF476F;
+    }
+
+    &--completed {
+        background-color: #8FC0A9;
+    }
+
     &:hover {
         background: rgba(115, 115, 115, 0.8);
         border-color: white;

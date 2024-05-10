@@ -258,6 +258,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     
 
+
+
+
+
+
+
     // Agrega un evento de clic a cada botón de pago
     btnsPagar.forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -395,11 +401,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     
      // Función para cambiar el ícono del botón btn-ocultar
-    document.getElementById('btn-ocultar').addEventListener('click', function () {
+    document.querySelector('.js-btn-ocultar').addEventListener('click', function () {
 
 
         // Obtener el ícono del botón
-        var icono = document.getElementById('icono-ocultar');
+        var icono = document.querySelector('.js-icono-ocultar');
 
         // Cambiar la clase del ícono dependiendo del estado del botón
         if (icono.classList.contains('bi-eye')) {

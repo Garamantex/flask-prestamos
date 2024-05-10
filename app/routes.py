@@ -23,6 +23,16 @@ from .models import User, Client, Loan, Employee, LoanInstallment
 routes = Blueprint('routes', __name__)
 
 
+
+# ruta para el logout de la aplicación web
+@routes.route('/logout')
+def logout():
+    # Limpiar la sesión
+    session.clear()
+    return redirect(url_for('routes.home'))
+
+
+
 # ruta para el home de la aplicación web
 @routes.route('/', methods=['GET', 'POST'])
 def home():
@@ -66,20 +76,8 @@ def home():
             return render_template('index.html', error_message=error_message)
         error_message = 'Credenciales inválidas. Inténtalo nuevamente.'
         return render_template('index.html', error_message=error_message)
-    
-        
-
 
     return render_template('index.html')
-
-
-# ruta para el logout de la aplicación web
-@routes.route('/logout')
-def logout():
-    # Limpiar la sesión
-    session.clear()
-    return redirect(url_for('routes.home'))
-
 
 # ruta para el menú del administrador
 @routes.route('/menu-manager')
@@ -1272,9 +1270,13 @@ def box():
             )
 
             # Convertir los valores de estadísticas a números antes de agregarlos a salesmen_stats
+            # Obtener el estado del modelo Employee
+            employee_status = salesman.employee.status
+
             salesman_data = {
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
                 'employee_id': salesman.employee_id,
+                'employee_status': employee_status,
                 # Convertir los valores de estadísticas a números
                 'total_collections_today': total_collections_today,
                 'new_clients': new_clients,
@@ -2275,6 +2277,9 @@ def add_employee_record(employee_id):
                 creation_date=datetime.now()
             )
 
+            employee.status = 0
+            db.session.add(employee)
+
             # Agregar la instancia a la sesión de la base de datos y guardar los cambios
             db.session.add(employee_record)
             db.session.commit()
@@ -2297,6 +2302,4 @@ def add_employee_record(employee_id):
             db.session.add(employee)
             db.session.commit()
 
-
-
-    return jsonify({"message": "Registro de empleado agregado exitosamente"}), 201
+    return redirect(url_for('routes.box'))

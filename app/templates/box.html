@@ -29,6 +29,7 @@
         </form>
       </div>
     </div>
+
     <div class="row">
       <div class="col">
         <div class="c-cajas__item">
@@ -60,24 +61,29 @@
     </div>
 
     <div class="row">
-      <div class="col">
+      <div class="col-12">
         <ul class="c-cajas">
           {% for salesman in salesmen_stats %}
           <li class="c-cajas__item">
-            <div style="display: flex" class="mb-4">
-              <h4 class="c-cajas__item__title c-headings c-headings__h3">
+            <div style="display: flex; justify-content: center; flex-wrap: wrap;" class="mb-4">
+              <h4 class="c-cajas__item__title c-headings__h4">
                 {{ salesman['salesman_name'] }}
               </h4>
-              <a
+              <div class="" style="display: flex; flex-wrap: nowrap">
+                <a
                 href="./box-detail?employee_id={{ salesman['employee_id'] }}"
-                class="c-btn c-btn-summit"
-                style="margin-right: 0"
+                class="c-btn c-btn-summit js-btn-ocultar"
+                style="width: 100%;"
                 type="submit"
-                >Ver
-              </a>
-              <form action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST">
-                <button type="submit" class="c-btn c-btn-primary" style="margin-right: 10px;">Registrar Empleado</button>
-              </form>
+                >
+                <i class="bi bi-inboxes " title="Ver detalle"></i>
+                </a>
+                <form style="width: 100%; margin-left: 15px"  action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST">
+                  <button type="submit" class="c-btn c-btn-primary {{ '' if salesman['employee_status'] == True else 'c-btn--closed' }}" >
+                    <i class="bi {{ 'bi-eye' if salesman['employee_status'] == True else 'bi-eye-slash' }}" title="operar caja"></i>
+                  </button>
+                </form>
+              </div>
             </div>
             <ul class="c-card__box-mannager">
               <li class="c-card__internal">
