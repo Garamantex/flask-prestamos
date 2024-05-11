@@ -440,9 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var cerrarCajaForms = document.querySelectorAll('.js-cerrar-caja');
     cerrarCajaForms.forEach(function(form) {
       
-    //   form.addEventListener('submit', function(event) {
-    //     event.preventDefault(); // Evitar que el formulario se envíe normalmente
-    //   });
+
     });
 
     document.querySelectorAll('.js-eye-button').forEach(function(element) {

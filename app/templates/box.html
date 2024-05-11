@@ -34,7 +34,6 @@
       <div class="col">
         <div class="c-cajas__item">
           <div class="c-cajas__item__header mb-4">
-
             <h2 class="c-cajas__item__title c-headings c-headings__h2">
               Caja del Coordinador
             </h2>
@@ -62,6 +61,15 @@
     </div>
     <!-- Logica para calculo de ocultar, abrir rutas -->
     
+    <div class="row">
+      <div class="col">
+        {% if all_boxes_closed %}
+          <form  action="/all-open-boxes" method="POST">
+              <button class="c-btn c-btn-primary mb-3" type="submit" >Abrir todas las cajas</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
 
     <div class="row">
       <div class="col-12">
@@ -81,12 +89,11 @@
                 >
                 <i class="bi bi-inboxes " title="Ver detalle"></i>
                 </a>
-                <form style="width: 45%; margin-left: 15px"  action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST" class="js-cerrar-caja" data-employee-id="{{ salesman['employee_id'] }}">
-                  <button type="submit" class="js-eye-button c-btn c-btn-primary {{ '' if salesman['employee_status'] == True else 'c-btn--closed' }}" >
+                <form style="width: 45%; margin-left: 15px"  action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST" class="js-cerrar-caja" data-employee-id="{{ salesman['employee_id'] }}"  data-status-box="{{ salesman['status_box'] }}">
+                  <button type="submit" class="js-eye-button c-btn c-btn-primary">
                     <i class="js-eye-icon  bi {{ 'bi-eye' if salesman['employee_status'] == True else 'bi-eye-slash' }}" title="operar caja"></i>
                   </button>
                 </form>
-                <div class="alert alert-warning mt-2 js-render-message u-hidden" style="width:100%;" role="alert"></div>
               </div>
             </div>
             <ul class="c-card__box-mannager">
@@ -144,6 +151,7 @@
               </li>
             </ul>
           </li>
+          <hr>
           {% endfor %}
         </ul>
       </div>
@@ -151,16 +159,31 @@
   </div>
 </div>
 <script>
-  const salesmen = document.querySelectorAll('.js-box-status');
-  salesmen.forEach(salesman => {
-    const statusBox = salesman.textContent.trim();
-    if (statusBox === 'Activa') {
-      salesman.classList.add('badge', 'bg-success');
-    } else if (statusBox === 'Cerrada') {
-      salesman.classList.add('badge', 'bg-secondary');
-    } else {
-      salesman.classList.add('badge', 'bg-warning', 'text-dark');
-    }
+  document.addEventListener('DOMContentLoaded', function () {
+    const salesmen = document.querySelectorAll('.js-box-status');
+    salesmen.forEach(salesman => {
+      const statusBox = salesman.textContent.trim();
+      if (statusBox === 'Activa') {
+        salesman.classList.add('badge', 'bg-success');
+      } else if (statusBox === 'Cerrada') {
+        salesman.classList.add('badge', 'bg-secondary');
+      } else {
+        salesman.classList.add('badge', 'bg-warning', 'text-dark');
+      }
+    });
+  
+    const forms = document.querySelectorAll('.js-cerrar-caja');
+    forms.forEach(form => {
+      const statusBox = form.getAttribute('data-status-box');
+      const button = form.querySelector('.js-eye-button');
+      if (statusBox === 'Activa') {
+        button.classList.add('c-btn--primary');
+      } else if (statusBox === 'Cerrada') {
+        button.classList.add('c-btn--completed', 'text-dark');
+      } else {
+        button.classList.add('c-btn--closed');
+      }
+    });
   });
 </script>
 {% endblock %}

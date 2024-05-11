@@ -1292,6 +1292,7 @@ def box():
             # print("employee_status: ", employee_status)
             # print("all_loans: ", all_loans_paid_today)
 
+
             status_box = ""
 
             if employee_status == False and all_loans_paid_today == True:
@@ -1302,6 +1303,7 @@ def box():
                 status_box = "Activa"
             else:
                 status_box = "Activa"
+
 
             print("status_box: ", status_box)
 
@@ -1333,6 +1335,7 @@ def box():
 
         # Obtener el término de búsqueda
         search_term = request.args.get('salesman_name')
+        all_boxes_closed = all(salesman_data['status_box'] == 'Cerrada' for salesman_data in salesmen_stats)
 
         # Inicializar search_term como cadena vacía si es None
         search_term = search_term if search_term else ""
@@ -1351,7 +1354,7 @@ def box():
         # print(salesmen_stats)
 
         # Renderizar la plantilla con las variables
-        return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats, search_term=search_term)
+        return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats, search_term=search_term, all_boxes_closed=all_boxes_closed)
 
 
     except Exception as e:
@@ -2341,4 +2344,38 @@ def add_employee_record(employee_id):
             db.session.add(employee)
             db.session.commit()
     
+    return redirect(url_for('routes.box'))
+
+
+
+@routes.route('/all-open-boxes', methods=['POST'])
+def all_open_boxes():
+
+    user_id = session.get('user_id')
+
+    if user_id is None:
+        return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
+
+    # Verificar si el usuario es un coordinador
+    user = User.query.get(user_id)
+    if user is None or user.role != Role.COORDINADOR:
+        return jsonify({'message': 'El usuario no es un coordinador válido'}), 403
+
+    # Obtener la información de la caja del coordinador
+    coordinator = Employee.query.filter_by(user_id=user_id).first()
+
+    # Obtener el ID del manager del coordinador
+    manager_id = db.session.query(Manager.id).filter_by(employee_id=coordinator.id).scalar()
+
+    if not manager_id:
+        return jsonify({'message': 'No se encontró ningún coordinador asociado a este empleado'}), 404
+    
+    salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
+
+    # Cambiar el estado de los empleados de los vendedores a True
+    for salesman in salesmen:
+        salesman.employee.status = True
+
+    db.session.commit()
+
     return redirect(url_for('routes.box'))
