@@ -256,14 +256,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var btnsMora = document.querySelectorAll('.btn-mora');
     var cuotasLabels = document.querySelectorAll('.cuota-label');
 
-    
-
-
-
-
-
-
-
     // Agrega un evento de clic a cada botón de pago
     btnsPagar.forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -373,9 +365,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    
-
-
     // Itera sobre cada cuota
     cuotas.forEach(function (cuota) {
         console.log(cuota);
@@ -447,6 +436,24 @@ document.addEventListener('DOMContentLoaded', function() {
             card.classList.add('c-card__box-mannager--pagada');
         }
     });
+
+    var cerrarCajaForms = document.querySelectorAll('.js-cerrar-caja');
+    cerrarCajaForms.forEach(function(form) {
+      
+    //   form.addEventListener('submit', function(event) {
+    //     event.preventDefault(); // Evitar que el formulario se envíe normalmente
+    //   });
+    });
+
+    document.querySelectorAll('.js-eye-button').forEach(function(element) {
+    element.addEventListener('click', function() {
+        element.classList.toggle('c-btn--closed');
+        document.querySelectorAll('.js-eye-icon').forEach(function(icon) {
+        icon.classList.toggle('bi-eye');
+        icon.classList.toggle('bi-eye-slash');
+        });
+    });
+    });
 });
 
 // Esperamos a que el documento esté completamente cargado
@@ -472,3 +479,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+

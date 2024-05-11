@@ -1076,6 +1076,7 @@ def box():
         
         
         salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
+        # print("Salesmen: ", salesmen[1].employee_id)
 
         # Funciones para sumar el valor de todas las transacciones en estado: APROBADO y Tipo: INGRESO/RETIRO
         current_date = datetime.now().date()
@@ -1106,6 +1107,9 @@ def box():
             Transaction.creation_date.between(start_of_day, end_of_day)  # Filtrar por fecha actual
         ).group_by(Salesman.manager_id).all()
 
+                            
+        # Verificar si todos los préstamos tienen un pago igual al de hoy
+
         
         # Inicializa la lista para almacenar las estadísticas de los vendedores
         salesmen_stats = []
@@ -1128,7 +1132,17 @@ def box():
             daily_collection_count = 0 # Cantidad Ingresos Diarios
             total_pending_installments_amount = 0 # Monto total de cuotas pendientes
 
-
+            all_loans_paid = Loan.query.filter_by(employee_id=salesman.employee_id)
+            all_loans_paid_today = False
+            for loan in all_loans_paid:
+                loan_installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+                for installment in loan_installments:
+                    payments = Payment.query.filter_by(installment_id=installment.id).all()
+                    if any(payment.payment_date.date() == current_date for payment in payments):
+                        all_loans_paid_today = True
+                        break
+                    if all_loans_paid_today:
+                        break
 
             # Calcula el total de cobros para el día con estado "PAGADA"           
             total_collections_today = db.session.query(
@@ -1248,6 +1262,8 @@ def box():
 
 
 
+
+
             # Número total de clientes del vendedor
             total_customers = sum(
                 1 for client in salesman.employee.clients
@@ -1273,6 +1289,22 @@ def box():
             # Obtener el estado del modelo Employee
             employee_status = salesman.employee.status
 
+            # print("employee_status: ", employee_status)
+            # print("all_loans: ", all_loans_paid_today)
+
+            status_box = ""
+
+            if employee_status == False and all_loans_paid_today == True:
+                status_box = "Cerrada"
+            elif employee_status == False and all_loans_paid_today == False:
+                status_box = "Desactivada"
+            elif employee_status == True and all_loans_paid_today == False:
+                status_box = "Activa"
+            else:
+                status_box = "Activa"
+
+            print("status_box: ", status_box)
+
             salesman_data = {
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
                 'employee_id': salesman.employee_id,
@@ -1291,7 +1323,9 @@ def box():
                 'total_renewal_loans_amount': total_renewal_loans_amount,
                 'daily_withdrawals_count': daily_withdrawals_count,
                 'daily_collection_count': daily_collection_count,
-                'total_pending_installments_amount': total_pending_installments_amount  # Nuevo campo para el total de los montos de las cuotas pendientes
+                'total_pending_installments_amount': total_pending_installments_amount,  # Nuevo campo para el total de los montos de las cuotas pendientes
+                'all_loans_paid_today': all_loans_paid_today,
+                'status_box': status_box
             }
 
             salesmen_stats.append(salesman_data)
@@ -2137,7 +2171,21 @@ def add_employee_record(employee_id):
             .filter(func.date(Payment.payment_date) == fecha_actual) \
             .scalar() or 0
 
+        # Obtener la cantidad de transacciones pendientes del vendedor
+        pending_transactions = Transaction.query.filter(
+            Transaction.employee_id == employee_id,
+            Transaction.approval_status == ApprovalStatus.PENDIENTE
+        ).count()
 
+        # Obtener los IDs de las transacciones pendientes del vendedor
+        pending_transaction_ids = Transaction.query.filter(
+            Transaction.employee_id == employee_id,
+            Transaction.approval_status == ApprovalStatus.PENDIENTE
+        ).with_entities(Transaction.id).all()
+
+
+        print(pending_transaction_ids)
+        print(pending_transactions)
 
             # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
         partial_installments_query = db.session.query(LoanInstallment.id) \
@@ -2166,7 +2214,7 @@ def add_employee_record(employee_id):
                 if all_loans_paid_today:
                     break
     
-        print(all_loans_paid_today)
+        print("Prestamos: ", all_loans_paid_today)
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo en mora del empleado
         overdue_installments_query = db.session.query(LoanInstallment.id) \
@@ -2193,14 +2241,6 @@ def add_employee_record(employee_id):
             and_(Loan.employee_id == employee_id, func.date(Payment.payment_date) == fecha_actual)
         ).scalar() or 0
 
-        # # Obtener los IDs de los pagos realizados en la fecha actual
-        # payment_ids = db.session.query(Payment.id).join(
-        #     LoanInstallment, LoanInstallment.id == Payment.installment_id
-        # ).join(
-        #     Loan, Loan.id == LoanInstallment.loan_id
-        # ).filter(
-        #     and_(Loan.employee_id == employee_id, func.date(Payment.payment_date) == fecha_actual)
-        # ).all()
 
         # Calcula el total de préstamos de los nuevos clientes
         new_clients_loan_amount = Loan.query.join(Client).filter(
@@ -2252,6 +2292,8 @@ def add_employee_record(employee_id):
         # print("daily_expenses_amount", daily_expenses_amount)
 
         # Crear una instancia de EmployeeRecord
+        message = "Caja Activada"
+        success = False
 
         if employee_status == 1 and all_loans_paid_today == True:
             employee_record = EmployeeRecord(
@@ -2279,27 +2321,24 @@ def add_employee_record(employee_id):
 
             employee.status = 0
             db.session.add(employee)
-
             # Agregar la instancia a la sesión de la base de datos y guardar los cambios
             db.session.add(employee_record)
             db.session.commit()
-            print("Hola Mundo prueba antes de else")
+            print("Caja Cerrada y Guarda Correctamente")
 
         
         else:
-            # Actualizar el estado del empleado según la condición
-            if employee_status == 1 and all_loans_paid_today == True:
-                print("Empleado completo el camello")
-                employee.status = 0
-            elif employee_status == 1 and all_loans_paid_today == False:
+            if employee_status == 1 and all_loans_paid_today == False:
                 print("Empleado NO completo el camello")
+                message = "desactivada"
+                success = False
                 employee.status = 0
             else:
-                print("Hola Mundo")
+                print("Caja Abierta")
                 employee.status = 1
 
             # Guardar los cambios en la base de datos
             db.session.add(employee)
             db.session.commit()
-
+    
     return redirect(url_for('routes.box'))
