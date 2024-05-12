@@ -55,8 +55,25 @@
         margin-top: 0;
         width: 20%;
     }
+
 }
 
 .btn {
     border: 1px solid white !important;
+}
+
+.btn-details {
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(10, 180, 180, 1);
+    background: rgba(20, 20, 20, .6);
+    font-size: 18px;
+    text-align: center;
+    color: white;
+    width: 100%;
+    padding: 10px 50px;
+    cursor: pointer;
+    transition: .4s;
 }

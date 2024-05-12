@@ -4,8 +4,9 @@
     <div class="c-form">
         <div class="container pt-5">
             <div class="row">
-                <div class="col">
-                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+                <div class="col mb-4">
+                    <h4>Hola, {{ manager_name }}</h4>
+                    <hr>
                 </div>
             </div>
             <div class="row">
@@ -18,6 +19,7 @@
                         <a href="./wallet" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-shield-fill-exclamation me-3"></i> Cartera</a>
                         <a href="./create-user" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-person-fill me-3"></i> Crear Perfil</a>
                         <a href="./reports" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Reporte Consolidado</a>
+                        <a class="c-btn c-btn-primary c-btn-block mb-3 mt-4" href="{{ url_for('routes.logout') }}">Salir</a>
                     </nav>
                 </div>
             </div>

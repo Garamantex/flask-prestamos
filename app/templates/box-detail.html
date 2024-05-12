@@ -74,7 +74,10 @@
           <td class="c-table__box">
             <!-- Enlace para ver el adjunto si existe -->
             {% if withdrawal_detail.attachment %}
-            <a class="c-link c-link__form" href="{{ withdrawal_detail.attachment }}">Ver adjunto</a>
+            <button class="c-btn c-btn-primary" data-target="modal{{ loop.index }}">Ver adjunto</button>
+            <div class="c-modal" id="modal{{ loop.index }}">
+              <img class="img-attachment" src="{{ url_for('static', filename='images/' +  withdrawal_detail.attachment ) }}" alt="Imagen de la transacción">
+            </div>
             {% else %} N/A {% endif %}
           </td>
         </tr>
@@ -119,7 +122,10 @@
           <td class="c-table__box">
             <!-- Enlace para ver el adjunto si existe -->
             {% if income_detail.attachment %}
-            <a class="c-link c-link__form" href="{{ income_detail.attachment }}">Ver adjunto</a>
+            <button class="c-btn c-btn-primary" data-target="modal{{ loop.index }}">Ver adjunto</button>
+            <div class="c-modal" id="modal{{ loop.index }}">
+              <img class="img-attachment" src="{{ url_for('static', filename='images/' +  income_detail.attachment ) }}" alt="Imagen de la transacción">
+            </div>
             {% else %} N/A {% endif %}
           </td>
         </tr>
@@ -161,7 +167,10 @@
           <td class="c-table__box">
             <!-- Enlace para ver el adjunto si existe -->
             {% if expense_detail.attachment %}
-            <a class="c-link c-link__form" href="{{ expense_detail.attachment }}">Ver adjunto</a>
+            <button class="c-btn c-btn-primary" data-target="modal{{ loop.index }}">Ver adjunto</button>
+            <div class="c-modal" id="modal{{ loop.index }}">
+              <img class="img-attachment" src="{{ url_for('static', filename='images/' +  expense_detail.attachment ) }}" alt="Imagen de la transacción">
+            </div>
             {% else %} N/A {% endif %}
           </td>
         </tr>

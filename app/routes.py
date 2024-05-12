@@ -85,13 +85,16 @@ def menu_manager():
     # Verificar si el usuario está logueado es administrador o coordinador
     if 'user_id' not in session:
         return redirect(url_for('routes.home'))
+    
+    # Obtener la información del vendedor y créditos en mora
+    manager_name = f"{session.get('first_name')} {session.get('last_name')}"
 
     # Verificar si el usuario es administrador o coordinador
     if session.get('role') != 'ADMINISTRADOR' and session.get('role') != 'COORDINADOR':
         abort(403)  # Acceso no autorizado
 
     # Mostrar el menú del administrador
-    return render_template('menu-manager.html')
+    return render_template('menu-manager.html', manager_name=manager_name)
 
 
 import datetime
@@ -832,9 +835,9 @@ def payments_list():
     else:
         status_box = "Activa"
 
-    print("Estado Empleado: ", employee_status)
-    print("Creditos Pagados: ", all_loans_paid_today)
-    print("Status Box: ", status_box)
+    # print("Estado Empleado: ", employee_status)
+    # print("Creditos Pagados: ", all_loans_paid_today)
+    # print("Status Box: ", status_box)
 
     # Inicializa la lista para almacenar la información de los clientes
     clients_information = []
@@ -1102,6 +1105,8 @@ def box():
         # Obtener la información de la caja del coordinador
         coordinator = Employee.query.filter_by(user_id=user_id).first()
         coordinator_cash = coordinator.maximum_cash
+
+        coordinator_name = f"{user.first_name} {user.last_name}"
         
          # Obtener el ID del manager del coordinador
         manager_id = db.session.query(Manager.id).filter_by(employee_id=coordinator.id).scalar()
@@ -1139,8 +1144,10 @@ def box():
         ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
             Transaction.transaction_types == 'RETIRO',
             Transaction.approval_status == 'APROBADA',
-            Transaction.creation_date.between(start_of_day, end_of_day)  # Filtrar por fecha actual
+            func.date(Transaction.creation_date) == current_date  # Filtrar por fecha actual
         ).group_by(Salesman.manager_id).all()
+
+        # print("Total Inbound Amount: ", total_inbound_amount)
 
                             
         # Verificar si todos los préstamos tienen un pago igual al de hoy
@@ -1340,7 +1347,7 @@ def box():
                 status_box = "Activa"
 
 
-            print("status_box: ", status_box)
+            # print("status_box: ", status_box)
 
             salesman_data = {
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
@@ -1389,7 +1396,7 @@ def box():
         # print(salesmen_stats)
 
         # Renderizar la plantilla con las variables
-        return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats, search_term=search_term, all_boxes_closed=all_boxes_closed)
+        return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats, search_term=search_term, all_boxes_closed=all_boxes_closed, coordinator_name=coordinator_name)
 
 
     except Exception as e:
@@ -1615,7 +1622,7 @@ def approval_expenses():
         empleado = Employee.query.filter_by(user_id=user_id).first()
         manager_id = db.session.query(Manager.id).filter_by(employee_id=empleado.id).scalar()
 
-        print("manager_id: ", manager_id)
+        # print("manager_id: ", manager_id)
 
         if not empleado:
             return jsonify({'message': 'Empleado no encontrado'}), 404
@@ -1627,7 +1634,7 @@ def approval_expenses():
         # Obtener los empleados asociados a este coordinador
         empleados_a_cargo = empleado.manager.salesmen
 
-        print("empleados_a_cargo: ", empleados_a_cargo)
+        # print("empleados_a_cargo: ", empleados_a_cargo)
 
         # Inicializar una lista para almacenar las transacciones pendientes de aprobación
         detalles_transacciones = []
@@ -2128,7 +2135,7 @@ def box_detail():
         }
         payment_details.append(payment_detail)
 
-    print(payment_details)
+    # print(payment_details)
 
 
     # print(clients_in_arrears)
@@ -2275,8 +2282,8 @@ def add_employee_record(employee_id):
         ).with_entities(Transaction.id).all()
 
 
-        print(pending_transaction_ids)
-        print(pending_transactions)
+        # print(pending_transaction_ids)
+        # print(pending_transactions)
 
             # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
         partial_installments_query = db.session.query(LoanInstallment.id) \
@@ -2305,7 +2312,7 @@ def add_employee_record(employee_id):
                 if all_loans_paid_today:
                     break
     
-        print("Prestamos: ", all_loans_paid_today)
+        # print("Prestamos: ", all_loans_paid_today)
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo en mora del empleado
         overdue_installments_query = db.session.query(LoanInstallment.id) \
@@ -2528,8 +2535,8 @@ def add_daily_collected(employee_id):
         ).with_entities(Transaction.id).all()
 
 
-        print(pending_transaction_ids)
-        print(pending_transactions)
+        # print(pending_transaction_ids)
+        # print(pending_transactions)
 
             # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
         partial_installments_query = db.session.query(LoanInstallment.id) \
@@ -2558,7 +2565,7 @@ def add_daily_collected(employee_id):
                 if all_loans_paid_today:
                     break
     
-        print("Prestamos: ", all_loans_paid_today)
+        # print("Prestamos: ", all_loans_paid_today)
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo en mora del empleado
         overdue_installments_query = db.session.query(LoanInstallment.id) \
