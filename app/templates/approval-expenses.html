@@ -18,6 +18,11 @@
                 </div>
             </div>
         </div>
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.transactions') }}">Crear Transacción</a>
+            </div>
+        </div>
         <div class="row mt-4">
             <div class="col">
                 <ul class="request-list">
@@ -25,7 +30,7 @@
                     <li class="request-item mb-4 d-flex justify-content-center align-items-center"
                         style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
                         <div class="text-center"> <!-- Agregado -->
-                            <p>Vendedor: <span>{{ detalle_transaccion['vendedor'] }}</span></p>
+                            <p>Creador por: <span>{{ detalle_transaccion['vendedor'] }}</span></p>
                             <p>Valor: <span>$ {{ '{:,.0f}'.format(detalle_transaccion['monto']) }}</span></p>
                             <p>Tipo de Gasto: <span>{{ detalle_transaccion['tipo'] }}</span></p>
                             <p>Concepto: <span>{{ detalle_transaccion['concepto'] }}</span></p>

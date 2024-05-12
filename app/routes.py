@@ -55,8 +55,8 @@ def home():
         user = User.query.filter_by(username=username, password=password).first()
 
         if user:
-            employee = Employee.query.filter_by(user_id=user.id).first()
-            status = employee.status
+            employee = '' if user.role.name == 'ADMINISTRADOR' else Employee.query.filter_by(user_id=user.id).first()
+            status = 1 if user.role.name == 'ADMINISTRADOR' else employee.status
             if status == 1:
                 # Guardar el usuario en la sesión
                     session['user_id'] = user.id
@@ -1600,21 +1600,21 @@ def get_debtors():
 
 
 
-
-
-from sqlalchemy import join
-
 @routes.route('/approval-expenses')
 def approval_expenses():
     try:
         # Obtener el user_id de la sesión
         user_id = session.get('user_id')
+        user_role = session.get('role')
 
         if user_id is None:
             return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
 
         # Buscar al empleado correspondiente al user_id de la sesión
         empleado = Employee.query.filter_by(user_id=user_id).first()
+        manager_id = db.session.query(Manager.id).filter_by(employee_id=empleado.id).scalar()
+
+        print("manager_id: ", manager_id)
 
         if not empleado:
             return jsonify({'message': 'Empleado no encontrado'}), 404
@@ -1625,6 +1625,8 @@ def approval_expenses():
 
         # Obtener los empleados asociados a este coordinador
         empleados_a_cargo = empleado.manager.salesmen
+
+        print("empleados_a_cargo: ", empleados_a_cargo)
 
         # Inicializar una lista para almacenar las transacciones pendientes de aprobación
         detalles_transacciones = []
@@ -1655,8 +1657,29 @@ def approval_expenses():
                 # Agregar los detalles a la lista
                 detalles_transacciones.append(detalle_transaccion)
 
+        # Obtener las transacciones pendientes de aprobación del manager
+        query_manager = db.session.query(Transaction, Employee).join(Employee).filter(
+            Transaction.employee_id == manager_id,
+            Transaction.approval_status == ApprovalStatus.PENDIENTE
+        )
 
+        for transaccion, vendedor in query_manager:
+            # Obtener el concepto de la transacción
+            concepto = Concept.query.get(transaccion.concept_id)
 
+            # Crear un diccionario con los detalles de la transacción pendiente, incluyendo el nombre del vendedor
+            detalle_transaccion = {
+                'id': transaccion.id,
+                'tipo': transaccion.transaction_types.name,
+                'concepto': concepto.name,
+                'descripcion': transaccion.description,
+                'monto': transaccion.amount,
+                'attachment': transaccion.attachment,
+                'vendedor': vendedor.user.first_name + ' ' + vendedor.user.last_name  # Obtener el nombre del vendedor
+            }
+
+            # Agregar los detalles a la lista
+            detalles_transacciones.append(detalle_transaccion)
 
         # Confirmar la sesión de la base de datos después de la actualización
         db.session.commit()
@@ -1674,10 +1697,12 @@ import os
 import uuid
 from flask import request, render_template, session, redirect, url_for
 from werkzeug.utils import secure_filename
+from sqlalchemy import join
 @routes.route('/transaction', methods=['GET', 'POST'])
 def transactions():
     if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
         user_id = session['user_id']
+        user_role = session['role']
 
         # Obtener el empleado asociado al user_id
         employee = Employee.query.filter_by(user_id=user_id).first()
@@ -1721,14 +1746,14 @@ def transactions():
             db.session.commit()
 
             return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',
-                                   concepts=concepts)
+                                   concepts=concepts, user_role=user_role)
 
         else:
             # Obtener todos los conceptos disponibles
             concepts = Concept.query.all()
 
 
-            return render_template('transactions.html', concepts=concepts)
+            return render_template('transactions.html', concepts=concepts, user_role=user_role)
     else:
         # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
         return "Acceso no autorizado."
@@ -1942,6 +1967,7 @@ def list_expenses():
     try:
         # Obtener el user_id de la sesión
         user_id = session.get('user_id')
+        user_role = session.get('role')
 
         if user_id is None:
             return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
@@ -1979,7 +2005,7 @@ def list_expenses():
             # Agregar los detalles a la lista
             detalles_transacciones.append(detalle_transaccion)
 
-        return render_template('list-expenses.html', detalles_transacciones=detalles_transacciones)
+        return render_template('list-expenses.html', detalles_transacciones=detalles_transacciones, user_role=user_role)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
