@@ -2,13 +2,17 @@
 <div class="c-form">
   <div class="container pt-5">
     <div class="row">
+      {% if user_role == 'COORDINADOR' %}
+          <div class="col">
+              <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
+          </div>
+      {% elif user_role == 'VENDEDOR' %}
+          <div class="col">
+              <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-salesman">Menu</a>
+          </div>
+      {% endif %}
       <div class="col">
-        <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager"
-          >Menu</a
-        >
-      </div>
-      <div class="col">
-        <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+          <a class="c-btn c-btn-primary c-btn-block mb-3" href="./logout">Salir</a>
       </div>
     </div>
     <h2 class="c-headings c-headings__h3 mb-4 mt-4">
@@ -205,6 +209,30 @@
           <td class="c-table__box">{{ client_in_arrears.arrears_count }}</td>
           <td class="c-table__box">${{ '{:,.0f}'.format(client_in_arrears.overdue_balance) }}</td>
           <td class="c-table__box">${{ '{:,.0f}'.format(client_in_arrears.total_loan_amount) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2 class="c-headings c-headings__h3 mb-4 mt-4">Pago</h2>
+    <table class="c-table">
+      <thead>
+        <tr>
+          <th class="c-table__box">Cliente</th>
+          <th class="c-table__box">Vr. Pago</th>
+          <th class="c-table__box">Vr. Prestamo</th>
+          <th class="c-table__box">Fecha de Pago</th>
+          <th class="c-table__box">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment_detail in payment_details %}
+        <tr>
+          <td class="c-table__box">{{ payment_detail.client_name }}</td>
+          <td class="c-table__box">${{ '{:,.0f}'.format(payment_detail.payment_amount) }}</td>
+          <td class="c-table__box">${{ '{:,.0f}'.format(payment_detail.total_credit) }}</td>
+          <td class="c-table__box"> {{ payment_detail.payment_date }}</td>
+          <td class="c-table__box">${{ '{:,.0f}'.format(payment_detail.remaining_balance) }}</td>
         </tr>
         {% endfor %}
       </tbody>

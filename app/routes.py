@@ -157,7 +157,8 @@ def menu_salesman():
                            delinquent_clients=delinquent_clients,
                            total_credits=total_credits,
                            today_revenue=today_revenue,
-                           total_arrears_value=total_arrears_value)
+                           total_arrears_value=total_arrears_value,
+                           employee_id=employee_id)
 
 
 @routes.route('/create-user', methods=['GET', 'POST'])
@@ -2024,6 +2025,8 @@ def box_archive():
 
 @routes.route('/box-detail', methods=['GET'])
 def box_detail():
+    user_role = session.get('role')
+
     # Obtener el employee_id del vendedor desde la solicitud
     employee_id = request.args.get('employee_id')
 
@@ -2086,6 +2089,7 @@ def box_detail():
     incomes = [trans for trans in transactions if trans.transaction_types == TransactionType.INGRESO and trans.creation_date.date() == today]
     withdrawals = [trans for trans in transactions if trans.transaction_types == TransactionType.RETIRO and trans.creation_date.date() == today]
 
+
     # Recopilar detalles con formato de fecha y clases de Bootstrap
     expense_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
     income_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in incomes]
@@ -2096,7 +2100,8 @@ def box_detail():
     clients_in_arrears = []
     for loan in loans:
         for installment in loan.installments:
-            if installment.is_in_arrears() and installment.due_date == today:
+            payment = Payment.query.filter_by(installment_id=installment.id).first()
+            if installment.is_in_arrears() and payment and payment.payment_date.date() == today:
                 client_arrears = {
                     'client_name': loan.client.first_name + ' ' + loan.client.last_name,
                     'arrears_count': sum(1 for inst in loan.installments if inst.is_in_arrears()),
@@ -2104,6 +2109,27 @@ def box_detail():
                     'total_loan_amount': loan.amount
                 }
                 clients_in_arrears.append(client_arrears)
+
+       # Obtener todos los pagos realizados hoy
+    payments_today = Payment.query.filter(func.date(Payment.payment_date) == today).all()
+
+    # Recopilar detalles de los pagos realizados hoy
+    payment_details = []
+    for payment in payments_today:
+        client_name = payment.installment.loan.client.first_name + ' ' + payment.installment.loan.client.last_name
+        remaining_balance = sum(inst.amount for inst in payment.installment.loan.installments if inst.status == InstallmentStatus.PENDIENTE)
+        total_credit = payment.installment.loan.amount  # Total credit from the loan model
+        payment_detail = {
+            'client_name': client_name,
+            'payment_amount': payment.amount,
+            'remaining_balance': remaining_balance,
+            'total_credit': total_credit,  # Add total credit to the payment details
+            'payment_date': payment.payment_date.strftime('%d/%m/%Y'),
+        }
+        payment_details.append(payment_detail)
+
+    print(payment_details)
+
 
     # print(clients_in_arrears)
     # Renderizar la plantilla HTML con los datos recopilados
@@ -2114,7 +2140,9 @@ def box_detail():
                         expense_details=expense_details,
                         income_details=income_details,
                         withdrawal_details=withdrawal_details,
-                        clients_in_arrears=clients_in_arrears)
+                        clients_in_arrears=clients_in_arrears,
+                        payment_details=payment_details,
+                        user_role=user_role)
 
 
 @routes.route('/reports')

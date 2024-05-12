@@ -7,8 +7,10 @@
                     <div class="container">
                         <div class="row">
                             <div class="col">
-                                <!-- Información de bienvenida -->
                                 <h4>Hola, {{ salesman_name }}</h4>
+                                <hr>
+                                
+                                <!-- Información de bienvenida -->
                             </div>
                         </div>
                         <div class="row">
@@ -35,8 +37,10 @@
                     </div>
             </div>
             <div class="row">
-                <div class="col">
-                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+                <div class="col" style="display: flex; flex-wrap: wrap">
+                    <a href="./box-detail?employee_id={{ employee_id }}" class="c-btn c-btn-primary mb-3" type="submit">
+                        Ver Detalle Caja
+                    </a>
                 </div>
             </div>
             
@@ -49,6 +53,7 @@
                         <a href="{{ url_for('routes.transactions') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-lock me-3"></i> Transacciónes</a>
                         <a href="{{ url_for('routes.list_expenses') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-cash me-3"></i> Estado Transacciónes</a>
                         <a href="{{ url_for('routes.payments_list') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Cobros del día</a>
+                        <a class="c-btn c-btn-primary c-btn-block mb-3 mt-4" href="{{ url_for('routes.logout') }}">Salir</a>
                     </nav>
                 </div>
             </div>
