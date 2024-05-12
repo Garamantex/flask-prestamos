@@ -2118,24 +2118,41 @@ def box_detail():
                 clients_in_arrears.append(client_arrears)
 
        # Obtener todos los pagos realizados hoy
-    payments_today = Payment.query.filter(func.date(Payment.payment_date) == today).all()
+    payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id, func.date(Payment.payment_date) == today).all()
 
     # Recopilar detalles de los pagos realizados hoy
     payment_details = []
+    payment_summary = {}  # Dictionary to store payment summary for each client and date
+
     for payment in payments_today:
         client_name = payment.installment.loan.client.first_name + ' ' + payment.installment.loan.client.last_name
-        remaining_balance = sum(inst.amount for inst in payment.installment.loan.installments if inst.status == InstallmentStatus.PENDIENTE)
-        total_credit = payment.installment.loan.amount  # Total credit from the loan model
-        payment_detail = {
-            'client_name': client_name,
-            'payment_amount': payment.amount,
-            'remaining_balance': remaining_balance,
-            'total_credit': total_credit,  # Add total credit to the payment details
-            'payment_date': payment.payment_date.strftime('%d/%m/%Y'),
-        }
-        payment_details.append(payment_detail)
+        payment_date = payment.payment_date.date()
 
-    # print(payment_details)
+        # Check if payment summary already exists for the client and date
+        if (client_name, payment_date) in payment_summary:
+            # Update the existing payment summary with the payment amount
+            payment_summary[(client_name, payment_date)]['payment_amount'] += payment.amount
+        else:
+            # Create a new payment summary for the client and date
+            remaining_balance = sum(inst.amount for inst in payment.installment.loan.installments if inst.status in (InstallmentStatus.PENDIENTE , InstallmentStatus.MORA, InstallmentStatus.ABONADA))
+            total_credit = payment.installment.loan.amount  # Total credit from the loan model
+            payment_summary[(client_name, payment_date)] = {
+                'loan_id': payment.installment.loan.id,  # Add loan_id to the payment details
+                'installment_id': payment.installment.id,  # Add installment_id to the payment details
+                'client_name': client_name,
+                'payment_amount': payment.amount,
+                'remaining_balance': remaining_balance,
+                'total_credit': total_credit,  # Add total credit to the payment details
+                'payment_date': payment_date.strftime('%d/%m/%Y'),
+            }
+
+    # Convert payment summary dictionary to a list of payment details
+    payment_details = list(payment_summary.values())
+
+    print(payment_details)
+
+    loan_id = payment_details[0].get('loan_id') if payment_details else None
+    installment_id = payment_details[0].get('installment_id') if payment_details else None
 
 
     # print(clients_in_arrears)
@@ -2149,7 +2166,10 @@ def box_detail():
                         withdrawal_details=withdrawal_details,
                         clients_in_arrears=clients_in_arrears,
                         payment_details=payment_details,
-                        user_role=user_role)
+                        user_role=user_role,
+                        loan_id=loan_id,
+                        installment_id=installment_id
+                        )
 
 
 @routes.route('/reports')
@@ -2693,3 +2713,121 @@ def add_daily_collected(employee_id):
             db.session.commit()
     
     return redirect(url_for('routes.logout'))
+
+
+
+
+
+
+
+
+
+
+
+
+@routes.route('/payments/edit', methods=['POST'])
+def edit_payment():
+    # Obtén los datos de la solicitud
+    user_id = session.get('user_id')
+    
+    # Buscar al empleado correspondiente al user_id de la sesión
+    employee = Employee.query.filter_by(user_id=user_id).first()
+    employee_id = employee.id
+
+    loan_id = request.form.get('loanId')
+    installment_number = request.form.get('InstallmentId')
+    custom_payment = float(request.form.get('customPayment'))
+
+    print(loan_id)
+    print(installment_number)
+    print(custom_payment)
+
+    # Busca el préstamo según los parámetros dados
+    loan = Loan.query.get(loan_id)
+    client = loan.client
+    current_date = datetime.now().date()
+    
+    if not loan:
+        return jsonify({'message': 'Préstamo no encontrado'}), 404
+
+    # Obtener todos los pagos realizados hoy
+    payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id, func.date(Payment.payment_date) == current_date).all()
+
+    # Obtén el monto del pago realizado hoy
+    amount_payment_today = sum(payment.amount for payment in payments_today)
+    print(amount_payment_today)
+
+    new_payment_value = float(int(custom_payment) + int(amount_payment_today))
+
+    print(new_payment_value)
+
+
+    # Calcular la suma de installmentValue y overdueAmount
+    total_amount_due = sum(installment.amount for installment in loan.installments 
+                           if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA])
+    
+    if custom_payment >= total_amount_due:
+        # Marcar todas las cuotas como "PAGADA" y actualizar la fecha de pago
+        for installment in loan.installments:
+            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
+                installment.status = InstallmentStatus.PAGADA
+                installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
+                # Crear el pago asociado a esta cuota
+                payment = Payment(amount=installment.amount, payment_date=datetime.now(), installment_id=installment.id)
+                # Establecer el valor de la cuota en 0
+                installment.amount = 0
+                db.session.add(payment)
+        # Actualizar el estado del préstamo y el campo up_to_date
+        loan.status = False  # 0 indica que el préstamo está pagado en su totalidad
+        loan.up_to_date = True
+        loan.modification_date = datetime.now()  # El préstamo está al día  
+        db.session.commit()
+        return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
+    else:
+        # Lógica para manejar el pago parcial
+        remaining_payment = Decimal(custom_payment)  # Convertir a Decimal
+        for installment in loan.installments:
+            if remaining_payment <= 0:
+                break
+            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
+                if installment.amount <= remaining_payment:
+                    installment.status = InstallmentStatus.PAGADA
+                    installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
+                    remaining_payment -= installment.amount
+                    payment = Payment(amount=installment.amount, payment_date=datetime.now(), installment_id=installment.id)
+                    installment.amount = 0
+                else:
+                    # Si el pago es mayor que la cuota actual, se distribuye el excedente
+                    # en las siguientes cuotas hasta completar el pago
+                    installment.status = InstallmentStatus.ABONADA
+                    installment.amount -= remaining_payment
+                    # Crear el pago asociado a este abono parcial
+                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(), installment_id=installment.id)
+                    db.session.add(payment)
+                    remaining_payment = 0
+                # Crear el pago asociado a esta cuota                
+                db.session.add(payment)
+        # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
+        loan.modification_date = datetime.now()
+        client.debtor = False
+        db.session.commit()
+    
+        return jsonify({"message": "El pago se ha registrado correctamente."}), 200
+
+
+
+
+
+
+    # Actualiza los campos del pago según los datos recibidos
+    # payments_today.amount = custom_payment
+
+
+    # Actualizar la fecha del pago
+    #  payments_today.payment_date = current_date
+
+    # Guarda los cambios en la base de datos
+    # db.session.commit()
+    
+    return jsonify({"message": "El pago se ha registrado correctamente."}), 200
+
