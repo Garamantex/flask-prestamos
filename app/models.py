@@ -56,6 +56,7 @@ class Employee(db.Model):
     maximum_expense = db.Column(db.Numeric(10, 2), nullable=False, doc='Límite gasto')
     maximum_installments = db.Column(db.Numeric(10, 2), nullable=False, doc='Máximo de cuotas')
     minimum_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Mínimo interés')
+    status = db.Column(db.Boolean, default=True, nullable=False, doc='Estado')
     percentage_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Porcentaje interés')
     fix_value = db.Column(db.Numeric(10, 2), nullable=False, doc='Valor fijo')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
@@ -65,6 +66,7 @@ class Employee(db.Model):
     user = db.relationship('User', backref='employee', uselist=False)
     manager = db.relationship('Manager', uselist=False, back_populates='employee')
     salesman = db.relationship('Salesman', uselist=False, back_populates='employee')
+    
 
     # Definir la relación inversa para acceder a los clientes de un empleado
     clients = db.relationship('Client', backref='employee', lazy=True)
@@ -180,6 +182,7 @@ class Loan(db.Model):
     interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Interés')
     payment = db.Column(db.Numeric(10, 2), nullable=False, doc='Pago')
     status = db.Column(db.Boolean, default=True, nullable=False, doc='Estado')
+    approved = db.Column(db.Boolean, default=True, nullable=False, doc='Aprobado')
     up_to_date = db.Column(db.Boolean, default=False, nullable=False, doc='Al día')
     is_renewal = db.Column(db.Boolean, default=False, nullable=False, doc='Renovación')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
@@ -199,6 +202,7 @@ class Loan(db.Model):
             'interest': str(self.interest),
             'payment': str(self.payment),
             'status': self.status,
+            'approved': self.approved,
             'up_to_date': self.up_to_date,
             'creation_date': self.creation_date.isoformat(),
             'modification_date': self.modification_date.isoformat(),
@@ -316,6 +320,7 @@ class Transaction(db.Model):
     description = db.Column(db.String(100), nullable=False, doc='Descripción')
     amount = db.Column(db.Numeric(10, 2), nullable=False, doc='Monto')
     attachment = db.Column(db.String(100), nullable=True, doc='Adjunto')
+    loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=True, doc='Préstamo')
     approval_status = db.Column(db.Enum(ApprovalStatus), default=ApprovalStatus.PENDIENTE, nullable=False,
                                 doc='Estado de Aprobación')
 
@@ -342,3 +347,49 @@ class Transaction(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+
+
+class EmployeeRecord(db.Model):
+    """Modelo para registrar la información de caja y préstamos de un empleado"""
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    initial_state = db.Column(db.Float, nullable=False)
+    loans_to_collect = db.Column(db.Integer, nullable=False)
+    paid_installments = db.Column(db.Integer, nullable=False)
+    partial_installments = db.Column(db.Integer, nullable=False)
+    overdue_installments = db.Column(db.Integer, nullable=False)
+    total_collected = db.Column(db.Float, nullable=False)
+    sales = db.Column(db.Float, nullable=False)
+    renewals = db.Column(db.Float, nullable=False)
+    incomings = db.Column(db.Float, nullable=False)
+    withdrawals = db.Column(db.Float, nullable=False)
+    expenses = db.Column(db.Float, nullable=False)
+    closing_total = db.Column(db.Float, nullable=False)
+    creation_date = db.Column(db.DateTime, default=datetime.datetime.now)
+
+    # Relación con el modelo Employee
+    employee = db.relationship('Employee', backref=db.backref('employee_records', lazy=True))
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'employee_id': self.employee_id,
+            'initial_state': self.initial_state,
+            'loans_to_collect': self.loans_to_collect,
+            'paid_installments': self.paid_installments,
+            'partial_installments': self.partial_installments,
+            'overdue_installments': self.overdue_installments,
+            'total_collected': self.total_collected,
+            'sales': self.sales,
+            'renewals': self.renewals,
+            'incomings': self.incomings,
+            'withdrawals': self.withdrawals,
+            'expenses': self.expenses,
+            'closing_total': self.closing_total,
+            'creation_date': self.creation_date.isoformat()
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_json(), indent=4)
+

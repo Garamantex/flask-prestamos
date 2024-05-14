@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     calcularCuotaAproximada();
 });
 
+
 async function obtenerValoresMaximos() {
     try {
         const response = await fetch("/maximum-values-loan");
@@ -51,8 +52,8 @@ async function obtenerValoresMaximos() {
             
             if (monto > data.maximum_sale) {
                 // Mostrar un mensaje de error
-                alert('El monto máximo permitido es de $' + data.maximum_sale);
-                montoInput.value =  data.maximum_sale; // Establecer el valor máximo
+                alert('El monto máximo permitido es de $' + data.maximum_sale + ' Quedara en estado Pendiente de Aprobación');
+                // montoInput.value =  data.maximum_sale; // Establecer el valor máximo
             }
         });
         
@@ -74,7 +75,9 @@ async function obtenerValoresMaximos() {
     }
 }
 
+
 obtenerValoresMaximos();
+
 
 /* $(document).ready(function () {
     // Obtener el valor máximo del coordinador cuando la página se carga
@@ -168,6 +171,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+
+// Codigo JS de la ruta /Payment-List
 document.addEventListener('DOMContentLoaded', function () {
     // Obtén referencias a los elementos del DOM
     var verDetallesBtn = document.getElementById('verDetallesBtn');
@@ -227,4 +232,249 @@ if (verDetallesBtn && detallesContainer) {
         }
     });
 }
+
+   // Función para actualizar los valores en la modal
+   function updateModalValues(installmentValue, overdueAmount) {
+    document.getElementById('installmentValue').textContent = installmentValue.toLocaleString();
+    document.getElementById('overdueAmount').textContent = overdueAmount.toLocaleString();
+}
+    function toggleHiddenParagraphs() {
+    var hiddenParagraphs = document.querySelectorAll('.u-hidden');
+    hiddenParagraphs.forEach(function(paragraph) {
+        paragraph.classList.toggle('u-hidden');
+    });
+}
+
+
+// Espera a que el documento esté listo
+document.addEventListener('DOMContentLoaded', function () {
+    // Obtén todas las cuotas listadas
+    var cuotas = document.querySelectorAll('.c-card__box-mannager');
+    // Obtén todos los botones de Pago
+    var btnsPagar = document.querySelectorAll('.btn-pagar');
+    // Obtén todos los botones de Mora
+    var btnsMora = document.querySelectorAll('.btn-mora');
+    var cuotasLabels = document.querySelectorAll('.cuota-label');
+
+    // Agrega un evento de clic a cada botón de pago
+    btnsPagar.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            // Obtén el valor de la cuota del botón de pago
+            var installmentValue = parseFloat(this.getAttribute('data-installment-value'));
+            var overdueAmount = parseFloat(this.getAttribute('data-overdue-amount'));
+            var loanId = this.getAttribute('data-id');
+
+            // Calcula la suma de los valores
+            var totalAmount = installmentValue + overdueAmount;
+
+            // Establece el valor del monto a pagar en el campo de entrada con formato de miles
+            document.getElementById('customPayment').value = totalAmount;
+
+            // Actualiza los valores en la modal
+            updateModalValues(installmentValue, overdueAmount);
+
+            // Almacena el ID del préstamo en un campo oculto
+            document.getElementById('loanId').value = loanId;
+        });
+    });
+
+
+    // Agrega un evento de clic al botón de "Confirmar Pago"
+    document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
+        console.log('Confirmar pago')
+        console.log('Hola Mundo')
+        var loanId = document.getElementById('loanId').value; // Obtener ID de préstamo desde el campo oculto
+        var customPayment = document.getElementById('customPayment').value; // Obtener valor de pago personalizado
+        // Enviar solicitud POST al servidor con los datos del pago
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/confirm_payment', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                // Verificar el estado de la respuesta
+                if (xhr.status === 200) {
+                    // Procesar respuesta del servidor
+                    console.log(xhr.responseText);
+                    // Recargar la página después de confirmar el pago
+                    window.location.reload();
+                } else {
+                    // Mostrar un mensaje de error al usuario
+                    console.error('Error al procesar el pago:', xhr.responseText);
+                }
+            }
+        };
+        xhr.send('loan_id=' + loanId + '&customPayment=' + customPayment);
+    });
+
+    
+    btnsMora.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var loanId = this.getAttribute('data-id');
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/mark_overdue', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        console.log(xhr.responseText);
+                        window.location.reload();
+                    } else {
+                        console.error('Error al marcar como MORA:', xhr.responseText);
+                    }
+                }
+            };
+            xhr.send('loan_id=' + loanId);
+        });
+    });
+
+
+    document.getElementById('btn-ocultar').addEventListener('click', function () {
+        // Convertir NodeList a un array para usar el método sort()
+        var cuotasArray = Array.from(cuotas);
+    
+        // Ordenar los elementos por fecha de modificación del más viejo al más reciente
+        cuotasArray.sort(function (a, b) {
+            var fechaA = new Date(a.getAttribute('data-last-loan-modification-date')).getTime();
+            var fechaB = new Date(b.getAttribute('data-last-loan-modification-date')).getTime();
+            return fechaA - fechaB;
+        });
+    
+        // Limpiar el contenedor antes de mostrar los elementos ordenados
+        var contenedor = document.querySelector('.list-group');
+        contenedor.innerHTML = '';
+    
+        // Mostrar los elementos ordenados en el DOM
+        cuotasArray.forEach(function (cuota) {
+            contenedor.appendChild(cuota);
+        });
+
+        cuotasArray.forEach(function (cuota) {
+            if (cuota.classList.contains("u-hidden")) {
+                cuota.classList.toggle('u-hidden'); // Alternar entre ocultar y mostrar
+                cuota.classList.add('c-card__box-mannager');
+                cuota.querySelectorAll('.cuota-label').forEach(function (boton) {
+                    boton.classList.remove("c-btn");
+                    boton.classList.add("u-hidden");
+                });
+            } else if (cuota.classList.contains("u-block")) {
+                // Si la cuota está bloqueada, no hacemos nada
+            } else {
+                cuota.classList.add('u-hidden');
+                cuota.classList.remove('c-card__box-mannager');
+            };
+        });
+    });
+
+    // Itera sobre cada cuota
+    cuotas.forEach(function (cuota) {
+        console.log(cuota);
+        
+        // Obtén el estado de la cuota desde el atributo data
+        var estadoCuotaAnterior = cuota.getAttribute('data-previous-installment-status');
+
+
+        // Obtén la fecha de pago de la cuota desde el atributo data y formatea la fecha
+        var fechaPago = cuota.getAttribute('data-last-payment-date');
+        console.log(fechaPago);
+
+        // Obtén la fecha actual y formatea la fecha
+        var fechaActual = cuota.getAttribute('data-current-date');
+
+        if ((estadoCuotaAnterior === 'PAGADA' || estadoCuotaAnterior === 'ABONADA' || estadoCuotaAnterior === 'MORA') && fechaPago == fechaActual) {
+            cuota.classList.add('u-hidden'); // Oculta el elemento
+            cuota.classList.remove('c-card__box-mannager'); // Remueve la clase c-card__box-mannager
+        } else  {
+            cuota.classList.add('u-block');
+        }
+        console.log(cuota);
+    });
+    
+     // Función para cambiar el ícono del botón btn-ocultar
+    document.querySelector('.js-btn-ocultar').addEventListener('click', function () {
+
+
+        // Obtener el ícono del botón
+        var icono = document.querySelector('.js-icono-ocultar');
+
+        // Cambiar la clase del ícono dependiendo del estado del botón
+        if (icono.classList.contains('bi-eye')) {
+            icono.classList.remove('bi-eye');
+            icono.classList.add('bi-eye-slash');
+        } else {
+            icono.classList.remove('bi-eye-slash');
+            icono.classList.add('bi-eye');
+        }
+
+        // Lógica para mostrar u ocultar elementos aquí...
+    });
+   
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtenemos todos los elementos con la clase c-card__box-mannager
+    var cards = document.querySelectorAll('.u-hidden');
+
+    // Iteramos sobre cada tarjeta
+    cards.forEach(function(card) {
+        // Obtenemos los datos necesarios de la tarjeta
+        var previousInstallmentStatus = card.getAttribute('data-previous-installment-status');
+        var installmentStatus = card.getAttribute('data-installment-status');
+        var dueDate = new Date(card.getAttribute('data-due-date'));
+        var today = new Date();
+
+        // Removemos cualquier clase existente en la tarjeta
+        card.classList.remove('c-card__box-mannager--pendiente', 'c-card__box-mannager--mora', 'c-card__box-mannager--abonada', 'c-card__box-mannager--pagada');
+
+        // Aplicamos la clase correspondiente según la lógica
+        if (installmentStatus === 'PENDIENTE' && 0 == 1) {
+            card.classList.add('c-card__box-mannager');
+        } else if (previousInstallmentStatus === 'MORA') {
+            card.classList.add('c-card__box-mannager--mora');
+        } else if (previousInstallmentStatus === 'ABONADA') {
+            card.classList.add('c-card__box-mannager--abonada');
+        } else if (previousInstallmentStatus === 'PAGADA') {
+            card.classList.add('c-card__box-mannager--pagada');
+        }
+    });
+
+    var cerrarCajaForms = document.querySelectorAll('.js-cerrar-caja');
+    cerrarCajaForms.forEach(function(form) {
+      
+
+    });
+
+    document.querySelectorAll('.js-eye-button').forEach(function(element) {
+    element.addEventListener('click', function() {
+        element.classList.toggle('c-btn--closed');
+        document.querySelectorAll('.js-eye-icon').forEach(function(icon) {
+        icon.classList.toggle('bi-eye');
+        icon.classList.toggle('bi-eye-slash');
+        });
+    });
+    });
+});
+
+// Esperamos a que el documento esté completamente cargado
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtenemos todos los elementos <li> que representan las tarjetas de cliente
+    var cards = document.querySelectorAll('.c-card__box-mannager');
+
+    // Iteramos sobre cada tarjeta
+    cards.forEach(function(card) {
+        // Obtenemos el estado de la cuota de la tarjeta
+        var installmentStatus = card.getAttribute('data-installment-status');
+
+        // Si el estado de la cuota es "PENDIENTE", ocultamos los elementos relevantes
+        if (installmentStatus === 'PENDIENTE') {
+            card.querySelectorAll('.hidden').forEach(function(hiddenElement) {
+                hiddenElement.classList.add('u-hidden'); // Agregamos la clase 'hidden' para ocultarlos
+            });
+        } else {
+            // Si el estado de la cuota no es "PENDIENTE", aseguramos que los elementos relevantes estén visibles
+            card.querySelectorAll('.hidden').forEach(function(hiddenElement) {
+                hiddenElement.classList.remove('u-hidden'); // Removemos la clase 'hidden' para mostrarlos
+            });
+        }
+    });
+});
 

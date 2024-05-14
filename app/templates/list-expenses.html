@@ -4,17 +4,23 @@
 <div class="c-form">
     <div class="container pt-5">
         <div class="row">
+            {% if user_role == 'COORDINADOR' %}
+                <div class="col">
+                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
+                </div>
+            {% elif user_role == 'VENDEDOR' %}
+                <div class="col">
+                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-salesman">Menu</a>
+                </div>
+            {% endif %}
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Menu</a>
-            </div>
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./logout">Salir</a>
             </div>
         </div>
         <div class="row">
             <div class="col">
                 <div class="c-users">
-                    <p class="c-users__title">Listado de Solicitudes</p>
+                    <p class="c-users__title">Listado de Transacciones</p>
                 </div>
             </div>
         </div>

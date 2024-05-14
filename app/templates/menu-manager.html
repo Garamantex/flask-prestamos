@@ -4,19 +4,22 @@
     <div class="c-form">
         <div class="container pt-5">
             <div class="row">
-                <div class="col">
-                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+                <div class="col mb-4">
+                    <h4>Hola, {{ manager_name }}</h4>
+                    <hr>
                 </div>
             </div>
             <div class="row">
                 <div class="col">
                     <nav class="c-menu d-flex flex-wrap justify-content-center justify-content-md-start align-items-center h-100">
-                        <a href="{{ url_for('routes.box') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i> Manejo de Cajas</a>
-                        <a href="{{ url_for('routes.debtor_manager') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-person-vcard me-3"></i> Morosos</a>
-                        <a href="{{ url_for('routes.approval_expenses') }}" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-cash me-3"></i> Transacciones</a>                        
-                        <a href="./wallet" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-shield-fill-exclamation me-3"></i> Cartera</a>
-                        <a href="./create-user" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-person-fill me-3"></i> Crear Perfil</a>
-                        <a href="./reports" class="c-btn c-btn-primary mb-4"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Reporte Consolidado</a>
+                        <a href="{{ url_for('routes.box') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i> Manejo de Cajas</a>
+                        <a href="{{ url_for('routes.debtor_manager') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-person-vcard me-3"></i> Morosos</a>
+                        <a href="{{ url_for('routes.approval_expenses') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-cash me-3"></i> Transacciones</a>                        
+                        <a href="{{ url_for('routes.list_expenses') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-cash me-3"></i> Mis Transacciónes</a>
+                        <a href="./wallet" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-shield-fill-exclamation me-3"></i> Cartera</a>
+                        <a href="./create-user" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-person-fill me-3"></i> Crear Perfil</a>
+                        <a href="./reports" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Reporte Consolidado</a>
+                        <a class="c-btn c-btn-primary c-btn-block mb-3 mt-4" href="{{ url_for('routes.logout') }}">Salir</a>
                     </nav>
                 </div>
             </div>

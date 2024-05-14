@@ -7,35 +7,40 @@
                     <div class="container">
                         <div class="row">
                             <div class="col">
+                                <h4>Hola, {{ salesman_name }}</h4>
+                                <hr>
+                                
                                 <!-- Información de bienvenida -->
-                                <h4>Bienvenido, {{ salesman_name }}</h4>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mt-2">
+                            <div class="col-md-6 mt-2 text-center">
                                 <i class="bi bi-person-check-fill d-inline-block" title="Clientes ACTIVOS"></i>
                                 <p class="d-inline-block px-3" title="Clientes ACTIVOS">{{ total_credits }}</p>
                             </div>
-                            <div class="col-md-6 mt-2">
+                            <div class="col-md-6 mt-2 text-center">
                                 <i class="bi bi-person-fill-exclamation d-inline-block" title="Clientes en mora"></i>
                                 <p class="d-inline-block px-3" title="Clientes en mora">{{ delinquent_clients }}</p>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mt-2 mb-3">
+                            <div class="col-md-6 mt-2 text-center">
                                 <i class="bi bi-cash d-inline-block"></i>
-                                <p class="d-inline-block px-3">{{ today_revenue }}</p>
+                                <p class="d-inline-block px-3">$ {{ '{:,.0f}'.format( today_revenue | float | int) }}
+                                </p>
                             </div>
-                            <div class="col-md-6 mt-2 mb-3">
+                            <div class="col-md-6 mt-2 text-center">
                                 <i class="bi bi-cash-coin d-inline-block"></i>
-                                <p class="d-inline-block px-3"><span id="formattedTodayRevenueValue"></span></p>
-                            </div>
+                                <p class="d-inline-block px-3">$ {{ '{:,.0f}'.format( total_arrears_value | float | int) }}
+                            </div> 
                         </div>
                     </div>
             </div>
             <div class="row">
-                <div class="col">
-                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+                <div class="col" style="display: flex; flex-wrap: wrap">
+                    <a href="./box-detail?employee_id={{ employee_id }}" class="c-btn c-btn-primary mb-3" type="submit">
+                        Ver Detalle Caja
+                    </a>
                 </div>
             </div>
             
@@ -48,6 +53,7 @@
                         <a href="{{ url_for('routes.transactions') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-lock me-3"></i> Transacciónes</a>
                         <a href="{{ url_for('routes.list_expenses') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-cash me-3"></i> Estado Transacciónes</a>
                         <a href="{{ url_for('routes.payments_list') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Cobros del día</a>
+                        <a class="c-btn c-btn-primary c-btn-block mb-3 mt-4" href="{{ url_for('routes.logout') }}">Salir</a>
                     </nav>
                 </div>
             </div>
@@ -59,18 +65,14 @@
         var delinquentArrearsValue = {{ total_arrears_value }};
         var formattedArrearsValue = formatCurrency(delinquentArrearsValue);
         document.getElementById('formattedArrearsValue').textContent = formattedArrearsValue;
-
-        function formatCurrency(value) {
-            return '$ ' + value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        }
-
+    
         var delinquentTodayValue = {{ today_revenue }};
         var formattedTodayRevenueValue = formatCurrency(delinquentTodayValue);
         document.getElementById('formattedTodayRevenueValue').textContent = formattedTodayRevenueValue;
-
+    
         function formatCurrency(value) {
-        var formattedValue = '$ ' + value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        return formattedValue;
-    }
+            var formattedValue = '$ ' + value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return formattedValue;
+        }
     </script>
 {% endblock %}

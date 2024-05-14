@@ -29,15 +29,16 @@
         </form>
       </div>
     </div>
+
     <div class="row">
       <div class="col">
         <div class="c-cajas__item">
           <div class="c-cajas__item__header mb-4">
-            <h2 class="c-cajas__item__title c-headings c-headings__h2">
+            <h2 class="c-cajas__item__title c-headings c-headings__h4">
               Caja del Coordinador
             </h2>
-            <h4 class="c-cajas__item__title c-headings c-headings__h4">
-              nombre coordinador
+            <h4 class="c-cajas__item__title c-headings c-headings__h2">
+              {{ coordinator_name }}
             </h4>
           </div>
           <ul class="c-card__box-mannager">
@@ -58,23 +59,42 @@
         </div>
       </div>
     </div>
-
+    <!-- Logica para calculo de ocultar, abrir rutas -->
+    
     <div class="row">
       <div class="col">
+        {% if all_boxes_closed %}
+          <form  action="/all-open-boxes" method="POST">
+              <button class="c-btn c-btn-primary mb-3" type="submit" >Abrir todas las cajas</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
         <ul class="c-cajas">
           {% for salesman in salesmen_stats %}
           <li class="c-cajas__item">
-            <div style="display: flex" class="mb-4">
-              <h4 class="c-cajas__item__title c-headings c-headings__h3">
+            <div style="display: flex; justify-content: center; flex-wrap: wrap;" class="mb-4">
+              <h4 class="c-cajas__item__title c-headings__h4">
                 {{ salesman['salesman_name'] }}
               </h4>
-              <a
+              <div class="" style="display: flex; flex-wrap: wrap">
+                <a
                 href="./box-detail?employee_id={{ salesman['employee_id'] }}"
-                class="c-btn c-btn-summit"
-                style="margin-right: 0"
+                class="c-btn c-btn-summit js-btn-ocultar"
+                style="width: 45%;"
                 type="submit"
-                >Ver
-              </a>
+                >
+                <i class="bi bi-inboxes " title="Ver detalle"></i>
+                </a>
+                <form style="width: 45%; margin-left: 15px"  action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST" class="js-cerrar-caja" data-employee-id="{{ salesman['employee_id'] }}"  data-status-box="{{ salesman['status_box'] }}">
+                  <button type="submit" class="js-eye-button c-btn c-btn-primary">
+                    <i class="js-eye-icon  bi {{ 'bi-eye' if salesman['employee_status'] == True else 'bi-eye-slash' }}" title="operar caja"></i>
+                  </button>
+                </form>
+              </div>
             </div>
             <ul class="c-card__box-mannager">
               <li class="c-card__internal">
@@ -126,13 +146,44 @@
               <li class="c-card__internal">
                 NO PAGO: {{ salesman['customers_in_arrears_for_the_day'] }}
               </li>
+              <li class="c-card__internal js-box-status">
+                {{ salesman['status_box'] }}
+              </li>
             </ul>
           </li>
+          <hr>
           {% endfor %}
         </ul>
       </div>
     </div>
   </div>
 </div>
-
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const salesmen = document.querySelectorAll('.js-box-status');
+    salesmen.forEach(salesman => {
+      const statusBox = salesman.textContent.trim();
+      if (statusBox === 'Activa') {
+        salesman.classList.add('badge', 'bg-success');
+      } else if (statusBox === 'Cerrada') {
+        salesman.classList.add('badge', 'bg-secondary');
+      } else {
+        salesman.classList.add('badge', 'bg-warning', 'text-dark');
+      }
+    });
+  
+    const forms = document.querySelectorAll('.js-cerrar-caja');
+    forms.forEach(form => {
+      const statusBox = form.getAttribute('data-status-box');
+      const button = form.querySelector('.js-eye-button');
+      if (statusBox === 'Activa') {
+        button.classList.add('c-btn--primary');
+      } else if (statusBox === 'Cerrada') {
+        button.classList.add('c-btn--completed', 'text-dark');
+      } else {
+        button.classList.add('c-btn--closed');
+      }
+    });
+  });
+</script>
 {% endblock %}

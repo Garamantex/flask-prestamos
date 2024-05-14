@@ -5,17 +5,23 @@
 <div class="c-form">
     <div class="container pt-5">
         <div class="row">
+            {% if user_role == 'COORDINADOR' %}
+                <div class="col">
+                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
+                </div>
+            {% elif user_role == 'VENDEDOR' %}
+                <div class="col">
+                    <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-salesman">Menu</a>
+                </div>
+            {% endif %}
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-salesman">Menu</a>
-            </div>
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./logout">Salir</a>
             </div>
         </div>
         <div class="row">
             <div class="col">
                 <div class="c-users">
-                    <p class="c-users__title">Registro de Gastos</p>
+                    <p class="c-users__title">Registro de Transacciones</p>
                 </div>
             </div>
         </div>
@@ -23,10 +29,9 @@
             <div id="select-container" class="col">
                 <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data">
                     <fieldset>
-                        <legend style="color: white;">Tipo de gasto</legend>
+                        <legend style="color: white;">Tipo</legend>
                         <div class="mb-3">
                             <select id="transactionType" name="transaction_type" class="c-form c-form__dropdown" aria-label="Default select example">
-                                <option value="">Selecciona un tipo de transacción</option>
                                 <option value="GASTO">Gasto</option>
                                 <option value="INGRESO">Ingreso</option>
                                 <option value="RETIRO">Retiro</option>
@@ -35,7 +40,6 @@
                         <legend style="color: white;">Concepto</legend>
                         <div class="mb-3">
                             <select id="concept" name="concept_id" class="c-form c-form__dropdown" aria-label="Default select example">
-                                <option value="">Selecciona un concepto</option>
                                 {% for concept in concepts %}
                                     <option value="{{ concept.id }}" data-transaction-type="{{ concept.transaction_types.value }}">{{ concept.name }}</option>
                                 {% endfor %}
@@ -58,7 +62,7 @@
                             <input type="file" class="form-control" id="photo" accept="image/*" capture="user" name="photo">
                         </div>
                     </fieldset>
-                    <button class="c-btn c-btn-primary mb-4" type="submit">Enviar</button>
+                    <button class="c-btn c-btn-primary mb-4" disabled type="submit">Enviar</button>
                 </form>    
             </div>
         </div>
@@ -67,30 +71,45 @@
 
 
 <script>
-    // Obtener el tipo de transacción pasado desde el backend
-    var transactionType = "{{ transaction_type }}";
-    // Filtrar las opciones del segundo select basado en el tipo de transacción inicial
-    filterConceptOptions(transactionType);
-
-    document.getElementById('transactionType').addEventListener('change', function() {
-        var transactionType = this.value;
-        // Llamar a la función de filtrado cuando cambia el tipo de transacción
+        // Obtener el tipo de transacción pasado desde el backend
+        var transactionType = "{{ transaction_type }}";
+        // Filtrar las opciones del segundo select basado en el tipo de transacción inicial
         filterConceptOptions(transactionType);
-    });
-
-    function filterConceptOptions(transactionType) {
-        console.log("Transaction Type:", transactionType);
-        var conceptOptions = document.querySelectorAll('#concept option');
-        conceptOptions.forEach(function(option) {
-            var dataTransactionType = option.getAttribute('data-transaction-type');
-            console.log("Data Transaction Type:", dataTransactionType);
-            if (transactionType === '' || dataTransactionType === transactionType) {
-                option.style.display = '';
-            } else {
-                option.style.display = 'none';
-            }
+    
+        document.getElementById('transactionType').addEventListener('change', function() {
+            var transactionType = this.value;
+            // Llamar a la función de filtrado cuando cambia el tipo de transacción
+            filterConceptOptions(transactionType);
         });
-    }
+    
+        document.getElementById('photo').addEventListener('change', function() {
+            checkImageFilled();
+        });
+    
+        function checkImageFilled() {
+            var photoInput = document.getElementById('photo');
+            var submitButton = document.querySelector('button[type="submit"]');
+            
+            if (photoInput.files.length > 0) {
+                submitButton.removeAttribute('disabled');
+            } else {
+                submitButton.setAttribute('disabled', 'disabled');
+            }
+        }
+    
+        function filterConceptOptions(transactionType) {
+            console.log("Transaction Type:", transactionType);
+            var conceptOptions = document.querySelectorAll('#concept option');
+            conceptOptions.forEach(function(option) {
+                var dataTransactionType = option.getAttribute('data-transaction-type');
+                console.log("Data Transaction Type:", dataTransactionType);
+                if (transactionType === '' || dataTransactionType === transactionType) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
 </script>
 
 
