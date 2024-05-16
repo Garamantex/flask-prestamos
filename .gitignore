@@ -10,6 +10,7 @@ prestamos/
 .env
 venv
 env
+config.py
 
 # Flask instance folder
 instance/
