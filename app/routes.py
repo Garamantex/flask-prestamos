@@ -11,7 +11,6 @@ from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
 
-
 # Importaciones de tu aplicación (módulos locales)
 from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Payment, Salesman, TransactionType, \
     ApprovalStatus, EmployeeRecord
@@ -23,7 +22,6 @@ from .models import User, Client, Loan, Employee, LoanInstallment
 routes = Blueprint('routes', __name__)
 
 
-
 # ruta para el logout de la aplicación web
 @routes.route('/logout')
 def logout():
@@ -32,11 +30,9 @@ def logout():
     return redirect(url_for('routes.home'))
 
 
-
 # ruta para el home de la aplicación web
 @routes.route('/', methods=['GET', 'POST'])
 def home():
-
     if 'user_id' in session:
         role = session.get('role')
         if role == 'ADMINISTRADOR' or role == 'COORDINADOR':
@@ -59,19 +55,19 @@ def home():
             status = 1 if user.role.name == 'ADMINISTRADOR' else employee.status
             if status == 1:
                 # Guardar el usuario en la sesión
-                    session['user_id'] = user.id
-                    session['first_name'] = user.first_name
-                    session['last_name'] = user.last_name
-                    session['username'] = user.username
-                    session['role'] = user.role.name  # Guardar solo el nombre del rol
+                session['user_id'] = user.id
+                session['first_name'] = user.first_name
+                session['last_name'] = user.last_name
+                session['username'] = user.username
+                session['role'] = user.role.name  # Guardar solo el nombre del rol
 
-                    # Redireccionar según el rol del usuario
-                    if user.role.name == 'ADMINISTRADOR' or user.role.name == 'COORDINADOR':
-                        return redirect(url_for('routes.menu_manager'))
-                    elif user.role.name == 'VENDEDOR':
-                        return redirect(url_for('routes.menu_salesman'))
-                    else:
-                        abort(403)  # Acceso no autorizado
+                # Redireccionar según el rol del usuario
+                if user.role.name == 'ADMINISTRADOR' or user.role.name == 'COORDINADOR':
+                    return redirect(url_for('routes.menu_manager'))
+                elif user.role.name == 'VENDEDOR':
+                    return redirect(url_for('routes.menu_salesman'))
+                else:
+                    abort(403)  # Acceso no autorizado
             error_message = 'Caja Desactivada.'
             return render_template('index.html', error_message=error_message)
         error_message = 'Credenciales inválidas. Inténtalo nuevamente.'
@@ -79,13 +75,14 @@ def home():
 
     return render_template('index.html')
 
+
 # ruta para el menú del administrador
 @routes.route('/menu-manager')
 def menu_manager():
     # Verificar si el usuario está logueado es administrador o coordinador
     if 'user_id' not in session:
         return redirect(url_for('routes.home'))
-    
+
     # Obtener la información del vendedor y créditos en mora
     manager_name = f"{session.get('first_name')} {session.get('last_name')}"
 
@@ -98,6 +95,7 @@ def menu_manager():
 
 
 import datetime
+
 
 # ruta para el menú del vendedor
 @routes.route('/menu-salesman')
@@ -114,8 +112,8 @@ def menu_salesman():
 
     # Obtener la información del vendedor y créditos en mora
     salesman_name = f"{session.get('first_name')} {session.get('last_name')}"
-    
-     # Obtener clientes morosos
+
+    # Obtener clientes morosos
     delinquent_clients = Client.query.filter_by(
         employee_id=employee_id,
         debtor=True
@@ -127,7 +125,6 @@ def menu_salesman():
         status=1
     ).distinct(Loan.client_id).count()
 
-
     # Recaudo realizado en el día (Ingresos del día)
     today_revenue = db.session.query(
         db.func.sum(Payment.amount)
@@ -135,10 +132,10 @@ def menu_salesman():
         db.func.date(Payment.payment_date) == datetime.now().date(),
         Payment.installment.has(Loan.employee_id == employee_id)
     ).scalar()
-        
+
     # Si no hay recaudo, establecerlo como 0
     today_revenue = today_revenue or 0
-    
+
     # Calcular el valor total en mora
     total_arrears_value = db.session.query(
         db.func.sum(LoanInstallment.amount)
@@ -330,6 +327,7 @@ def get_maximum_values_create_salesman():
     else:
         abort(404)  # Empleado no encontrado
 
+
 @routes.route('/maximum-values-loan', methods=['GET'])
 def get_maximum_values_loan():
     # Verificamos si 'user_id' está presente en la sesión
@@ -356,13 +354,12 @@ def get_maximum_values_loan():
     })
 
 
-
 @routes.route('/create-client', methods=['GET', 'POST'])
 def create_client():
     try:
         if 'user_id' in session and (
                 session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
-                
+
             if request.method == 'POST':
                 # Obtener el ID del empleado desde la sesión
                 user_id = session['user_id']
@@ -370,7 +367,6 @@ def create_client():
 
                 if not employee:
                     raise Exception("Error: No se encontró el empleado correspondiente al usuario.")
-                
 
                 # Recopilar datos del formulario POST
                 first_name = request.form.get('first_name')
@@ -384,7 +380,6 @@ def create_client():
                 dues = request.form.get('dues')
                 interest = request.form.get('interest')
                 payment = request.form.get('amountPerPay')
-
 
                 # Validar que los campos obligatorios no estén vacíos
                 if not first_name or not last_name or not document or not cellphone:
@@ -414,7 +409,7 @@ def create_client():
                 # print(maximum_sale)
                 # print(float(amount))
                 approved = float(amount) <= maximum_sale
-                
+
                 # Crear una instancia del préstamo con los datos proporcionados
                 loan = Loan(
                     amount=amount,
@@ -435,7 +430,7 @@ def create_client():
                 current_date = datetime.now()
                 filename = ""
                 # Usar el employee_id obtenido para crear la transacción
-                if not approved:                        
+                if not approved:
                     # Usar el employee_id obtenido para crear la transacción
                     transaction = Transaction(
                         transaction_types="INGRESO",
@@ -461,7 +456,6 @@ def create_client():
         # Manejo de excepciones: mostrar un mensaje de error y registrar la excepción
         error_message = str(e)
         return render_template('error.html', error_message=error_message), 500
-
 
 
 @routes.route('/edit-client/<int:client_id>', methods=['GET', 'POST'])
@@ -640,7 +634,6 @@ def credit_detail(id):
 
     loans = Loan.query.all()  # Obtener todos los créditos
     loan_detail = get_loan_details(id)
-    
 
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
                            loan_detail=loan_detail, payments=payments)
@@ -690,6 +683,8 @@ def modify_installments(loan_id):
 
 from decimal import Decimal
 from datetime import datetime
+
+
 @routes.route('/confirm_payment', methods=['POST'])
 def confirm_payment():
     loan_id = request.form.get('loan_id')
@@ -700,9 +695,10 @@ def confirm_payment():
     client = loan.client
 
     # Calcular la suma de installmentValue y overdueAmount
-    total_amount_due = sum(installment.amount for installment in loan.installments 
-                           if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA])
-    
+    total_amount_due = sum(installment.amount for installment in loan.installments
+                           if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA,
+                                                     InstallmentStatus.ABONADA])
+
     if custom_payment >= total_amount_due:
         # Marcar todas las cuotas como "PAGADA" y actualizar la fecha de pago
         for installment in loan.installments:
@@ -731,7 +727,8 @@ def confirm_payment():
                     installment.status = InstallmentStatus.PAGADA
                     installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
                     remaining_payment -= installment.amount
-                    payment = Payment(amount=installment.amount, payment_date=datetime.now(), installment_id=installment.id)
+                    payment = Payment(amount=installment.amount, payment_date=datetime.now(),
+                                      installment_id=installment.id)
                     installment.amount = 0
                 else:
                     # Si el pago es mayor que la cuota actual, se distribuye el excedente
@@ -739,7 +736,8 @@ def confirm_payment():
                     installment.status = InstallmentStatus.ABONADA
                     installment.amount -= remaining_payment
                     # Crear el pago asociado a este abono parcial
-                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(), installment_id=installment.id)
+                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(),
+                                      installment_id=installment.id)
                     db.session.add(payment)
                     remaining_payment = 0
                 # Crear el pago asociado a esta cuota                
@@ -748,50 +746,49 @@ def confirm_payment():
         loan.modification_date = datetime.now()
         client.debtor = False
         db.session.commit()
-    
+
         return jsonify({"message": "El pago se ha registrado correctamente."}), 200
     return jsonify({"error": "El pago no pudo ser procesado."}), 400
-
 
 
 @routes.route('/mark_overdue', methods=['POST'])
 def mark_overdue():
     if request.method == 'POST':
         loan_id = request.form['loan_id']  # Obtener el ID del préstamo de la solicitud POST
-        
+
         # Buscar la última cuota pendiente del préstamo específico
-        last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan_id, status=InstallmentStatus.PENDIENTE).order_by(LoanInstallment.due_date.asc()).first()
+        last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan_id,
+                                                                   status=InstallmentStatus.PENDIENTE).order_by(
+            LoanInstallment.due_date.asc()).first()
 
         if last_pending_installment:
             # Actualizar el estado de la última cuota pendiente a "MORA"
             last_pending_installment.status = InstallmentStatus.MORA
             last_pending_installment.updated_at = datetime.now()  # Actualizar la fecha de actualización
-            
+
             # Obtener el cliente asociado a este préstamo
             client = Client.query.join(Loan).filter(Loan.id == loan_id).first()
             if client:
                 # Actualizar el campo debtor del cliente a True
                 client.debtor = True
-                
+
                 # Guardar el cambio en el cliente
                 db.session.add(client)
 
             # Crear un nuevo pago asociado a la cuota pendiente
             payment = Payment(amount=0, payment_date=datetime.now(), installment_id=last_pending_installment.id)
-            
+
             # Agregar el pago a la sesión
             db.session.add(payment)
 
             # Guardar los cambios en la base de datos
             db.session.commit()
-            
+
             return 'La última cuota pendiente ha sido marcada como MORA y el cliente ha sido marcado como deudor exitosamente'
         else:
             return 'No se encontraron cuotas pendientes para marcar como MORA'
     else:
         return 'Método no permitido'
-
-
 
 
 @routes.route('/payment_list', methods=['GET'])
@@ -807,9 +804,9 @@ def payments_list():
 
     if not employee:
         return jsonify({"error": "No se encontró el empleado asociado al usuario."}), 404
-    
+
     all_loans_paid = Loan.query.filter_by(employee_id=employee.id).all()
-    
+
     all_loans_paid_today = False
     for loan in all_loans_paid:
         loan_installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
@@ -820,7 +817,6 @@ def payments_list():
                 break
             if all_loans_paid_today:
                 break
-
 
     status_box = ""
 
@@ -847,62 +843,68 @@ def payments_list():
         for loan in client.loans:
             if loan.status:
                 # Calcula el número de cuotas pagadas
-                paid_installments = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).count()
-
+                paid_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
+                                                                    status=InstallmentStatus.PAGADA).count()
 
                 total_credits = LoanInstallment.query.filter_by(loan_id=loan.id).count()
 
                 # Calcula el número de cuotas vencidas 
-                overdue_installments = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.MORA).count()
-                total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id, status=InstallmentStatus.MORA).scalar() or 0
+                overdue_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
+                                                                       status=InstallmentStatus.MORA).count()
+                total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
+                                                                                                    status=InstallmentStatus.MORA).scalar() or 0
 
                 # Calcula el monto total pendiente
-                total_outstanding_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id, status=InstallmentStatus.PENDIENTE).scalar() or 0
-                total_amount_paid = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id, status=InstallmentStatus.ABONADA).scalar() or 0
-                total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id, status=InstallmentStatus.MORA).scalar() or 0
+                total_outstanding_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
+                                                                                                        status=InstallmentStatus.PENDIENTE).scalar() or 0
+                total_amount_paid = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
+                                                                                                 status=InstallmentStatus.ABONADA).scalar() or 0
+                total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
+                                                                                                    status=InstallmentStatus.MORA).scalar() or 0
 
-               # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
-                last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PENDIENTE).order_by(LoanInstallment.due_date.asc()).first()
+                # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
+                last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan.id,
+                                                                           status=InstallmentStatus.PENDIENTE).order_by(
+                    LoanInstallment.due_date.asc()).first()
 
                 # Encuentra la fecha de modificación más reciente del préstamo
-                last_loan_modification_date = Loan.query.filter_by(client_id=client.id).order_by(Loan.modification_date.desc()).first()
+                last_loan_modification_date = Loan.query.filter_by(client_id=client.id).order_by(
+                    Loan.modification_date.desc()).first()
 
                 # Obtiene la fecha del último pago
                 # last_payment_date = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).order_by(LoanInstallment.payment_date.desc()).first()
 
-                 # Encuentra la fecha del último pago
+                # Encuentra la fecha del último pago
                 last_payment_date = Payment.query \
                     .join(LoanInstallment) \
                     .filter(LoanInstallment.loan_id == loan.id) \
-                    .filter(LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA])) \
+                    .filter(LoanInstallment.status.in_(
+                    [InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA])) \
                     .order_by(Payment.payment_date.desc()) \
                     .first()
-                
+
                 # Encuentra la cuota anterior a la fecha actual
                 # previous_installment = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).order_by(LoanInstallment.payment_date.desc()).first()
 
                 # Encuentra la cuota anterior a la fecha actual
                 previous_installment = LoanInstallment.query \
                     .filter(LoanInstallment.loan_id == loan.id) \
-                    .filter(LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA])) \
+                    .filter(LoanInstallment.status.in_(
+                    [InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA])) \
                     .order_by(LoanInstallment.due_date.desc()) \
                     .first()
 
                 # Agrega el estado de la cuota anterior al diccionario client_info
                 previous_installment_status = previous_installment.status.value if previous_installment else None
 
-                                
                 # Obtener el valor pagado de la cuota anterior si existe
                 previous_installment_paid_amount = 0
                 if previous_installment:
                     previous_installment_paid_amount = sum(payment.amount for payment in previous_installment.payments)
 
-                    
                 approved = 'Aprobado' if loan.approved else 'Pendiente de Aprobación'
-                
 
-
-               # Agrega la información del cliente y su crédito a la lista de información de clientes
+                # Agrega la información del cliente y su crédito a la lista de información de clientes
                 client_info = {
                     'First Name': client.first_name,
                     'Last Name': client.last_name,
@@ -913,24 +915,27 @@ def payments_list():
                     'Total Amount Paid': total_amount_paid,
                     'Total Overdue Amount': total_overdue_amount,
                     'Last Payment Date': last_payment_date.payment_date.isoformat() if last_payment_date else 0,
-                    'Last Payment Date front': last_payment_date.payment_date.strftime('%Y-%m-%d') if last_payment_date else '0',
+                    'Last Payment Date front': last_payment_date.payment_date.strftime(
+                        '%Y-%m-%d') if last_payment_date else '0',
                     'Loan ID': loan.id,
                     'Approved': approved,
                     'Installment Value': last_pending_installment.amount if last_pending_installment else 0,
                     'Total Installments': loan.dues,
                     'Sales Date': loan.creation_date.isoformat(),
                     'Next Installment Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
-                    'Next Installment Date front': last_pending_installment.due_date.strftime('%Y-%m-%d') if last_pending_installment else '0',
-                    'Cuota Number': last_pending_installment.installment_number if last_pending_installment else 0,  # Agrega el número de la cuota actual
-                    'Due Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,  # Agrega la fecha de vencimiento de la cuota
-                    'Installment Status': last_pending_installment.status.value if last_pending_installment else None,  # Agrega el estado de la cuota
+                    'Next Installment Date front': last_pending_installment.due_date.strftime(
+                        '%Y-%m-%d') if last_pending_installment else '0',
+                    'Cuota Number': last_pending_installment.installment_number if last_pending_installment else 0,
+                    # Agrega el número de la cuota actual
+                    'Due Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
+                    # Agrega la fecha de vencimiento de la cuota
+                    'Installment Status': last_pending_installment.status.value if last_pending_installment else None,
+                    # Agrega el estado de la cuota
                     'Previous Installment Status': previous_installment_status,
                     'Last Loan Modification Date': last_loan_modification_date.modification_date.isoformat() if last_loan_modification_date else None,
                     'Previous Installment Paid Amount': previous_installment_paid_amount,
-                    'Current Date' : current_date
+                    'Current Date': current_date
                 }
-
-                
 
                 clients_information.append(client_info)
 
@@ -940,21 +945,17 @@ def payments_list():
     search_term = request.args.get('search', '')
 
     # Filtra los clientes según el término de búsqueda
-    filtered_clients_information = [client_info for client_info in clients_information if search_term.lower() in f"{client_info['First Name']} {client_info['Last Name']}".lower()]
+    filtered_clients_information = [client_info for client_info in clients_information if
+                                    search_term.lower() in f"{client_info['First Name']} {client_info['Last Name']}".lower()]
 
     # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
-    return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box, employee_id=employee_id)
-
+    return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box,
+                           employee_id=employee_id)
 
 
 def is_workday(date):
-    # Verificar si la fecha es fin de semana
-    if date.weekday() >= 6:  # 5 para sábado y 6 para domingo
-        return False
-
-    # Verificar si la fecha es un día festivo en Chile
-    cl_holidays = holidays.Chile()
-    if date in cl_holidays:
+    # Verificar si la fecha es domingo
+    if date.weekday() == 6:  # 6 para domingo
         return False
 
     return True
@@ -969,12 +970,11 @@ def generate_loan_installments(loan):
     client_id = loan.client_id
     employee_id = loan.employee_id
 
-
     installment_amount = int((amount + (amount * interest / 100)) / dues)
 
     # Establecer la fecha de vencimiento de la primera cuota
-    if creation_date.weekday() == 4:  # 4 representa el viernes
-        due_date = creation_date + timedelta(days=3)  # Avanzar al lunes
+    if creation_date.weekday() == 5:  # 5 representa el sábado
+        due_date = creation_date + timedelta(days=2)  # Avanzar al lunes
     else:
         due_date = creation_date + timedelta(days=1)
 
@@ -1050,7 +1050,6 @@ def create_concept():
         return render_template('create-concept.html', concept=Concept)
 
 
-
 @routes.route('/concept/<int:concept_id>', methods=['PUT'])
 def update_concept(concept_id):
     concept = Concept.query.get(concept_id)
@@ -1069,8 +1068,6 @@ def update_concept(concept_id):
     return jsonify(concept.to_json())
 
 
-
-
 @routes.route('/get-concepts', methods=['GET'])
 def get_concepts():
     transaction_type = request.args.get('transaction_type')
@@ -1084,10 +1081,9 @@ def get_concepts():
     return jsonify(concepts_json)
 
 
-
-
-
 from datetime import date, datetime, timedelta
+
+
 @routes.route('/box', methods=['GET'])
 def box():
     try:
@@ -1107,14 +1103,13 @@ def box():
         coordinator_cash = coordinator.maximum_cash
 
         coordinator_name = f"{user.first_name} {user.last_name}"
-        
-         # Obtener el ID del manager del coordinador
+
+        # Obtener el ID del manager del coordinador
         manager_id = db.session.query(Manager.id).filter_by(employee_id=coordinator.id).scalar()
 
         if not manager_id:
             return jsonify({'message': 'No se encontró ningún coordinador asociado a este empleado'}), 404
-        
-        
+
         salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
         # print("Salesmen: ", salesmen[1].employee_id)
 
@@ -1135,8 +1130,6 @@ def box():
             Transaction.creation_date.between(start_of_day, end_of_day)  # Filtrar por fecha actual
         ).group_by(Salesman.manager_id).all()
 
-
-
         # Filtrar las transacciones para el día actual
         total_inbound_amount = db.session.query(
             func.sum(Transaction.amount).label('total_amount'),
@@ -1149,30 +1142,28 @@ def box():
 
         # print("Total Inbound Amount: ", total_inbound_amount)
 
-                            
         # Verificar si todos los préstamos tienen un pago igual al de hoy
 
-        
         # Inicializa la lista para almacenar las estadísticas de los vendedores
         salesmen_stats = []
 
         # Ciclo a través de cada vendedor asociado al coordinador
         for salesman in salesmen:
             # Inicializar variables para recopilar estadísticas para cada vendedor
-            total_collections_today = 0 # Recaudo Diario
-            daily_expenses_count = 0 # Gastos Diarios
-            daily_expenses_amount = 0 # Valor Gastos Diarios
-            daily_withdrawals = 0 # Retiros Diarios
-            daily_collection = 0 # Ingresos Diarios
-            customers_in_arrears = 0 # Clientes en MORA o NO PAGO
+            total_collections_today = 0  # Recaudo Diario
+            daily_expenses_count = 0  # Gastos Diarios
+            daily_expenses_amount = 0  # Valor Gastos Diarios
+            daily_withdrawals = 0  # Retiros Diarios
+            daily_collection = 0  # Ingresos Diarios
+            customers_in_arrears = 0  # Clientes en MORA o NO PAGO
             total_renewal_loans = 0  # Cantidad de Renovaciones
-            total_renewal_loans_amount = 0 # Valor Total Renovaciones
-            total_customers = 0 # Clientes Totales (Activos)
-            new_clients = 0 # Clientes Nuevos
-            new_clients_loan_amount = 0 # Valor Prestamos Nuevos
-            daily_withdrawals_count = 0 # Cantidad Retiros Diarios
-            daily_collection_count = 0 # Cantidad Ingresos Diarios
-            total_pending_installments_amount = 0 # Monto total de cuotas pendientes
+            total_renewal_loans_amount = 0  # Valor Total Renovaciones
+            total_customers = 0  # Clientes Totales (Activos)
+            new_clients = 0  # Clientes Nuevos
+            new_clients_loan_amount = 0  # Valor Prestamos Nuevos
+            daily_withdrawals_count = 0  # Cantidad Retiros Diarios
+            daily_collection_count = 0  # Cantidad Ingresos Diarios
+            total_pending_installments_amount = 0  # Monto total de cuotas pendientes
 
             all_loans_paid = Loan.query.filter_by(employee_id=salesman.employee_id)
             all_loans_paid_today = False
@@ -1197,8 +1188,7 @@ def box():
                 Loan.client.has(employee_id=salesman.employee_id),
                 func.date(Payment.payment_date) == datetime.now().date()
             ).scalar() or 0
-            
-            
+
             # Calcula el total de los montos de las cuotas en estado PENDIENTE, MORA o ABONADA, donde la fecha sea menor o igual a hoy
             total_pending_installments_amount = db.session.query(
                 func.sum(LoanInstallment.amount)
@@ -1212,11 +1202,10 @@ def box():
                 Salesman, Employee.id == Salesman.employee_id
             ).filter(
                 Salesman.employee_id == salesman.employee_id,
-                LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]),
+                LoanInstallment.status.in_(
+                    [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]),
                 LoanInstallment.due_date <= datetime.now().date()
             ).scalar() or 0
-
-
 
             # Calcula la cantidad de nuevos clientes registrados en el día
             new_clients = Client.query.filter(
@@ -1232,9 +1221,6 @@ def box():
                 # Loan.creation_date <= datetime.now(),
                 Loan.is_renewal == False  # Excluir renovaciones
             ).with_entities(func.sum(Loan.amount)).scalar() or 0
-
-
-
 
             # Calcula el total de renovaciones para el día actual para este vendedor
             total_renewal_loans = Loan.query.filter(
@@ -1252,9 +1238,6 @@ def box():
                 # Loan.creation_date < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
             ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
-
-
-
             # Calcula Valor de los gastos diarios
             daily_expenses_amount = Transaction.query.filter(
                 Transaction.employee_id == salesman.employee_id,
@@ -1269,24 +1252,18 @@ def box():
                 func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
             ).count() or 0
 
-
-
-
             # Calcula los retiros diarios basados en transacciones de RETIRO
             daily_withdrawals = Transaction.query.filter(
                 Transaction.employee_id == salesman.employee_id,
                 Transaction.transaction_types == TransactionType.RETIRO,
                 func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
             ).with_entities(func.sum(Transaction.amount)).scalar() or 0
-            
+
             daily_withdrawals_count = Transaction.query.filter(
                 Transaction.employee_id == salesman.employee_id,
                 Transaction.transaction_types == TransactionType.RETIRO,
                 func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
             ).count() or 0
-
-
-
 
             # Calcula las colecciones diarias basadas en transacciones de INGRESO
             daily_collection = Transaction.query.filter(
@@ -1301,18 +1278,12 @@ def box():
                 func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
             ).count() or 0
 
-
-
-
-
-
             # Número total de clientes del vendedor
             total_customers = sum(
                 1 for client in salesman.employee.clients
                 for loan in client.loans
                 if loan.status
             )
-
 
             # Clientes morosos para el día
             customers_in_arrears = sum(
@@ -1321,7 +1292,7 @@ def box():
                 if loan.status and not loan.up_to_date and any(
                     installment.status == InstallmentStatus.MORA
                     or (
-                        installment.status == InstallmentStatus.PENDIENTE and installment.due_date == datetime.now().date()
+                            installment.status == InstallmentStatus.PENDIENTE and installment.due_date == datetime.now().date()
                     )
                     for installment in loan.installments
                 )
@@ -1334,7 +1305,6 @@ def box():
             # print("employee_status: ", employee_status)
             # print("all_loans: ", all_loans_paid_today)
 
-
             status_box = ""
 
             if employee_status == False and all_loans_paid_today == True:
@@ -1345,7 +1315,6 @@ def box():
                 status_box = "Activa"
             else:
                 status_box = "Activa"
-
 
             # print("status_box: ", status_box)
 
@@ -1362,18 +1331,19 @@ def box():
                 'daily_collections_made': daily_collection,
                 'total_number_of_customers': total_customers,
                 'customers_in_arrears_for_the_day': customers_in_arrears,
-                'total_renewal_loans' : total_renewal_loans,
-                'total_new_clients_loan_amount': new_clients_loan_amount,  # Nuevo campo para el total de los préstamos de los nuevos clientes
+                'total_renewal_loans': total_renewal_loans,
+                'total_new_clients_loan_amount': new_clients_loan_amount,
+                # Nuevo campo para el total de los préstamos de los nuevos clientes
                 'total_renewal_loans_amount': total_renewal_loans_amount,
                 'daily_withdrawals_count': daily_withdrawals_count,
                 'daily_collection_count': daily_collection_count,
-                'total_pending_installments_amount': total_pending_installments_amount,  # Nuevo campo para el total de los montos de las cuotas pendientes
+                'total_pending_installments_amount': total_pending_installments_amount,
+                # Nuevo campo para el total de los montos de las cuotas pendientes
                 'all_loans_paid_today': all_loans_paid_today,
                 'status_box': status_box
             }
 
             salesmen_stats.append(salesman_data)
-
 
         # Obtener el término de búsqueda
         search_term = request.args.get('salesman_name')
@@ -1384,7 +1354,8 @@ def box():
 
         # Realizar la búsqueda en la lista de salesmen_stats si hay un término de búsqueda
         if search_term:
-            salesmen_stats = [salesman for salesman in salesmen_stats if search_term.lower() in salesman['salesman_name'].lower()]
+            salesmen_stats = [salesman for salesman in salesmen_stats if
+                              search_term.lower() in salesman['salesman_name'].lower()]
 
         # Construir la respuesta como variables separadas
         coordinator_box = {
@@ -1392,19 +1363,17 @@ def box():
             'total_outbound_amount': total_outbound_amount[0][0] if total_outbound_amount else 0,
             'total_inbound_amount': total_inbound_amount[0][0] if total_inbound_amount else 0
         }
-        
+
         # print(salesmen_stats)
 
         # Renderizar la plantilla con las variables
-        return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats, search_term=search_term, all_boxes_closed=all_boxes_closed, coordinator_name=coordinator_name)
+        return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats,
+                               search_term=search_term, all_boxes_closed=all_boxes_closed,
+                               coordinator_name=coordinator_name)
 
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
-
-
-
-
 
 
 # Define the endpoint route to list clients in arrears
@@ -1467,7 +1436,7 @@ def debtor():
             # Agregar los detalles del cliente en MORA a la lista
             mora_debtors_details.append(mora_debtor_details)
 
-                    # Obtener el término de búsqueda del formulario
+            # Obtener el término de búsqueda del formulario
         search_term = request.args.get('search')
 
         # Filtrar los clientes según el término de búsqueda
@@ -1487,8 +1456,6 @@ def debtor():
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
-
-
 
 
 @routes.route('/get-debtors', methods=['GET'])
@@ -1607,7 +1574,6 @@ def get_debtors():
     return jsonify(debtors_info)
 
 
-
 @routes.route('/approval-expenses')
 def approval_expenses():
     try:
@@ -1659,7 +1625,8 @@ def approval_expenses():
                     'descripcion': transaccion.description,
                     'monto': transaccion.amount,
                     'attachment': transaccion.attachment,
-                    'vendedor': vendedor.user.first_name + ' ' + vendedor.user.last_name  # Obtener el nombre del vendedor
+                    'vendedor': vendedor.user.first_name + ' ' + vendedor.user.last_name
+                    # Obtener el nombre del vendedor
                 }
 
                 # Agregar los detalles a la lista
@@ -1698,14 +1665,13 @@ def approval_expenses():
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
-
-
-
 import os
 import uuid
 from flask import request, render_template, session, redirect, url_for
 from werkzeug.utils import secure_filename
 from sqlalchemy import join
+
+
 @routes.route('/transaction', methods=['GET', 'POST'])
 def transactions():
     if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
@@ -1714,7 +1680,7 @@ def transactions():
 
         # Obtener el empleado asociado al user_id
         employee = Employee.query.filter_by(user_id=user_id).first()
-        
+
         transaction_type = ''  # Definir transaction_type por defecto
 
         if request.method == 'POST':
@@ -1733,7 +1699,7 @@ def transactions():
             # Guardar el archivo en la carpeta 'static/images'
             upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'images')
             attachment.save(os.path.join(upload_folder, filename))
-            
+
             current_date = datetime.now()
 
             # Usar el employee_id obtenido para crear la transacción
@@ -1749,7 +1715,6 @@ def transactions():
                 creation_date=current_date
             )
 
-
             db.session.add(transaction)
             db.session.commit()
 
@@ -1760,15 +1725,10 @@ def transactions():
             # Obtener todos los conceptos disponibles
             concepts = Concept.query.all()
 
-
             return render_template('transactions.html', concepts=concepts, user_role=user_role)
     else:
         # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
         return "Acceso no autorizado."
-        
-
-
-
 
 
 # Ruta para modificar el estado de una transacción
@@ -1793,23 +1753,23 @@ def modify_transaction(transaction_id):
 
         # Verificar si la transacción tiene un loan_id
         if transaction.loan_id:
-             # Buscar el préstamo correspondiente en el modelo Loan
-             prestamo = Loan.query.get(transaction.loan_id)
+            # Buscar el préstamo correspondiente en el modelo Loan
+            prestamo = Loan.query.get(transaction.loan_id)
             #  print(prestamo)
-             if prestamo:
-                 if transaction.approval_status == ApprovalStatus.APROBADA:
-                     prestamo.approved = True
-                     db.session.add(prestamo)
-                     generate_loan_installments(prestamo)
-                 elif transaction.approval_status == ApprovalStatus.RECHAZADA:
-                     # Eliminar el préstamo si la transacción se marca como rechazada
-                     prestamo.status = 0
-                     # Cambiar el estado del cliente a 0
-                     cliente = Client.query.filter_by(id=prestamo.client_id).first()
-                     if cliente:
-                         cliente.status = 0
-                         db.session.add(cliente)
-             else:
+            if prestamo:
+                if transaction.approval_status == ApprovalStatus.APROBADA:
+                    prestamo.approved = True
+                    db.session.add(prestamo)
+                    generate_loan_installments(prestamo)
+                elif transaction.approval_status == ApprovalStatus.RECHAZADA:
+                    # Eliminar el préstamo si la transacción se marca como rechazada
+                    prestamo.status = 0
+                    # Cambiar el estado del cliente a 0
+                    cliente = Client.query.filter_by(id=prestamo.client_id).first()
+                    if cliente:
+                        cliente.status = 0
+                        db.session.add(cliente)
+            else:
                 return redirect('/approval-expenses')
 
         # Guardar los cambios en la base de datos
@@ -1828,7 +1788,6 @@ def wallet():
     total_cash = 0
     total_active_sellers = 0
     sellers_detail = []
-    
 
     # Get all coordinators
     coordinators = Manager.query.all()
@@ -1900,7 +1859,6 @@ def wallet():
     return render_template('wallet.html', wallet_data=wallet_data)
 
 
-
 @routes.route('/wallet-detail/<int:employee_id>', methods=['GET'])
 def wallet_detail(employee_id):
     # Obtener el empleado
@@ -1928,7 +1886,7 @@ def wallet_detail(employee_id):
         total_overdue_amount_loan = 0
         total_overdue_installments_loan = 0
         total_paid_installments_loan = 0
-        
+
         # Obtener el total de cuotas del préstamo
         total_installments_loan = len(loan.installments)
 
@@ -2029,7 +1987,6 @@ def box_archive():
     return render_template('box-archive.html')
 
 
-
 @routes.route('/box-detail', methods=['GET'])
 def box_detail():
     user_role = session.get('role')
@@ -2086,23 +2043,29 @@ def box_detail():
         loan_interest = float(renewal_loan_detail['loan_interest'])
         renewal_loan_detail['total_amount'] = loan_amount + (loan_amount * loan_interest / 100)
 
-
     # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de creación descendente
     transactions = Transaction.query.filter_by(employee_id=employee_id).order_by(Transaction.creation_date.desc()).all()
 
     # Filtrar transacciones por tipo y fecha
     today = datetime.today().date()
-    expenses = [trans for trans in transactions if trans.transaction_types == TransactionType.GASTO and trans.creation_date.date() == today]
-    incomes = [trans for trans in transactions if trans.transaction_types == TransactionType.INGRESO and trans.creation_date.date() == today]
-    withdrawals = [trans for trans in transactions if trans.transaction_types == TransactionType.RETIRO and trans.creation_date.date() == today]
-
+    expenses = [trans for trans in transactions if
+                trans.transaction_types == TransactionType.GASTO and trans.creation_date.date() == today]
+    incomes = [trans for trans in transactions if
+               trans.transaction_types == TransactionType.INGRESO and trans.creation_date.date() == today]
+    withdrawals = [trans for trans in transactions if
+                   trans.transaction_types == TransactionType.RETIRO and trans.creation_date.date() == today]
 
     # Recopilar detalles con formato de fecha y clases de Bootstrap
-    expense_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
-    income_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in incomes]
-    withdrawal_details = [{'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name, 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in withdrawals]
-    
-    
+    expense_details = [
+        {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+         'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
+    income_details = [
+        {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+         'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in incomes]
+    withdrawal_details = [
+        {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+         'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in withdrawals]
+
     # Calcular clientes con cuotas en mora y cuya fecha de vencimiento sea la de hoy
     clients_in_arrears = []
     for loan in loans:
@@ -2117,8 +2080,10 @@ def box_detail():
                 }
                 clients_in_arrears.append(client_arrears)
 
-       # Obtener todos los pagos realizados hoy
-    payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id, func.date(Payment.payment_date) == today).all()
+    # Obtener todos los pagos realizados hoy
+    payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id,
+                                                                                          func.date(
+                                                                                              Payment.payment_date) == today).all()
 
     # Recopilar detalles de los pagos realizados hoy
     payment_details = []
@@ -2134,7 +2099,8 @@ def box_detail():
             payment_summary[(client_name, payment_date)]['payment_amount'] += payment.amount
         else:
             # Create a new payment summary for the client and date
-            remaining_balance = sum(inst.amount for inst in payment.installment.loan.installments if inst.status in (InstallmentStatus.PENDIENTE , InstallmentStatus.MORA, InstallmentStatus.ABONADA))
+            remaining_balance = sum(inst.amount for inst in payment.installment.loan.installments if inst.status in (
+            InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA))
             total_credit = payment.installment.loan.amount  # Total credit from the loan model
             payment_summary[(client_name, payment_date)] = {
                 'loan_id': payment.installment.loan.id,  # Add loan_id to the payment details
@@ -2154,22 +2120,21 @@ def box_detail():
     loan_id = payment_details[0].get('loan_id') if payment_details else None
     installment_id = payment_details[0].get('installment_id') if payment_details else None
 
-
     # print(clients_in_arrears)
     # Renderizar la plantilla HTML con los datos recopilados
     return render_template('box-detail.html',
-                        salesman=employee.salesman,
-                        loans_details=loan_details,
-                        renewal_loan_details=renewal_loan_details,
-                        expense_details=expense_details,
-                        income_details=income_details,
-                        withdrawal_details=withdrawal_details,
-                        clients_in_arrears=clients_in_arrears,
-                        payment_details=payment_details,
-                        user_role=user_role,
-                        loan_id=loan_id,
-                        installment_id=installment_id
-                        )
+                           salesman=employee.salesman,
+                           loans_details=loan_details,
+                           renewal_loan_details=renewal_loan_details,
+                           expense_details=expense_details,
+                           income_details=income_details,
+                           withdrawal_details=withdrawal_details,
+                           clients_in_arrears=clients_in_arrears,
+                           payment_details=payment_details,
+                           user_role=user_role,
+                           loan_id=loan_id,
+                           installment_id=installment_id
+                           )
 
 
 @routes.route('/reports')
@@ -2177,13 +2142,11 @@ def reports():
     return render_template('reports.html')
 
 
-
-
 @routes.route('/debtor-manager')
 def debtor_manager():
     debtors_info = []
     total_mora = 0
-    
+
     # Obtener todos los coordinadores
     coordinators = Manager.query.all()
 
@@ -2206,25 +2169,28 @@ def debtor_manager():
                     loan_installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
                     # print(loan_installments)
                     # Calcular la mora
-                    total_due = sum(installment.amount for installment in loan_installments if installment.status == InstallmentStatus.MORA)
+                    total_due = sum(installment.amount for installment in loan_installments if
+                                    installment.status == InstallmentStatus.MORA)
                     # print("Total due for client:", total_due)
                     # print("Installments statuses:", [installment.status for installment in loan_installments])
                     # print("Installments amounts:", [installment.amount for installment in loan_installments])
 
                     total_mora += total_due
 
-
                     # Verificar si el cliente está en mora
                     if total_due > 0:
-                        overdue_installments = len([installment for installment in loan_installments if installment.status == InstallmentStatus.MORA])
+                        overdue_installments = len([installment for installment in loan_installments if
+                                                    installment.status == InstallmentStatus.MORA])
                         total_installments = len(loan_installments)
                         last_installment_date = max(installment.due_date for installment in loan_installments)
-                        last_payment_date = max(payment.payment_date for installment in loan_installments for payment in installment.payments)
+                        last_payment_date = max(payment.payment_date for installment in loan_installments for payment in
+                                                installment.payments)
 
                         # Calcular el saldo pendiente
-                        total_payment = sum(payment.amount for installment in loan.installments for payment in installment.payments)
+                        total_payment = sum(
+                            payment.amount for installment in loan.installments for payment in installment.payments)
                         balance = total_loan_amount - total_payment
-                        
+
                         debtor_info = {
                             'salesman_name': f"{salesman.employee.user.first_name} {salesman.employee.user.last_name}",
                             'client_name': f"{debtor.first_name} {debtor.last_name}",
@@ -2238,12 +2204,9 @@ def debtor_manager():
                         }
 
                         debtors_info.append(debtor_info)
-                        
+
     # print(debtors_info)
     return render_template('debtor-manager.html', debtors_info=debtors_info, total_mora=total_mora)
-
-
-
 
 
 @routes.route('/add-employee-record/<int:employee_id>', methods=['POST'])
@@ -2252,8 +2215,8 @@ def add_employee_record(employee_id):
 
     if request.method == 'POST':
         # Buscar el último registro de caja del día anterior
-        last_record = EmployeeRecord.query.filter_by(employee_id=employee_id)\
-            .filter(func.date(EmployeeRecord.creation_date) <= fecha_actual)\
+        last_record = EmployeeRecord.query.filter_by(employee_id=employee_id) \
+            .filter(func.date(EmployeeRecord.creation_date) <= fecha_actual) \
             .order_by(EmployeeRecord.creation_date.desc()).first()
 
         employee = Employee.query.get(employee_id)
@@ -2262,9 +2225,8 @@ def add_employee_record(employee_id):
         # Usar el cierre de caja del último registro como el estado inicial, si existe
         if last_record:
             initial_state = last_record.closing_total
-        else:            
+        else:
             initial_state = employee.maximum_cash
-
 
         # Calcular la cantidad de préstamos por cobrar
         loans_to_collect = Loan.query.filter_by(employee_id=employee_id, status=True).count()
@@ -2275,19 +2237,18 @@ def add_employee_record(employee_id):
             .filter(Loan.employee_id == employee_id) \
             .subquery()
 
-
-            # Subconsulta para obtener los IDs de las cuotas de préstamo PAGADA del empleado
+        # Subconsulta para obtener los IDs de las cuotas de préstamo PAGADA del empleado
         paid_installments_query = db.session.query(LoanInstallment.id) \
             .join(Loan) \
             .filter(Loan.employee_id == employee_id,
                     LoanInstallment.status == InstallmentStatus.PAGADA) \
             .subquery()
-        
+
         # Calcular la cantidad de cuotas PAGADA y su total
         paid_installments = db.session.query(func.sum(Payment.amount)) \
-            .join(paid_installments_query, Payment.installment_id == paid_installments_query.c.id) \
-            .filter(func.date(Payment.payment_date) == fecha_actual) \
-            .scalar() or 0
+                                .join(paid_installments_query, Payment.installment_id == paid_installments_query.c.id) \
+                                .filter(func.date(Payment.payment_date) == fecha_actual) \
+                                .scalar() or 0
 
         # Obtener la cantidad de transacciones pendientes del vendedor
         pending_transactions = Transaction.query.filter(
@@ -2301,11 +2262,10 @@ def add_employee_record(employee_id):
             Transaction.approval_status == ApprovalStatus.PENDIENTE
         ).with_entities(Transaction.id).all()
 
-
         # print(pending_transaction_ids)
         # print(pending_transactions)
 
-            # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
+        # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
         partial_installments_query = db.session.query(LoanInstallment.id) \
             .join(Loan) \
             .filter(Loan.employee_id == employee_id,
@@ -2314,10 +2274,10 @@ def add_employee_record(employee_id):
 
         # Calcular la cantidad de cuotas ABONADAS y su total
         partial_installments = db.session.query(func.sum(Payment.amount)) \
-            .join(partial_installments_query, Payment.installment_id == partial_installments_query.c.id) \
-            .filter(func.date(Payment.payment_date) == fecha_actual) \
-            .scalar() or 0
-
+                                   .join(partial_installments_query,
+                                         Payment.installment_id == partial_installments_query.c.id) \
+                                   .filter(func.date(Payment.payment_date) == fecha_actual) \
+                                   .scalar() or 0
 
         # Verificar si todos los préstamos tienen un pago igual al de hoy
         all_loans_paid = Loan.query.filter_by(employee_id=employee_id).all()
@@ -2331,7 +2291,7 @@ def add_employee_record(employee_id):
                     break
                 if all_loans_paid_today:
                     break
-    
+
         # print("Prestamos: ", all_loans_paid_today)
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo en mora del empleado
@@ -2343,10 +2303,11 @@ def add_employee_record(employee_id):
 
         # Calcular la cantidad de cuotas vencidas y su total
         overdue_installments_total = db.session.query(func.sum(LoanInstallment.amount)) \
-            .join(overdue_installments_query, LoanInstallment.id == overdue_installments_query.c.id) \
-            .join(Payment, Payment.installment_id == LoanInstallment.id) \
-            .filter(func.date(Payment.payment_date) == fecha_actual) \
-            .scalar() or 0
+                                         .join(overdue_installments_query,
+                                               LoanInstallment.id == overdue_installments_query.c.id) \
+                                         .join(Payment, Payment.installment_id == LoanInstallment.id) \
+                                         .filter(func.date(Payment.payment_date) == fecha_actual) \
+                                         .scalar() or 0
 
         # print("Total de cuotas en mora:", overdue_installments_total)
 
@@ -2359,7 +2320,6 @@ def add_employee_record(employee_id):
             and_(Loan.employee_id == employee_id, func.date(Payment.payment_date) == fecha_actual)
         ).scalar() or 0
 
-
         # Calcula el total de préstamos de los nuevos clientes
         new_clients_loan_amount = Loan.query.join(Client).filter(
             Client.employee_id == employee_id,
@@ -2367,7 +2327,6 @@ def add_employee_record(employee_id):
             # Loan.creation_date <= datetime.now(),
             Loan.is_renewal == False  # Excluir renovaciones
         ).with_entities(func.sum(Loan.amount)).scalar() or 0
-
 
         # Calcula el monto total de las renovaciones de préstamos para este vendedor
         total_renewal_loans_amount = Loan.query.filter(
@@ -2377,10 +2336,8 @@ def add_employee_record(employee_id):
             # Loan.creation_date < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
-
         # print("new_clients_loan_amount", new_clients_loan_amount)
         # print("total_renewal_loans_amount", total_renewal_loans_amount)
-
 
         # Calcula Valor de los gastos diarios
         daily_expenses_amount = Transaction.query.filter(
@@ -2389,14 +2346,12 @@ def add_employee_record(employee_id):
             func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
         ).with_entities(func.sum(Transaction.amount)).scalar() or 0
 
-
         # Calcula los retiros diarios basados en transacciones de RETIRO
         daily_withdrawals = Transaction.query.filter(
             Transaction.employee_id == employee_id,
             Transaction.transaction_types == TransactionType.RETIRO,
             func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
         ).with_entities(func.sum(Transaction.amount)).scalar() or 0
-        
 
         # Calcula las colecciones diarias basadas en transacciones de INGRESO
         daily_incomings = Transaction.query.filter(
@@ -2428,12 +2383,12 @@ def add_employee_record(employee_id):
                 withdrawals=daily_withdrawals,
                 total_collected=total_collected,
                 closing_total=int(initial_state) + int(paid_installments)
-                + int(partial_installments) 
-                - int(new_clients_loan_amount)
-                - int(total_renewal_loans_amount)
-                + int(daily_incomings)
-                - int(daily_withdrawals)
-                - int(daily_expenses_amount),  # Calcular el cierre de caja
+                              + int(partial_installments)
+                              - int(new_clients_loan_amount)
+                              - int(total_renewal_loans_amount)
+                              + int(daily_incomings)
+                              - int(daily_withdrawals)
+                              - int(daily_expenses_amount),  # Calcular el cierre de caja
                 creation_date=datetime.now()
             )
 
@@ -2444,7 +2399,7 @@ def add_employee_record(employee_id):
             db.session.commit()
             print("Caja Cerrada y Guarda Correctamente")
 
-        
+
         else:
             if employee_status == 1 and all_loans_paid_today == False:
                 print("Empleado NO completo el camello")
@@ -2458,15 +2413,12 @@ def add_employee_record(employee_id):
             # Guardar los cambios en la base de datos
             db.session.add(employee)
             db.session.commit()
-    
+
     return redirect(url_for('routes.box'))
-
-
 
 
 @routes.route('/all-open-boxes', methods=['POST'])
 def all_open_boxes():
-
     user_id = session.get('user_id')
 
     if user_id is None:
@@ -2485,7 +2437,7 @@ def all_open_boxes():
 
     if not manager_id:
         return jsonify({'message': 'No se encontró ningún coordinador asociado a este empleado'}), 404
-    
+
     salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
 
     # Cambiar el estado de los empleados de los vendedores a True
@@ -2497,16 +2449,14 @@ def all_open_boxes():
     return redirect(url_for('routes.box'))
 
 
-
-
 @routes.route('/add-daily-collected/<int:employee_id>', methods=['POST'])
 def add_daily_collected(employee_id):
     fecha_actual = datetime.now().date()
 
     if request.method == 'POST':
         # Buscar el último registro de caja del día anterior
-        last_record = EmployeeRecord.query.filter_by(employee_id=employee_id)\
-            .filter(func.date(EmployeeRecord.creation_date) <= fecha_actual)\
+        last_record = EmployeeRecord.query.filter_by(employee_id=employee_id) \
+            .filter(func.date(EmployeeRecord.creation_date) <= fecha_actual) \
             .order_by(EmployeeRecord.creation_date.desc()).first()
 
         employee = Employee.query.get(employee_id)
@@ -2515,9 +2465,8 @@ def add_daily_collected(employee_id):
         # Usar el cierre de caja del último registro como el estado inicial, si existe
         if last_record:
             initial_state = last_record.closing_total
-        else:            
+        else:
             initial_state = employee.maximum_cash
-
 
         # Calcular la cantidad de préstamos por cobrar
         loans_to_collect = Loan.query.filter_by(employee_id=employee_id, status=True).count()
@@ -2528,19 +2477,18 @@ def add_daily_collected(employee_id):
             .filter(Loan.employee_id == employee_id) \
             .subquery()
 
-
-            # Subconsulta para obtener los IDs de las cuotas de préstamo PAGADA del empleado
+        # Subconsulta para obtener los IDs de las cuotas de préstamo PAGADA del empleado
         paid_installments_query = db.session.query(LoanInstallment.id) \
             .join(Loan) \
             .filter(Loan.employee_id == employee_id,
                     LoanInstallment.status == InstallmentStatus.PAGADA) \
             .subquery()
-        
+
         # Calcular la cantidad de cuotas PAGADA y su total
         paid_installments = db.session.query(func.sum(Payment.amount)) \
-            .join(paid_installments_query, Payment.installment_id == paid_installments_query.c.id) \
-            .filter(func.date(Payment.payment_date) == fecha_actual) \
-            .scalar() or 0
+                                .join(paid_installments_query, Payment.installment_id == paid_installments_query.c.id) \
+                                .filter(func.date(Payment.payment_date) == fecha_actual) \
+                                .scalar() or 0
 
         # Obtener la cantidad de transacciones pendientes del vendedor
         pending_transactions = Transaction.query.filter(
@@ -2554,11 +2502,10 @@ def add_daily_collected(employee_id):
             Transaction.approval_status == ApprovalStatus.PENDIENTE
         ).with_entities(Transaction.id).all()
 
-
         # print(pending_transaction_ids)
         # print(pending_transactions)
 
-            # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
+        # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
         partial_installments_query = db.session.query(LoanInstallment.id) \
             .join(Loan) \
             .filter(Loan.employee_id == employee_id,
@@ -2567,10 +2514,10 @@ def add_daily_collected(employee_id):
 
         # Calcular la cantidad de cuotas ABONADAS y su total
         partial_installments = db.session.query(func.sum(Payment.amount)) \
-            .join(partial_installments_query, Payment.installment_id == partial_installments_query.c.id) \
-            .filter(func.date(Payment.payment_date) == fecha_actual) \
-            .scalar() or 0
-
+                                   .join(partial_installments_query,
+                                         Payment.installment_id == partial_installments_query.c.id) \
+                                   .filter(func.date(Payment.payment_date) == fecha_actual) \
+                                   .scalar() or 0
 
         # Verificar si todos los préstamos tienen un pago igual al de hoy
         all_loans_paid = Loan.query.filter_by(employee_id=employee_id).all()
@@ -2584,7 +2531,7 @@ def add_daily_collected(employee_id):
                     break
                 if all_loans_paid_today:
                     break
-    
+
         # print("Prestamos: ", all_loans_paid_today)
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo en mora del empleado
@@ -2596,10 +2543,11 @@ def add_daily_collected(employee_id):
 
         # Calcular la cantidad de cuotas vencidas y su total
         overdue_installments_total = db.session.query(func.sum(LoanInstallment.amount)) \
-            .join(overdue_installments_query, LoanInstallment.id == overdue_installments_query.c.id) \
-            .join(Payment, Payment.installment_id == LoanInstallment.id) \
-            .filter(func.date(Payment.payment_date) == fecha_actual) \
-            .scalar() or 0
+                                         .join(overdue_installments_query,
+                                               LoanInstallment.id == overdue_installments_query.c.id) \
+                                         .join(Payment, Payment.installment_id == LoanInstallment.id) \
+                                         .filter(func.date(Payment.payment_date) == fecha_actual) \
+                                         .scalar() or 0
 
         # print("Total de cuotas en mora:", overdue_installments_total)
 
@@ -2612,7 +2560,6 @@ def add_daily_collected(employee_id):
             and_(Loan.employee_id == employee_id, func.date(Payment.payment_date) == fecha_actual)
         ).scalar() or 0
 
-
         # Calcula el total de préstamos de los nuevos clientes
         new_clients_loan_amount = Loan.query.join(Client).filter(
             Client.employee_id == employee_id,
@@ -2620,7 +2567,6 @@ def add_daily_collected(employee_id):
             # Loan.creation_date <= datetime.now(),
             Loan.is_renewal == False  # Excluir renovaciones
         ).with_entities(func.sum(Loan.amount)).scalar() or 0
-
 
         # Calcula el monto total de las renovaciones de préstamos para este vendedor
         total_renewal_loans_amount = Loan.query.filter(
@@ -2630,10 +2576,8 @@ def add_daily_collected(employee_id):
             # Loan.creation_date < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
-
         # print("new_clients_loan_amount", new_clients_loan_amount)
         # print("total_renewal_loans_amount", total_renewal_loans_amount)
-
 
         # Calcula Valor de los gastos diarios
         daily_expenses_amount = Transaction.query.filter(
@@ -2642,14 +2586,12 @@ def add_daily_collected(employee_id):
             func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
         ).with_entities(func.sum(Transaction.amount)).scalar() or 0
 
-
         # Calcula los retiros diarios basados en transacciones de RETIRO
         daily_withdrawals = Transaction.query.filter(
             Transaction.employee_id == employee_id,
             Transaction.transaction_types == TransactionType.RETIRO,
             func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
         ).with_entities(func.sum(Transaction.amount)).scalar() or 0
-        
 
         # Calcula las colecciones diarias basadas en transacciones de INGRESO
         daily_incomings = Transaction.query.filter(
@@ -2681,12 +2623,12 @@ def add_daily_collected(employee_id):
                 withdrawals=daily_withdrawals,
                 total_collected=total_collected,
                 closing_total=int(initial_state) + int(paid_installments)
-                + int(partial_installments) 
-                - int(new_clients_loan_amount)
-                - int(total_renewal_loans_amount)
-                + int(daily_incomings)
-                - int(daily_withdrawals)
-                - int(daily_expenses_amount),  # Calcular el cierre de caja
+                              + int(partial_installments)
+                              - int(new_clients_loan_amount)
+                              - int(total_renewal_loans_amount)
+                              + int(daily_incomings)
+                              - int(daily_withdrawals)
+                              - int(daily_expenses_amount),  # Calcular el cierre de caja
                 creation_date=datetime.now()
             )
 
@@ -2697,7 +2639,7 @@ def add_daily_collected(employee_id):
             db.session.commit()
             print("Caja Cerrada y Guarda Correctamente")
 
-        
+
         else:
             if employee_status == 1 and all_loans_paid_today == False:
                 print("Empleado NO completo el camello")
@@ -2711,25 +2653,15 @@ def add_daily_collected(employee_id):
             # Guardar los cambios en la base de datos
             db.session.add(employee)
             db.session.commit()
-    
+
     return redirect(url_for('routes.logout'))
-
-
-
-
-
-
-
-
-
-
 
 
 @routes.route('/payments/edit', methods=['POST'])
 def edit_payment():
     # Obtén los datos de la solicitud
     user_id = session.get('user_id')
-    
+
     # Buscar al empleado correspondiente al user_id de la sesión
     employee = Employee.query.filter_by(user_id=user_id).first()
     employee_id = employee.id
@@ -2746,12 +2678,14 @@ def edit_payment():
     loan = Loan.query.get(loan_id)
     client = loan.client
     current_date = datetime.now().date()
-    
+
     if not loan:
         return jsonify({'message': 'Préstamo no encontrado'}), 404
 
     # Obtener todos los pagos realizados hoy
-    payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id, func.date(Payment.payment_date) == current_date).all()
+    payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id,
+                                                                                          func.date(
+                                                                                              Payment.payment_date) == current_date).all()
 
     # Obtén el monto del pago realizado hoy
     amount_payment_today = sum(payment.amount for payment in payments_today)
@@ -2761,11 +2695,11 @@ def edit_payment():
 
     print(new_payment_value)
 
-
     # Calcular la suma de installmentValue y overdueAmount
-    total_amount_due = sum(installment.amount for installment in loan.installments 
-                           if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA])
-    
+    total_amount_due = sum(installment.amount for installment in loan.installments
+                           if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA,
+                                                     InstallmentStatus.ABONADA])
+
     if custom_payment >= total_amount_due:
         # Marcar todas las cuotas como "PAGADA" y actualizar la fecha de pago
         for installment in loan.installments:
@@ -2794,7 +2728,8 @@ def edit_payment():
                     installment.status = InstallmentStatus.PAGADA
                     installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
                     remaining_payment -= installment.amount
-                    payment = Payment(amount=installment.amount, payment_date=datetime.now(), installment_id=installment.id)
+                    payment = Payment(amount=installment.amount, payment_date=datetime.now(),
+                                      installment_id=installment.id)
                     installment.amount = 0
                 else:
                     # Si el pago es mayor que la cuota actual, se distribuye el excedente
@@ -2802,7 +2737,8 @@ def edit_payment():
                     installment.status = InstallmentStatus.ABONADA
                     installment.amount -= remaining_payment
                     # Crear el pago asociado a este abono parcial
-                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(), installment_id=installment.id)
+                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(),
+                                      installment_id=installment.id)
                     db.session.add(payment)
                     remaining_payment = 0
                 # Crear el pago asociado a esta cuota                
@@ -2811,23 +2747,16 @@ def edit_payment():
         loan.modification_date = datetime.now()
         client.debtor = False
         db.session.commit()
-    
+
         return jsonify({"message": "El pago se ha registrado correctamente."}), 200
-
-
-
-
-
 
     # Actualiza los campos del pago según los datos recibidos
     # payments_today.amount = custom_payment
-
 
     # Actualizar la fecha del pago
     #  payments_today.payment_date = current_date
 
     # Guarda los cambios en la base de datos
     # db.session.commit()
-    
-    return jsonify({"message": "El pago se ha registrado correctamente."}), 200
 
+    return jsonify({"message": "El pago se ha registrado correctamente."}), 200
