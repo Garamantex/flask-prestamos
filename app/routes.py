@@ -855,10 +855,15 @@ def payments_list():
                                                                                                     status=InstallmentStatus.MORA).scalar() or 0
 
                 # Calcula el monto total pendiente
-                total_outstanding_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
-                                                                                                        status=InstallmentStatus.PENDIENTE).scalar() or 0
+                total_outstanding_amount = db.session.query(func.sum(LoanInstallment.amount)).filter(
+                    LoanInstallment.loan_id == loan.id,
+                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA])
+                ).scalar() or 0
+                
+
                 total_amount_paid = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
                                                                                                  status=InstallmentStatus.ABONADA).scalar() or 0
+                
                 total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
                                                                                                     status=InstallmentStatus.MORA).scalar() or 0
 
