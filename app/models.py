@@ -58,7 +58,7 @@ class Employee(db.Model):
     minimum_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Mínimo interés')
     status = db.Column(db.Boolean, default=True, nullable=False, doc='Estado')
     percentage_interest = db.Column(db.Numeric(10, 2), nullable=False, doc='Porcentaje interés')
-    fix_value = db.Column(db.Numeric(10, 2), nullable=False, doc='Valor fijo')
+    fix_value = db.Column(db.Numeric(10, 2), nullable=True, doc='Valor fijo')
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
     modification_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now,
                                   onupdate=datetime.datetime.now)
