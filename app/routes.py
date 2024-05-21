@@ -823,7 +823,7 @@ def payments_list():
     if employee_status == True and all_loans_paid_today == True:
         status_box = "Cerrada"
     elif employee_status == False and all_loans_paid_today == True:
-        status_box = "Cerrada"
+        status_box = "Activa"
     elif employee_status == False and all_loans_paid_today == False:
         status_box = "Desactivada"
     elif employee_status == True and all_loans_paid_today == False:
