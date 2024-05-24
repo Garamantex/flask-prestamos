@@ -48,11 +48,11 @@
                 <div class="col">
                     <!-- Menú del vendedor -->
                     <nav class="c-menu d-flex flex-wrap justify-content-center justify-content-md-start align-items-center h-100">
-                        <a href="{{ url_for('routes.create_client') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i>Crear Prestamo</a>
+                        <a href="{{ url_for('routes.create_client' , user_id=user_id) }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i>Crear Prestamo</a>
                         <a href="{{ url_for('routes.renewal') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-person-vcard me-3"></i> Renovaciones</a>
                         <a href="{{ url_for('routes.transactions') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-lock me-3"></i> Transacciónes</a>
                         <a href="{{ url_for('routes.list_expenses') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-cash me-3"></i> Estado Transacciónes</a>
-                        <a href="{{ url_for('routes.payments_list') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Cobros del día</a>
+                        <a href="{{ url_for('routes.payments_list', user_id=user_id) }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-clipboard-data me-3"></i> Cobros del día</a>
                         <a class="c-btn c-btn-primary c-btn-block mb-3 mt-4" href="{{ url_for('routes.logout') }}">Salir</a>
                     </nav>
                 </div>

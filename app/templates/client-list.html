@@ -5,7 +5,7 @@
     <div class="container pt-5">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Menu</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Menu</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
@@ -20,7 +20,7 @@
         </div>
         <div class="row mt-4">
             <div class="col">
-                <form style="display: flex; flex-direction: column;" method="post" action="{{ url_for('routes.client_list') }}">
+                <form style="display: flex; flex-direction: column;" method="post" action="{{ url_for('routes.client_list', user_id=user_id) }}">
                     <div class="form-group">
                         <input type="text" name="search" class="form-control" placeholder="Buscar por nombre, documento o alias">
                     </div>
