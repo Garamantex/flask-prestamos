@@ -46,7 +46,6 @@
                         <p>Fecha Modificación: <span>{{ client.modification_date }}</span></p>
                         <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between;">
                             <a style="margin: 1.5rem 0;" class="btn btn-primary" href="{{ url_for('routes.credit_detail', id=client.loans[-1].id) }}">Ver detalle del crédito</a>
-                            <a class="btn btn-primary" href="{{ url_for('routes.edit_client', client_id=client.id) }}">Editar Cliente</a>
                         </div>
                     </li>
                     {% endfor %}

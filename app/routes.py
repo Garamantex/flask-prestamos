@@ -614,9 +614,9 @@ def renewal():
 
         client_data = [(client.document, f"{client.first_name} {client.last_name}") for client in clients]
 
-        return render_template('renewal.html', clients=client_data)
+        return render_template('renewal.html', clients=client_data, user_id=user_id)
     else:
-        return redirect(url_for('routes.menu_salesman'))
+        return redirect(url_for('routes.menu_salesman', user_id=session['user_id']))
 
 
 @routes.route('/credit-detail/<int:id>')
@@ -1372,7 +1372,7 @@ def box():
         # Renderizar la plantilla con las variables
         return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats,
                                search_term=search_term, all_boxes_closed=all_boxes_closed,
-                               coordinator_name=coordinator_name)
+                               coordinator_name=coordinator_name, user_id=user_id)
 
 
     except Exception as e:
@@ -1722,13 +1722,13 @@ def transactions():
             db.session.commit()
 
             return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',
-                                   concepts=concepts, user_role=user_role)
+                                   concepts=concepts, user_role=user_role, user_id=user_id)
 
         else:
             # Obtener todos los conceptos disponibles
             concepts = Concept.query.all()
 
-            return render_template('transactions.html', concepts=concepts, user_role=user_role)
+            return render_template('transactions.html', concepts=concepts, user_role=user_role, user_id=user_id)
     else:
         # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
         return "Acceso no autorizado."
@@ -1974,7 +1974,7 @@ def list_expenses():
             # Agregar los detalles a la lista
             detalles_transacciones.append(detalle_transaccion)
 
-        return render_template('list-expenses.html', detalles_transacciones=detalles_transacciones, user_role=user_role)
+        return render_template('list-expenses.html', detalles_transacciones=detalles_transacciones, user_role=user_role, user_id=user_id)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
