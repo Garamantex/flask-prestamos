@@ -38,7 +38,7 @@
             </div>
             <div class="row">
                 <div class="col" style="display: flex; flex-wrap: wrap">
-                    <a href="./box-detail?employee_id={{ employee_id }}" class="c-btn c-btn-primary mb-3" type="submit">
+                    <a href="{{ url_for('routes.box_detail', employee_id=employee_id) }}" class="c-btn c-btn-primary mb-3" type="submit">
                         Ver Detalle Caja
                     </a>
                 </div>

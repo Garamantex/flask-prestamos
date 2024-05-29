@@ -161,6 +161,7 @@ def menu_salesman(user_id):
 
 @routes.route('/create-user', methods=['GET', 'POST'])
 def create_user():
+    user_id = session['user_id']
     if 'user_id' in session and (session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR'):
         # Verificar si el usuario es administrador o coordinador
 
@@ -254,17 +255,18 @@ def create_user():
             # Redirecciona a la página de lista de usuarios o a donde corresponda
             return redirect(url_for('routes.user_list'))
 
-        return render_template('create-user.html')
+        return render_template('create-user.html' , user_id=user_id)
     else:
         abort(403)  # Acceso no autorizado
 
 
 @routes.route('/user-list')
 def user_list():
+    user_id = session['user_id']
     users = User.query.all()
     employees = Employee.query.all()
 
-    return render_template('user-list.html', users=users, employees=employees)
+    return render_template('user-list.html', users=users, employees=employees, user_id=user_id)
 
 
 @routes.route('/get_maximum_values_create_salesman', methods=['GET'])
@@ -1662,7 +1664,7 @@ def approval_expenses():
         # Confirmar la sesión de la base de datos después de la actualización
         db.session.commit()
 
-        return render_template('approval-expenses.html', detalles_transacciones=detalles_transacciones)
+        return render_template('approval-expenses.html', detalles_transacciones=detalles_transacciones, user_id=user_id, user_role=user_role)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
@@ -1792,6 +1794,8 @@ def wallet():
     total_active_sellers = 0
     sellers_detail = []
 
+    user_id = session.get('user_id')
+
     # Get all coordinators
     coordinators = Manager.query.all()
 
@@ -1859,7 +1863,7 @@ def wallet():
         'Debt Balance': str(debt_balance)
     }
 
-    return render_template('wallet.html', wallet_data=wallet_data)
+    return render_template('wallet.html', wallet_data=wallet_data, user_id=user_id)
 
 
 @routes.route('/wallet-detail/<int:employee_id>', methods=['GET'])
@@ -1993,6 +1997,7 @@ def box_archive():
 @routes.route('/box-detail', methods=['GET'])
 def box_detail():
     user_role = session.get('role')
+    user_id = session.get('user_id')
 
     # Obtener el employee_id del vendedor desde la solicitud
     employee_id = request.args.get('employee_id')
@@ -2136,8 +2141,8 @@ def box_detail():
                            payment_details=payment_details,
                            user_role=user_role,
                            loan_id=loan_id,
-                           installment_id=installment_id
-                           )
+                           installment_id=installment_id,
+                            user_id=user_id)
 
 
 @routes.route('/reports')
@@ -2149,6 +2154,7 @@ def reports():
 def debtor_manager():
     debtors_info = []
     total_mora = 0
+    user_id = session.get('user_id')
 
     # Obtener todos los coordinadores
     coordinators = Manager.query.all()
@@ -2209,7 +2215,7 @@ def debtor_manager():
                         debtors_info.append(debtor_info)
 
     # print(debtors_info)
-    return render_template('debtor-manager.html', debtors_info=debtors_info, total_mora=total_mora)
+    return render_template('debtor-manager.html', debtors_info=debtors_info, total_mora=total_mora, user_id=user_id)
 
 
 @routes.route('/add-employee-record/<int:employee_id>', methods=['POST'])
