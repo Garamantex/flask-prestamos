@@ -4,11 +4,11 @@
     <div class="row">
       {% if user_role == 'COORDINADOR' %}
       <div class="col">
-        <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
+        <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver</a>
       </div>
       {% elif user_role == 'VENDEDOR' %}
       <div class="col">
-        <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-salesman">Menu</a>
+        <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver</a>
       </div>
       {% endif %}
       <div class="col">

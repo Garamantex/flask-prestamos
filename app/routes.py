@@ -36,9 +36,9 @@ def home():
     if 'user_id' in session:
         role = session.get('role')
         if role == 'ADMINISTRADOR' or role == 'COORDINADOR':
-            return redirect(url_for('routes.menu_manager'))
+            return redirect(url_for('routes.menu_manager', user_id=session['user_id']))
         elif role == 'VENDEDOR':
-            return redirect(url_for('routes.menu_salesman'))
+            return redirect(url_for('routes.menu_salesman', user_id=session['user_id']))
         else:
             abort(403)  # Acceso no autorizado
 
@@ -63,9 +63,9 @@ def home():
 
                 # Redireccionar según el rol del usuario
                 if user.role.name == 'ADMINISTRADOR' or user.role.name == 'COORDINADOR':
-                    return redirect(url_for('routes.menu_manager'))
+                    return redirect(url_for('routes.menu_manager', user_id=user.id))
                 elif user.role.name == 'VENDEDOR':
-                    return redirect(url_for('routes.menu_salesman'))
+                    return redirect(url_for('routes.menu_salesman', user_id=user.id))
                 else:
                     abort(403)  # Acceso no autorizado
             error_message = 'Caja Desactivada.'
@@ -76,9 +76,11 @@ def home():
     return render_template('index.html')
 
 
+
+
 # ruta para el menú del administrador
-@routes.route('/menu-manager')
-def menu_manager():
+@routes.route('/menu-manager/<int:user_id>')
+def menu_manager(user_id):
     # Verificar si el usuario está logueado es administrador o coordinador
     if 'user_id' not in session:
         return redirect(url_for('routes.home'))
@@ -95,17 +97,12 @@ def menu_manager():
 
 
 import datetime
-
-
 # ruta para el menú del vendedor
-@routes.route('/menu-salesman')
-def menu_salesman():
+@routes.route('/menu-salesman/<int:user_id>')
+def menu_salesman(user_id):
     # Verificar si el usuario está logueado
     if 'user_id' not in session:
         return redirect(url_for('routes.home'))
-
-    # Obtener el user_id del usuario en sesión
-    user_id = session.get('user_id')
 
     # Obtener el employee_id a partir del user_id
     employee_id = Employee.query.filter_by(user_id=user_id).first().id
@@ -158,11 +155,13 @@ def menu_salesman():
                            total_credits=total_credits,
                            today_revenue=today_revenue,
                            total_arrears_value=total_arrears_value,
-                           employee_id=employee_id)
+                           employee_id=employee_id,
+                           user_id=user_id)
 
 
 @routes.route('/create-user', methods=['GET', 'POST'])
 def create_user():
+    user_id = session['user_id']
     if 'user_id' in session and (session['role'] == 'ADMINISTRADOR' or session['role'] == 'COORDINADOR'):
         # Verificar si el usuario es administrador o coordinador
 
@@ -256,17 +255,18 @@ def create_user():
             # Redirecciona a la página de lista de usuarios o a donde corresponda
             return redirect(url_for('routes.user_list'))
 
-        return render_template('create-user.html')
+        return render_template('create-user.html' , user_id=user_id)
     else:
         abort(403)  # Acceso no autorizado
 
 
 @routes.route('/user-list')
 def user_list():
+    user_id = session['user_id']
     users = User.query.all()
     employees = Employee.query.all()
 
-    return render_template('user-list.html', users=users, employees=employees)
+    return render_template('user-list.html', users=users, employees=employees, user_id=user_id)
 
 
 @routes.route('/get_maximum_values_create_salesman', methods=['GET'])
@@ -354,108 +354,103 @@ def get_maximum_values_loan():
     })
 
 
-@routes.route('/create-client', methods=['GET', 'POST'])
-def create_client():
+
+@routes.route('/create-client/<int:user_id>', methods=['GET', 'POST'])
+def create_client(user_id):
     try:
-        if 'user_id' in session and (
-                session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
+        employee = Employee.query.filter_by(user_id=user_id).first()
+        role = session.get('role')
 
-            if request.method == 'POST':
-                # Obtener el ID del empleado desde la sesión
-                user_id = session['user_id']
-                employee = Employee.query.filter_by(user_id=user_id).first()
 
-                if not employee:
-                    raise Exception("Error: No se encontró el empleado correspondiente al usuario.")
-
-                # Recopilar datos del formulario POST
-                first_name = request.form.get('first_name')
-                last_name = request.form.get('last_name')
-                alias = request.form.get('alias')
-                document = request.form.get('document')
-                cellphone = request.form.get('cellphone')
-                address = request.form.get('address')
-                neighborhood = request.form.get('neighborhood')
-                amount = request.form.get('amount')
-                dues = request.form.get('dues')
-                interest = request.form.get('interest')
-                payment = request.form.get('amountPerPay')
-
-                # Validar que los campos obligatorios no estén vacíos
-                if not first_name or not last_name or not document or not cellphone:
-                    raise Exception("Error: Los campos obligatorios deben estar completos.")
-
-                # Crear una instancia del cliente con los datos proporcionados
-                client = Client(
-                    first_name=first_name,
-                    last_name=last_name,
-                    alias=alias,
-                    document=document,
-                    cellphone=cellphone,
-                    address=address,
-                    neighborhood=neighborhood,
-                    employee_id=employee.id
-                )
-
-                # Guardar el cliente en la base de datos
-                db.session.add(client)
-                db.session.commit()
-
-                # Obtener el ID del cliente recién creado
-                client_id = client.id
-
-                # Obtener maximum_sale del empleado
-                maximum_sale = employee.maximum_sale
-                # print(maximum_sale)
-                # print(float(amount))
-                approved = float(amount) <= maximum_sale
-
-                # Crear una instancia del préstamo con los datos proporcionados
-                loan = Loan(
-                    amount=amount,
-                    dues=dues,
-                    interest=interest,
-                    payment=payment,
-                    status=True,
-                    approved=approved,
-                    up_to_date=False,
-                    client_id=client_id,
-                    employee_id=employee.id
-                )
-
-                # Guardar el préstamo en la base de datos
-                db.session.add(loan)
-                db.session.commit()
-
-                current_date = datetime.now()
-                filename = ""
-                # Usar el employee_id obtenido para crear la transacción
-                if not approved:
-                    # Usar el employee_id obtenido para crear la transacción
-                    transaction = Transaction(
-                        transaction_types="INGRESO",
-                        concept_id=14,
-                        description="Solicitud Prestamo NO APROBADO",
-                        amount=float(amount),
-                        attachment=filename,  # Usar el nombre único del archivo
-                        approval_status="PENDIENTE",
-                        employee_id=employee.id,
-                        loan_id=loan.id,
-                        creation_date=current_date
-                    )
-
-                    db.session.add(transaction)
-                    db.session.commit()
-
-                return redirect(url_for('routes.credit_detail', id=loan.id))
-
-            return render_template('create-client.html')
-        else:
+        if not employee or not (role == Role.COORDINADOR.value or role == Role.VENDEDOR.value):
             return redirect(url_for('routes.menu_salesman'))
+
+        if request.method == 'POST':
+            # Recopilar datos del formulario POST
+            first_name = request.form.get('first_name')
+            last_name = request.form.get('last_name')
+            alias = request.form.get('alias')
+            document = request.form.get('document')
+            cellphone = request.form.get('cellphone')
+            address = request.form.get('address')
+            neighborhood = request.form.get('neighborhood')
+            amount = request.form.get('amount')
+            dues = request.form.get('dues')
+            interest = request.form.get('interest')
+            payment = request.form.get('amountPerPay')
+
+            # Validar que los campos obligatorios no estén vacíos
+            if not first_name or not last_name or not document or not cellphone:
+                raise Exception("Error: Los campos obligatorios deben estar completos.")
+
+            # Crear una instancia del cliente con los datos proporcionados
+            client = Client(
+                first_name=first_name,
+                last_name=last_name,
+                alias=alias,
+                document=document,
+                cellphone=cellphone,
+                address=address,
+                neighborhood=neighborhood,
+                employee_id=employee.id
+            )
+
+            # Guardar el cliente en la base de datos
+            db.session.add(client)
+            db.session.commit()
+
+            # Obtener el ID del cliente recién creado
+            client_id = client.id
+
+            # Obtener maximum_sale del empleado
+            maximum_sale = employee.maximum_sale
+            approved = float(amount) <= maximum_sale
+
+            # Crear una instancia del préstamo con los datos proporcionados
+            loan = Loan(
+                amount=amount,
+                dues=dues,
+                interest=interest,
+                payment=payment,
+                status=True,
+                approved=approved,
+                up_to_date=False,
+                client_id=client_id,
+                employee_id=employee.id
+            )
+
+            # Guardar el préstamo en la base de datos
+            db.session.add(loan)
+            db.session.commit()
+
+            current_date = datetime.now()
+            filename = ""
+            # Usar el employee_id obtenido para crear la transacción
+            if not approved:
+                transaction = Transaction(
+                    transaction_types="INGRESO",
+                    concept_id=14,
+                    description="Solicitud Prestamo NO APROBADO",
+                    amount=float(amount),
+                    attachment=filename,  # Usar el nombre único del archivo
+                    approval_status="PENDIENTE",
+                    employee_id=employee.id,
+                    loan_id=loan.id,
+                    creation_date=current_date
+                )
+
+                db.session.add(transaction)
+                db.session.commit()
+
+            return redirect(url_for('routes.credit_detail', id=loan.id))
+
+        return render_template('create-client.html', user_id=user_id)
     except Exception as e:
         # Manejo de excepciones: mostrar un mensaje de error y registrar la excepción
         error_message = str(e)
+        print(error_message)
         return render_template('error.html', error_message=error_message), 500
+
 
 
 @routes.route('/edit-client/<int:client_id>', methods=['GET', 'POST'])
@@ -505,10 +500,14 @@ def edit_client(client_id):
         return render_template('error.html', error_message=error_message), 500
 
 
-@routes.route('/client-list', methods=['GET', 'POST'])
-def client_list():
-    if 'user_id' in session and (session['role'] == Role.COORDINADOR.value or session['role'] == Role.VENDEDOR.value):
-        user_id = session['user_id']
+@routes.route('/client-list/<int:user_id>', methods=['GET', 'POST'])
+def client_list(user_id):
+    user_id = user_id
+    print(user_id)
+    user = User.query.get(user_id)
+    role = user.role.value
+    print(role)
+    if user and (user.role.value == Role.COORDINADOR.value or user.role.value == Role.VENDEDOR.value):
         employee = Employee.query.filter_by(user_id=user_id).first()
 
         if employee is None:
@@ -532,9 +531,11 @@ def client_list():
 
         clients = clients_query.all()
 
-        return render_template('client-list.html', client_list=clients)
+        return render_template('client-list.html', client_list=clients, user_id=user_id)
     else:
-        return redirect(url_for('routes.menu_salesman'))
+        return redirect(url_for('routes.menu_salesman', user_id=user_id))
+
+
 
 
 @routes.route('/renewal', methods=['GET', 'POST'])
@@ -615,9 +616,9 @@ def renewal():
 
         client_data = [(client.document, f"{client.first_name} {client.last_name}") for client in clients]
 
-        return render_template('renewal.html', clients=client_data)
+        return render_template('renewal.html', clients=client_data, user_id=user_id)
     else:
-        return redirect(url_for('routes.menu_salesman'))
+        return redirect(url_for('routes.menu_salesman', user_id=session['user_id']))
 
 
 @routes.route('/credit-detail/<int:id>')
@@ -636,7 +637,7 @@ def credit_detail(id):
     loan_detail = get_loan_details(id)
 
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
-                           loan_detail=loan_detail, payments=payments)
+                           loan_detail=loan_detail, payments=payments, user_id=session['user_id'])
 
 
 @routes.route('/modify-installments/<int:loan_id>', methods=['POST'])
@@ -790,11 +791,10 @@ def mark_overdue():
     else:
         return 'Método no permitido'
 
-
-@routes.route('/payment_list', methods=['GET'])
-def payments_list():
-    # Obtiene el ID de usuario desde la sesión
-    user_id = session.get('user_id')
+@routes.route('/payment_list/<int:user_id>', methods=['GET'])
+def payments_list(user_id):
+    # Obtiene el ID de usuario desde la ruta
+    user_id = user_id
 
     # Busca al empleado asociado al usuario
     employee = Employee.query.filter_by(user_id=user_id).first()
@@ -954,8 +954,8 @@ def payments_list():
                                     search_term.lower() in f"{client_info['First Name']} {client_info['Last Name']}".lower()]
 
     # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
-    return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box,
-                           employee_id=employee_id)
+    return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box, employee_id=employee_id, user_id=user_id)
+
 
 
 def is_workday(date):
@@ -1374,7 +1374,7 @@ def box():
         # Renderizar la plantilla con las variables
         return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats,
                                search_term=search_term, all_boxes_closed=all_boxes_closed,
-                               coordinator_name=coordinator_name)
+                               coordinator_name=coordinator_name, user_id=user_id)
 
 
     except Exception as e:
@@ -1664,7 +1664,7 @@ def approval_expenses():
         # Confirmar la sesión de la base de datos después de la actualización
         db.session.commit()
 
-        return render_template('approval-expenses.html', detalles_transacciones=detalles_transacciones)
+        return render_template('approval-expenses.html', detalles_transacciones=detalles_transacciones, user_id=user_id, user_role=user_role)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
@@ -1724,13 +1724,13 @@ def transactions():
             db.session.commit()
 
             return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',
-                                   concepts=concepts, user_role=user_role)
+                                   concepts=concepts, user_role=user_role, user_id=user_id)
 
         else:
             # Obtener todos los conceptos disponibles
             concepts = Concept.query.all()
 
-            return render_template('transactions.html', concepts=concepts, user_role=user_role)
+            return render_template('transactions.html', concepts=concepts, user_role=user_role, user_id=user_id)
     else:
         # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
         return "Acceso no autorizado."
@@ -1793,6 +1793,8 @@ def wallet():
     total_cash = 0
     total_active_sellers = 0
     sellers_detail = []
+
+    user_id = session.get('user_id')
 
     # Get all coordinators
     coordinators = Manager.query.all()
@@ -1861,7 +1863,7 @@ def wallet():
         'Debt Balance': str(debt_balance)
     }
 
-    return render_template('wallet.html', wallet_data=wallet_data)
+    return render_template('wallet.html', wallet_data=wallet_data, user_id=user_id)
 
 
 @routes.route('/wallet-detail/<int:employee_id>', methods=['GET'])
@@ -1976,7 +1978,7 @@ def list_expenses():
             # Agregar los detalles a la lista
             detalles_transacciones.append(detalle_transaccion)
 
-        return render_template('list-expenses.html', detalles_transacciones=detalles_transacciones, user_role=user_role)
+        return render_template('list-expenses.html', detalles_transacciones=detalles_transacciones, user_role=user_role, user_id=user_id)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
@@ -1995,6 +1997,7 @@ def box_archive():
 @routes.route('/box-detail', methods=['GET'])
 def box_detail():
     user_role = session.get('role')
+    user_id = session.get('user_id')
 
     # Obtener el employee_id del vendedor desde la solicitud
     employee_id = request.args.get('employee_id')
@@ -2138,8 +2141,8 @@ def box_detail():
                            payment_details=payment_details,
                            user_role=user_role,
                            loan_id=loan_id,
-                           installment_id=installment_id
-                           )
+                           installment_id=installment_id,
+                            user_id=user_id)
 
 
 @routes.route('/reports')
@@ -2151,6 +2154,7 @@ def reports():
 def debtor_manager():
     debtors_info = []
     total_mora = 0
+    user_id = session.get('user_id')
 
     # Obtener todos los coordinadores
     coordinators = Manager.query.all()
@@ -2211,7 +2215,7 @@ def debtor_manager():
                         debtors_info.append(debtor_info)
 
     # print(debtors_info)
-    return render_template('debtor-manager.html', debtors_info=debtors_info, total_mora=total_mora)
+    return render_template('debtor-manager.html', debtors_info=debtors_info, total_mora=total_mora, user_id=user_id)
 
 
 @routes.route('/add-employee-record/<int:employee_id>', methods=['POST'])

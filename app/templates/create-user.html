@@ -5,13 +5,10 @@
     <div class="container pt-5">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./user-list">Usuarios</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver</a>
             </div>
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
-            </div>
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.user_list') }}">Usuarios</a>
             </div>
         </div>
         <div class="row">
@@ -85,10 +82,10 @@
                             <label for="percentage_interest" class="c-form__label form-label">Liquidacion Porcentaje</label>
                             <input type="text" class="c-form c-form__input" id="percentage_interest" name="percentage_interest" placeholder="">
                         </div>
-                        <!-- <div class="mb-3">
-                            <label for="fix_value" class="c-form__label form-label">Valor fijo</label>
-                            <input type="text" class="c-form c-form__input" id="fix_value" name="fix_value" placeholder="">
-                        </div> -->
+                        <div class="mb-3">
+                            <label for="fix_value" class="c-form__label form-label">Liquidacion Valor fijo</label>
+                            <input type="text" class="c-form c-form__input" id="fix_value" name="fix_value" placeholder="" value="0" >
+                        </div>
                     </fieldset>
                     <button type="submit" class="c-btn c-btn-primary mt-4 mb-4">Crear usuario</button>
                 </form>

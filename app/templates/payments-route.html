@@ -5,7 +5,7 @@
     <div class="container pt-1">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman') }}">Menu</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver</a>
             </div>
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
@@ -39,7 +39,7 @@
         </div>
         <div class="row">
             <div class="col">
-                <form method="GET" action="{{ url_for('routes.payments_list') }}" class="mb-2"
+                <form method="GET" action="{{ url_for('routes.payments_list', user_id=user_id) }}" class="mb-2"
                     style="display: flex; align-items: center; justify-content: center;">
                     <input type="text" name="search" class="form-control" style="border-radius: 6px 0 0 6px ;"
                         placeholder="Buscar por cliente">
