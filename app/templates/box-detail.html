@@ -237,6 +237,7 @@
           <thead>
             <tr>
               <th class="c-table__box">Cliente</th>
+              <th class="c-table__box">loan_id</th>
               <th class="c-table__box">Vr. Pago</th>
               <th class="c-table__box">Fecha de Pago</th>
               <th class="c-table__box">Saldo</th>
@@ -249,6 +250,7 @@
             {% for payment_detail in payment_details %}
             <tr>
               <td class="c-table__box">{{ payment_detail.client_name }}</td>
+              <td class="c-table__box">{{ payment_detail.loan_id }}</td>
               <td class="c-table__box">${{ '{:,.0f}'.format(payment_detail.payment_amount) }}</td>
               <td class="c-table__box"> {{ payment_detail.payment_date }}</td>
               <td class="c-table__box">${{ '{:,.0f}'.format(payment_detail.remaining_balance) }}</td>
@@ -261,7 +263,6 @@
                   data-target="#editPaymentModal">
                   <i class="bi bi-pencil"></i>
                 </a>
-                </a>
               </td>
               {% endif %}
             </tr>
@@ -270,12 +271,9 @@
         </table>
       </div>
     </div>
-
   </div>
-
 </div>
 </div>
-
 
 <!-- Modal para editar el pago -->
 <div class="modal fade" id="editPaymentModal" tabindex="-1" role="dialog" aria-labelledby="editPaymentModalLabel"
@@ -288,7 +286,7 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form id="editPaymentForm" action="/payments/edit" method="POST">
+      <form id="editPaymentForm" action="/payments/edit/{{ loan_id }}" method="POST">
         <div class="modal-body">
           <!-- Campos para editar el pago -->
           <div class="form-group">
@@ -306,57 +304,4 @@
     </div>
   </div>
 </div>
-
-
-<!-- Script para enviar los datos del formulario a través de AJAX -->
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-
-    var btnsPagar = document.querySelectorAll('.js-btn-editar-pago');
-
-    // Agrega un evento de clic a cada botón de pago
-    btnsEditarPago.forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        // Obtén el valor de la cuota del botón de pago
-        var installmentValue = parseFloat(this.getAttribute('data-installment-id'));
-        console.log(installmentValue);
-        var overdueAmount = parseFloat(this.getAttribute('data-overdue-amount'));
-        var loanId = this.getAttribute('data-id');
-
-        // Almacena el ID del préstamo en un campo oculto
-        document.getElementById('loanId').value = loanId;
-        document.getElementById('installmentValue').value = installmentValue;
-      });
-    });
-
-
-    $(document).ready(function () {
-      // Escucha el evento submit del formulario
-      $('#editPaymentForm').submit(function (event) {
-        // Evita que el formulario se envíe de forma tradicional
-        // event.preventDefault();
-        // Serializa los datos del formulario
-        var formData = $(this).serialize();
-        // Realiza una petición AJAX al endpoint de edición de pago
-        $.ajax({
-          type: 'POST',
-          url: '/payments/edit',
-          data: formData,
-          success: function (response) {
-            // Muestra un mensaje de éxito o realiza alguna otra acción
-            alert('Pago actualizado exitosamente');
-            // Cierra la modal después de actualizar el pago
-            $('#editPaymentModal').modal('hide');
-            // Opcional: recargar la página para actualizar la tabla de pagos
-            location.reload();
-          },
-          error: function (xhr, status, error) {
-            // Maneja errores de la petición AJAX
-            alert('Error al actualizar el pago: ' + error);
-          }
-        });
-      });
-    });
-  });
-</script>
 {% endblock %}

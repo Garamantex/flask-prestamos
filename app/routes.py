@@ -1121,7 +1121,7 @@ def box():
 
         # Obtener la información de la caja del coordinador
         coordinator = Employee.query.filter_by(user_id=user_id).first()
-        coordinator_cash = coordinator.maximum_cash
+        coordinator_cash = coordinator.box_value
 
         coordinator_name = f"{user.first_name} {user.last_name}"
 
@@ -2731,22 +2731,25 @@ def add_daily_collected(employee_id):
     return redirect(url_for('routes.logout'))
 
 
-@routes.route('/payments/edit', methods=['POST'])
-def edit_payment():
+
+@routes.route('/payments/edit/<int:loan_id>', methods=['POST'])
+def edit_payment(loan_id):
     # Obtén los datos de la solicitud
+    print("Loan ID: ", loan_id)
+
     user_id = session.get('user_id')
 
     # Buscar al empleado correspondiente al user_id de la sesión
     employee = Employee.query.filter_by(user_id=user_id).first()
     employee_id = employee.id
 
-    loan_id = request.form.get('loanId')
+    # loan_id = request.form.get('loanId')
+
     installment_number = request.form.get('InstallmentId')
     custom_payment = float(request.form.get('customPayment'))
 
     employee.box_value += Decimal(custom_payment)
 
-    print(loan_id)
     print(installment_number)
     print(custom_payment)
 
@@ -2823,8 +2826,7 @@ def edit_payment():
         loan.modification_date = datetime.now()
         client.debtor = False
         db.session.commit()
-
-        return jsonify({"message": "El pago se ha registrado correctamente."}), 200
+        return redirect(url_for('routes.box_detail', employee_id=employee_id))
 
     # Actualiza los campos del pago según los datos recibidos
     # payments_today.amount = custom_payment
