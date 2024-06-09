@@ -2744,7 +2744,6 @@ def edit_payment(loan_id):
     employee_id = employee.id
 
     # loan_id = request.form.get('loanId')
-
     installment_number = request.form.get('InstallmentId')
     custom_payment = float(request.form.get('customPayment'))
 

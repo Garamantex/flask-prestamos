@@ -1,19 +1,24 @@
 import '../scss/main.scss';
 import 'bootstrap';
-import $ from 'jquery';
+
 
 document.addEventListener('DOMContentLoaded', function() {
 
     var plazoInput = document.getElementById('dues');
     var interesInput = document.getElementById('interest');
     var cuotaAproxInput = document.getElementById('amountPerPay');
-    plazoInput.addEventListener('input', function() {
-        calcularCuotaAproximada();
-    });
 
-    interesInput.addEventListener('input', function() {
-        calcularCuotaAproximada();
-    });
+    if (plazoInput) {
+        plazoInput.addEventListener('input', function() {
+            calcularCuotaAproximada();
+        });
+    }
+
+    if (interesInput) {
+        interesInput.addEventListener('input', function() {
+            calcularCuotaAproximada();
+        });
+    }
 
     function calcularCuotaAproximada() {
         var plazo = parseInt(plazoInput.value);
@@ -31,7 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Llama a la función para calcular la cuota inicialmente
-    calcularCuotaAproximada();
+    if (plazoInput && interesInput) {
+        calcularCuotaAproximada();
+    }
 });
 
 
@@ -45,30 +52,36 @@ async function obtenerValoresMaximos() {
         const interesSelect = document.getElementById("interest");
         
         // Configurar el máximo de monto permitido
-        montoInput.setAttribute("max", data.maximum_sale);
+        if(montoInput) montoInput.setAttribute("max", data.maximum_amount);
 
-        montoInput.addEventListener("input", function() {
-            const monto = parseFloat(montoInput.value);
-            
-            if (monto > data.maximum_sale) {
-                // Mostrar un mensaje de error
-                alert('El monto máximo permitido es de $' + data.maximum_sale + ' Quedara en estado Pendiente de Aprobación');
-                // montoInput.value =  data.maximum_sale; // Establecer el valor máximo
-            }
-        });
+        if(montoInput){
+            montoInput.addEventListener("input", function() {
+                const monto = parseFloat(montoInput.value);
+                
+                if (monto > data.maximum_sale) {
+                    // Mostrar un mensaje de error
+                    alert('El monto máximo permitido es de $' + data.maximum_sale + ' Quedara en estado Pendiente de Aprobación');
+                    // montoInput.value =  data.maximum_sale; // Establecer el valor máximo
+                }
+            });
+        }
         
         // Configurar el máximo de cuotas permitidas
         for (let i = 1; i <= data.maximum_installments; i++) {
             const option = document.createElement("option");
             option.text = i;
-            cuotasSelect.add(option);
+            if(cuotasSelect){
+                cuotasSelect.add(option);
+            }
         }
         
         // Configurar el mínimo de interés permitido
         for (let i = data.minimum_interest; i <= 50; i++) {
             const option = document.createElement("option");
             option.text = i;
-            interesSelect.add(option);
+            if(interesSelect){
+                interesSelect.add(option);
+            }
         }
     } catch (error) {
         console.error("Error al obtener los valores máximos del préstamo:", error);
@@ -140,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 document.addEventListener('DOMContentLoaded', function () {
     // Al hacer clic en cualquier botón "Ver comprobante"
-    document.querySelectorAll('.c-btn-primary').forEach(function (button) {
+    document.querySelectorAll('.js-comprobante').forEach(function (button) {
         button.addEventListener('click', function () {
             // Obtén el atributo data-target del botón para identificar la modal asociada
             var targetModalId = this.getAttribute('data-target');
@@ -179,18 +192,20 @@ document.addEventListener('DOMContentLoaded', function () {
     var detallesContainer = document.getElementById('detallesContainer');
 
     // Agrega un evento de clic al botón
-    verDetallesBtn.addEventListener('click', function () {
-        // Alternar la visibilidad del contenedor con un efecto de transición
-        if (detallesContainer.style.display === 'none') {
-            detallesContainer.style.display = 'block';
-            detallesContainer.style.opacity = '1';
-        } else {
-            detallesContainer.style.opacity = '0';
-            setTimeout(function () {
-                detallesContainer.style.display = 'none';
-            }, 50); // Ajusta la duración de la transición según tus preferencias
-        }
-    });
+    if (verDetallesBtn) {
+        verDetallesBtn.addEventListener('click', function () {
+            // Alternar la visibilidad del contenedor con un efecto de transición
+            if (detallesContainer.style.display === 'none') {
+                detallesContainer.style.display = 'block';
+                detallesContainer.style.opacity = '1';
+            } else {
+                detallesContainer.style.opacity = '0';
+                setTimeout(function () {
+                    detallesContainer.style.display = 'none';
+                }, 50); // Ajusta la duración de la transición según tus preferencias
+            }
+        });
+    }
 });
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -280,31 +295,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     // Agrega un evento de clic al botón de "Confirmar Pago"
-    document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
-        console.log('Confirmar pago')
-        console.log('Hola Mundo')
-        var loanId = document.getElementById('loanId').value; // Obtener ID de préstamo desde el campo oculto
-        var customPayment = document.getElementById('customPayment').value; // Obtener valor de pago personalizado
-        // Enviar solicitud POST al servidor con los datos del pago
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/confirm_payment', true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4) {
-                // Verificar el estado de la respuesta
-                if (xhr.status === 200) {
-                    // Procesar respuesta del servidor
-                    console.log(xhr.responseText);
-                    // Recargar la página después de confirmar el pago
-                    window.location.reload();
-                } else {
-                    // Mostrar un mensaje de error al usuario
-                    console.error('Error al procesar el pago:', xhr.responseText);
+    if(document.getElementById('confirmPaymentBtn')) {
+        document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
+            console.log('Confirmar pago')
+            console.log('Hola Mundo')
+            var loanId = document.getElementById('loanId').value; // Obtener ID de préstamo desde el campo oculto
+            var customPayment = document.getElementById('customPayment').value; // Obtener valor de pago personalizado
+            // Enviar solicitud POST al servidor con los datos del pago
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/confirm_payment', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    // Verificar el estado de la respuesta
+                    if (xhr.status === 200) {
+                        // Procesar respuesta del servidor
+                        console.log(xhr.responseText);
+                        // Recargar la página después de confirmar el pago
+                        window.location.reload();
+                    } else {
+                        // Mostrar un mensaje de error al usuario
+                        console.error('Error al procesar el pago:', xhr.responseText);
+                    }
                 }
-            }
-        };
-        xhr.send('loan_id=' + loanId + '&customPayment=' + customPayment);
-    });
+            };
+            xhr.send('loan_id=' + loanId + '&customPayment=' + customPayment);
+        });
+    }
 
     
     btnsMora.forEach(function (btn) {
@@ -327,43 +344,44 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    if(document.getElementById('btn-ocultar')){
+        document.getElementById('btn-ocultar').addEventListener('click', function () {
+            // Convertir NodeList a un array para usar el método sort()
+            var cuotasArray = Array.from(cuotas);
+        
+            // Ordenar los elementos por fecha de modificación del más viejo al más reciente
+            cuotasArray.sort(function (a, b) {
+                var fechaA = new Date(a.getAttribute('data-last-loan-modification-date')).getTime();
+                var fechaB = new Date(b.getAttribute('data-last-loan-modification-date')).getTime();
+                return fechaA - fechaB;
+            });
+        
+            // Limpiar el contenedor antes de mostrar los elementos ordenados
+            var contenedor = document.querySelector('.list-group');
+            contenedor.innerHTML = '';
+        
+            // Mostrar los elementos ordenados en el DOM
+            cuotasArray.forEach(function (cuota) {
+                contenedor.appendChild(cuota);
+            });
 
-    document.getElementById('btn-ocultar').addEventListener('click', function () {
-        // Convertir NodeList a un array para usar el método sort()
-        var cuotasArray = Array.from(cuotas);
-    
-        // Ordenar los elementos por fecha de modificación del más viejo al más reciente
-        cuotasArray.sort(function (a, b) {
-            var fechaA = new Date(a.getAttribute('data-last-loan-modification-date')).getTime();
-            var fechaB = new Date(b.getAttribute('data-last-loan-modification-date')).getTime();
-            return fechaA - fechaB;
+            cuotasArray.forEach(function (cuota) {
+                if (cuota.classList.contains("u-hidden")) {
+                    cuota.classList.toggle('u-hidden'); // Alternar entre ocultar y mostrar
+                    cuota.classList.add('c-card__box-mannager');
+                    cuota.querySelectorAll('.cuota-label').forEach(function (boton) {
+                        boton.classList.remove("c-btn");
+                        boton.classList.add("u-hidden");
+                    });
+                } else if (cuota.classList.contains("u-block")) {
+                    // Si la cuota está bloqueada, no hacemos nada
+                } else {
+                    cuota.classList.add('u-hidden');
+                    cuota.classList.remove('c-card__box-mannager');
+                };
+            });
         });
-    
-        // Limpiar el contenedor antes de mostrar los elementos ordenados
-        var contenedor = document.querySelector('.list-group');
-        contenedor.innerHTML = '';
-    
-        // Mostrar los elementos ordenados en el DOM
-        cuotasArray.forEach(function (cuota) {
-            contenedor.appendChild(cuota);
-        });
-
-        cuotasArray.forEach(function (cuota) {
-            if (cuota.classList.contains("u-hidden")) {
-                cuota.classList.toggle('u-hidden'); // Alternar entre ocultar y mostrar
-                cuota.classList.add('c-card__box-mannager');
-                cuota.querySelectorAll('.cuota-label').forEach(function (boton) {
-                    boton.classList.remove("c-btn");
-                    boton.classList.add("u-hidden");
-                });
-            } else if (cuota.classList.contains("u-block")) {
-                // Si la cuota está bloqueada, no hacemos nada
-            } else {
-                cuota.classList.add('u-hidden');
-                cuota.classList.remove('c-card__box-mannager');
-            };
-        });
-    });
+    }
 
     // Itera sobre cada cuota
     cuotas.forEach(function (cuota) {
@@ -390,23 +408,25 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     
      // Función para cambiar el ícono del botón btn-ocultar
-    document.querySelector('.js-btn-ocultar').addEventListener('click', function () {
+    if(document.querySelector('.js-btn-ocultar')){
+        document.querySelector('.js-btn-ocultar').addEventListener('click', function () {
 
 
-        // Obtener el ícono del botón
-        var icono = document.querySelector('.js-icono-ocultar');
+            // Obtener el ícono del botón
+            var icono = document.querySelector('.js-icono-ocultar');
 
-        // Cambiar la clase del ícono dependiendo del estado del botón
-        if (icono.classList.contains('bi-eye')) {
-            icono.classList.remove('bi-eye');
-            icono.classList.add('bi-eye-slash');
-        } else {
-            icono.classList.remove('bi-eye-slash');
-            icono.classList.add('bi-eye');
-        }
+            // Cambiar la clase del ícono dependiendo del estado del botón
+            if (icono.classList.contains('bi-eye')) {
+                icono.classList.remove('bi-eye');
+                icono.classList.add('bi-eye-slash');
+            } else {
+                icono.classList.remove('bi-eye-slash');
+                icono.classList.add('bi-eye');
+            }
 
-        // Lógica para mostrar u ocultar elementos aquí...
-    });
+            // Lógica para mostrar u ocultar elementos aquí...
+        });
+    }
    
 });
 

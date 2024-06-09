@@ -257,15 +257,42 @@
               {% if user_role == 'VENDEDOR' %}
               <td class="c-table__box">
                 <a type="button" class="c-btn c-btn-primary js-btn-editar-pago cuota-label"
-                  style="width: 60%; padding: 0.4rem 0;" data-id="{{ payment_detail.loan_id }}"
-                  data-installment-id="{{ payment_detail.installment_id }}"
-                  data-overdue-amount="{{ payment_detail.total_credit }}" data-toggle="modal"
-                  data-target="#editPaymentModal">
-                  <i class="bi bi-pencil"></i>
-                </a>
+                style="width: 60%; padding: 0.4rem 0;"
+                data-id="{{ payment_detail.loan_id }}"
+                data-installment-id="{{ payment_detail.installment_id }}"
+                data-overdue-amount="{{ payment_detail.total_credit }}"
+                data-toggle="modal"
+                data-target="#editPaymentModal">
+                <i class="bi bi-pencil"></i>
+             </a>             
               </td>
               {% endif %}
             </tr>
+            <!-- Modal para editar el pago -->
+              <div class="modal fade" id="editPaymentModal" tabindex="-1" role="dialog" aria-labelledby="editPaymentModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="editPaymentModalLabel">Editar Pago</h5>
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <form id="editPaymentForm" method="POST" action="" onsubmit="submitForm(event)">
+                      <div class="modal-body">
+                          <!-- Campos para editar el pago -->
+                          <div class="form-group">
+                              <label for="customPayment">Nuevo Valor del Pago</label>
+                              <input type="text" class="form-control" id="customPayment" name="customPayment">
+                          </div>
+                      </div>
+                      <div class="modal-footer">
+                          <button type="submit" class="c-btn c-btn-primary">Guardar Cambios</button>
+                      </div>
+                  </form>
+                  </div>
+                </div>
+              </div>
             {% endfor %}
           </tbody>
         </table>
@@ -275,33 +302,45 @@
 </div>
 </div>
 
-<!-- Modal para editar el pago -->
-<div class="modal fade" id="editPaymentModal" tabindex="-1" role="dialog" aria-labelledby="editPaymentModalLabel"
-  aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="editPaymentModalLabel">Editar Pago</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <form id="editPaymentForm" action="/payments/edit/{{ loan_id }}" method="POST">
-        <div class="modal-body">
-          <!-- Campos para editar el pago -->
-          <div class="form-group">
-            <label for="customPayment">Nuevo Valor del Pago</label>
-            <input type="hidden" name="loanId" value="{{ loan_id }}">
-            <input type="hidden" name="InstallmentId" value="{{ installment_id }}">
-            <input type="text" class="form-control" id="customPayment" name="customPayment">
-          </div>
-          <div class="form-group">
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="c-btn c-btn-primary">Guardar Cambios</button>
-          </div>
-      </form>
-    </div>
-  </div>
-</div>
+
+<script>
+    const paymentButtons = document.querySelectorAll('.js-btn-editar-pago');
+    let loanId;
+
+    paymentButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        loanId = button.getAttribute('data-id');
+      });
+    });
+
+    console.log(loanId);
+
+    function submitForm(event) {
+      event.preventDefault();
+      
+      // Obtener los datos del formulario
+      var formData = new FormData(document.getElementById('editPaymentForm'));
+
+      // Realizar la solicitud HTTP
+      fetch('/payments/edit/' + loanId, {
+          method: 'POST',
+          body: formData
+      })
+      .then(response => {
+          if (response.ok) {
+              // Recargar la página
+              window.location.reload();
+          } else {
+              // Manejar errores
+              console.error('Hubo un problema al guardar los cambios');
+          }
+      })
+      .catch(error => {
+          console.error('Error de red:', error);
+      });
+    }
+
+
+</script>
+
 {% endblock %}
