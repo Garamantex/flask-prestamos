@@ -826,11 +826,15 @@ def payments_list(user_id):
         loan_installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
         for installment in loan_installments:
             payments = Payment.query.filter_by(installment_id=installment.id).all()
-            if any(payment.payment_date.date() == current_date for payment in payments):
-                all_loans_paid_today = True
-                break
+            for payment in payments:
+                print(payment.payment_date)
+                if payment.payment_date.date() == current_date:
+                    all_loans_paid_today = True
+                    break
             if all_loans_paid_today:
                 break
+        if all_loans_paid_today:
+            break
 
     status_box = ""
 
@@ -1123,6 +1127,7 @@ def box():
         coordinator = Employee.query.filter_by(user_id=user_id).first()
         coordinator_cash = coordinator.box_value
 
+
         coordinator_name = f"{user.first_name} {user.last_name}"
 
         # Obtener el ID del manager del coordinador
@@ -1185,6 +1190,22 @@ def box():
             daily_withdrawals_count = 0  # Cantidad Retiros Diarios
             daily_collection_count = 0  # Cantidad Ingresos Diarios
             total_pending_installments_amount = 0  # Monto total de cuotas pendientes
+            box_value = 0  # Valor de la caja del vendedor
+            initial_box_value = 0
+
+
+            # Obtener el valor de la caja del vendedor
+            employee = Employee.query.get(salesman.employee_id)
+            
+
+            # Obtener el valor inicial de la caja del vendedor
+            employee_records = EmployeeRecord.query.filter_by(employee_id=salesman.employee_id).order_by(EmployeeRecord.id.desc()).first()
+            if employee_records:
+                initial_box_value = employee_records.closing_total
+
+            
+
+
 
             all_loans_paid = Loan.query.filter_by(employee_id=salesman.employee_id)
             all_loans_paid_today = False
@@ -1336,6 +1357,11 @@ def box():
 
             # print("status_box: ", status_box)
 
+            box_value = initial_box_value + float(total_collections_today) - daily_withdrawals - float(daily_expenses_amount) + float(daily_collection)
+
+            if float(total_collections_today) == 0 and daily_withdrawals == 0 and float(daily_expenses_amount) == 0 and daily_collection == 0:
+                box_value = 0
+
             salesman_data = {
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
                 'employee_id': salesman.employee_id,
@@ -1358,7 +1384,9 @@ def box():
                 'total_pending_installments_amount': total_pending_installments_amount,
                 # Nuevo campo para el total de los montos de las cuotas pendientes
                 'all_loans_paid_today': all_loans_paid_today,
-                'status_box': status_box
+                'status_box': status_box,
+                'box_value': box_value,
+                'initial_box_value': initial_box_value
             }
 
             salesmen_stats.append(salesman_data)
@@ -2296,11 +2324,22 @@ def add_employee_record(employee_id):
         employee = Employee.query.get(employee_id)
         employee_status = employee.status
 
+        # Transacciones de tipo ingreso y aprobadas
+        transaction_income = Transaction.query.filter_by(employee_id=employee_id, transaction_types=TransactionType.INGRESO,
+                                                  approval_status=ApprovalStatus.APROBADA).all()
+        
+        transaction_income_today = Transaction.query.filter_by(employee_id=employee_id, transaction_types=TransactionType.INGRESO,
+                                                  approval_status=ApprovalStatus.APROBADA).filter(func.date(Transaction.creation_date) == fecha_actual).all()
+        
+        transaction_income_total_today = sum(transaction.amount for transaction in transaction_income_today)
+        
+        transaction_income_total = sum(transaction.amount for transaction in transaction_income)
+
         # Usar el cierre de caja del último registro como el estado inicial, si existe
         if last_record:
-            initial_state = last_record.closing_total
+            initial_state = last_record.closing_total + float(transaction_income_total_today)
         else:
-            initial_state = employee.maximum_cash
+            initial_state = transaction_income_total
 
         # Calcular la cantidad de préstamos por cobrar
         loans_to_collect = Loan.query.filter_by(employee_id=employee_id, status=True).count()
@@ -2456,11 +2495,12 @@ def add_employee_record(employee_id):
                 renewals=total_renewal_loans_amount,
                 withdrawals=daily_withdrawals,
                 total_collected=total_collected,
-                closing_total=int(initial_state) + int(paid_installments)
+                closing_total=Decimal(initial_state)
+                              + int(paid_installments)
                               + int(partial_installments)
                               - int(new_clients_loan_amount)
                               - int(total_renewal_loans_amount)
-                              + int(daily_incomings)
+                            #   + int(daily_incomings)
                               - int(daily_withdrawals)
                               - int(daily_expenses_amount),  # Calcular el cierre de caja
                 creation_date=datetime.now()
@@ -2536,11 +2576,22 @@ def add_daily_collected(employee_id):
         employee = Employee.query.get(employee_id)
         employee_status = employee.status
 
+        # Transacciones de tipo ingreso y aprobadas
+        transaction_income = Transaction.query.filter_by(employee_id=employee_id, transaction_types=TransactionType.INGRESO,
+                                                  approval_status=ApprovalStatus.APROBADA).all()
+        
+        transaction_income_today = Transaction.query.filter_by(employee_id=employee_id, transaction_types=TransactionType.INGRESO,
+                                                  approval_status=ApprovalStatus.APROBADA).filter(func.date(Transaction.creation_date) == fecha_actual).all()
+        
+        transaction_income_total_today = sum(transaction.amount for transaction in transaction_income_today)
+        
+        transaction_income_total = sum(transaction.amount for transaction in transaction_income)
+
         # Usar el cierre de caja del último registro como el estado inicial, si existe
         if last_record:
-            initial_state = last_record.closing_total
+            initial_state = last_record.closing_total + float(transaction_income_total_today)
         else:
-            initial_state = employee.maximum_cash
+            initial_state = transaction_income_total
 
         # Calcular la cantidad de préstamos por cobrar
         loans_to_collect = Loan.query.filter_by(employee_id=employee_id, status=True).count()
@@ -2700,7 +2751,7 @@ def add_daily_collected(employee_id):
                               + int(partial_installments)
                               - int(new_clients_loan_amount)
                               - int(total_renewal_loans_amount)
-                              + int(daily_incomings)
+                            #   + int(daily_incomings)
                               - int(daily_withdrawals)
                               - int(daily_expenses_amount),  # Calcular el cierre de caja
                 creation_date=datetime.now()
