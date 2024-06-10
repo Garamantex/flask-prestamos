@@ -821,6 +821,8 @@ def payments_list(user_id):
 
     all_loans_paid = Loan.query.filter_by(employee_id=employee.id).all()
 
+    all_loans_paid_count = 0
+
     all_loans_paid_today = False
     for loan in all_loans_paid:
         loan_installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
@@ -829,12 +831,22 @@ def payments_list(user_id):
             for payment in payments:
                 print(payment.payment_date)
                 if payment.payment_date.date() == current_date:
-                    all_loans_paid_today = True
+                    # all_loans_paid_today = True
+                    all_loans_paid_count += 1
                     break
             if all_loans_paid_today:
                 break
         if all_loans_paid_today:
             break
+    
+    active_loans_count = Loan.query.filter_by(employee_id=employee.id, status=True).count()
+
+    if active_loans_count == all_loans_paid_count:
+        all_loans_paid_today = True
+
+    print("Creditos Activos: ", active_loans_count)
+    print("Creditos Pagados Hoy: ", all_loans_paid_count)
+
 
     status_box = ""
 
@@ -1124,6 +1136,7 @@ def box():
             return jsonify({'message': 'El usuario no es un coordinador válido'}), 403
 
         # Obtener la información de la caja del coordinador
+
         coordinator = Employee.query.filter_by(user_id=user_id).first()
         coordinator_cash = coordinator.box_value
 
@@ -1357,7 +1370,7 @@ def box():
 
             # print("status_box: ", status_box)
 
-            box_value = initial_box_value + float(total_collections_today) - daily_withdrawals - float(daily_expenses_amount) + float(daily_collection)
+            box_value = initial_box_value + float(total_collections_today) - daily_withdrawals - float(daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount)
 
             if float(total_collections_today) == 0 and daily_withdrawals == 0 and float(daily_expenses_amount) == 0 and daily_collection == 0:
                 box_value = 0
