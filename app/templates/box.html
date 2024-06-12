@@ -96,6 +96,14 @@
             </div>
             <ul class="c-card__box-mannager">
               <li class="c-card__internal">
+                Valor Inicial: $ {{ '{:,.0f}'.format(salesman['initial_box_value'])
+                }}
+              </li>
+              <li class="c-card__internal">
+                Valor Final: $ {{
+                  '{:,.0f}'.format(salesman['box_value']) }}
+              </li>
+              <li class="c-card__internal">
                 Debido Cobrar: $ {{
                 '{:,.0f}'.format(salesman['total_pending_installments_amount'])
                 }}

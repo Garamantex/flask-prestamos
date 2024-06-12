@@ -62,17 +62,26 @@
     
     <!-- Código JavaScript para formatear el valor en MORA -->
     <script>
-        var delinquentArrearsValue = {{ total_arrears_value }};
-        var formattedArrearsValue = formatCurrency(delinquentArrearsValue);
-        document.getElementById('formattedArrearsValue').textContent = formattedArrearsValue;
-    
-        var delinquentTodayValue = {{ today_revenue }};
-        var formattedTodayRevenueValue = formatCurrency(delinquentTodayValue);
-        document.getElementById('formattedTodayRevenueValue').textContent = formattedTodayRevenueValue;
-    
-        function formatCurrency(value) {
-            var formattedValue = '$ ' + value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            return formattedValue;
-        }
+        
+            // Función para formatear la moneda
+            function formatCurrency(value) {
+                return '$ ' + value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+
+            // Verificar y formatear el valor de total_arrears_value
+            var delinquentArrearsValue = {{ total_arrears_value }};
+            var formattedArrearsValue = formatCurrency(delinquentArrearsValue);
+            var arrearsElement = document.getElementById('formattedArrearsValue');
+            if (arrearsElement) {
+                arrearsElement.textContent = formattedArrearsValue;
+            }
+
+            var delinquentTodayValue = {{ today_revenue }};
+            var formattedTodayRevenueValue = formatCurrency(delinquentTodayValue);
+            var todayRevenueElement = document.getElementById('formattedTodayRevenueValue');
+            if (todayRevenueElement) {
+                todayRevenueElement.textContent = formattedTodayRevenueValue;
+            }
+
     </script>
 {% endblock %}

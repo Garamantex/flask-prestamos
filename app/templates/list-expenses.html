@@ -35,7 +35,7 @@
                         <p>Valor: <span>$ {{ '{:,.0f}'.format(detalle_transaccion['monto']) }}</span></p>
                         <!-- Agregar un identificador único al botón y la modal -->
                         <p>Estado: <span>{{ detalle_transaccion['status'] }}</span></p>
-                        <button class="c-btn c-btn-primary" data-target="modal{{ loop.index }}">Ver comprobante</button>
+                        <button class="c-btn c-btn-primary js-comprobante" data-target="modal{{ loop.index }}">Ver comprobante</button>
                     </li>
                     {% endfor %}
                 </ul>
