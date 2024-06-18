@@ -602,6 +602,9 @@ def renewal():
                 client_id=selected_client.id,
                 employee_id=employee.id
             )
+            
+            # Descontar el valor del loan del box_value del modelo employee
+            employee.box_value -= renewal_loan.amount
 
             # Guardar la renovación de préstamo en la base de datos
             db.session.add(renewal_loan)
@@ -1244,23 +1247,31 @@ def box():
                 func.date(Payment.payment_date) == datetime.now().date()
             ).scalar() or 0
 
-            # Calcula el total de los montos de las cuotas en estado PENDIENTE, MORA o ABONADA, donde la fecha sea menor o igual a hoy
-            total_pending_installments_amount = db.session.query(
-                func.sum(LoanInstallment.fixed_amount)
-            ).join(
-                Loan, LoanInstallment.loan_id == Loan.id
-            ).join(
-                Client, Loan.client_id == Client.id
-            ).join(
-                Employee, Client.employee_id == Employee.id
-            ).join(
-                Salesman, Employee.id == Salesman.employee_id
-            ).filter(
-                Salesman.employee_id == salesman.employee_id,
-                LoanInstallment.status.in_(
-                    [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA, InstallmentStatus.PAGADA]),
-                LoanInstallment.due_date == datetime.now().date()
-            ).scalar() or 0
+            # # Calcula el total de los montos de las cuotas en estado PENDIENTE, MORA o ABONADA, donde la fecha sea menor o igual a hoy
+            # total_pending_installments_amount = db.session.query(
+            #     func.sum(LoanInstallment.fixed_amount)
+            # ).join(
+            #     Loan, LoanInstallment.loan_id == Loan.id
+            # ).join(
+            #     Client, Loan.client_id == Client.id
+            # ).join(
+            #     Employee, Client.employee_id == Employee.id
+            # ).join(
+            #     Salesman, Employee.id == Salesman.employee_id
+            # ).filter(
+            #     Salesman.employee_id == salesman.employee_id,
+            #     LoanInstallment.status.in_(
+            #         [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA, InstallmentStatus.PAGADA]),
+            #     LoanInstallment.due_date == datetime.now().date()
+            # ).scalar() or 0
+
+            for client in employee.clients:
+                for loan in client.loans:
+                    if loan.status:
+                        # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
+                        total_pending_installments_amount += LoanInstallment.query.filter_by(loan_id=loan.id,
+                                                                           status=InstallmentStatus.PENDIENTE).order_by(
+                        LoanInstallment.due_date.asc()).first().fixed_amount
 
 
 
@@ -1378,9 +1389,7 @@ def box():
 
             # print("status_box: ", status_box)
 
-            box_value = initial_box_value + float(total_collections_today) - float(daily_withdrawals) - float(daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount)
-
-
+            box_value = initial_box_value + float(total_collections_today) - float(daily_withdrawals) - float(daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount) - float(total_renewal_loans_amount)
 
             salesman_data = {
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
@@ -1873,8 +1882,6 @@ def modify_transaction(transaction_id):
 
         if user_role == Role.VENDEDOR and TransactionType == TransactionType.INGRESO:
             coordinator_id = Salesman.query.filter_by(employee_id=employee_id).first().manager_id
-            print(coordinator_id)
-            print(employee_id)
             box_value = Employee.query.filter_by(user_id=user_id).first().box_value
             Employee.query.filter_by(user_id=user_id).update({'box_value': box_value + transaction.amount})
             coordinator = Employee.query.get(coordinator_id)

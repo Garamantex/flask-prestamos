@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var loanId = this.getAttribute('data-id');
 
             // Calcula la suma de los valores
-            var totalAmount = installmentValue + overdueAmount;
+            var totalAmount = installmentValue;
 
             // Establece el valor del monto a pagar en el campo de entrada con formato de miles
             document.getElementById('customPayment').value = totalAmount;
