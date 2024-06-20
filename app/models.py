@@ -360,6 +360,7 @@ class EmployeeRecord(db.Model):
     loans_to_collect = db.Column(db.Integer, nullable=False)
     paid_installments = db.Column(db.Integer, nullable=False)
     partial_installments = db.Column(db.Integer, nullable=False)
+    due_to_collect_tomorrow = db.Column(db.Float, nullable=False)
     overdue_installments = db.Column(db.Integer, nullable=False)
     total_collected = db.Column(db.Float, nullable=False)
     sales = db.Column(db.Float, nullable=False)
@@ -382,6 +383,7 @@ class EmployeeRecord(db.Model):
             'paid_installments': self.paid_installments,
             'partial_installments': self.partial_installments,
             'overdue_installments': self.overdue_installments,
+            'due_to_collect_tomorrow': self.due_to_collect_tomorrow,
             'total_collected': self.total_collected,
             'sales': self.sales,
             'renewals': self.renewals,
