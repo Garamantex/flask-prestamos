@@ -21,7 +21,6 @@ from .models import User, Client, Loan, Employee, LoanInstallment
 # Crea una instancia de Blueprint
 routes = Blueprint('routes', __name__)
 
-
 # ruta para el logout de la aplicación web
 @routes.route('/logout')
 def logout():
@@ -143,8 +142,6 @@ def menu_salesman(user_id):
         Loan.employee_id == employee_id,
         LoanInstallment.status == InstallmentStatus.MORA
     ).scalar()
-
-    # print(total_arrears_value)
 
     # Si no hay valor en mora, establecerlo como 0
     total_arrears_value = total_arrears_value or 0
@@ -1237,6 +1234,7 @@ def box():
                     if all_loans_paid_today:
                         break
 
+
             # Calcula el total de cobros para el día con estado "PAGADA"           
             total_collections_today = db.session.query(
                 func.sum(Payment.amount)
@@ -1248,6 +1246,7 @@ def box():
                 Loan.client.has(employee_id=salesman.employee_id),
                 func.date(Payment.payment_date) == datetime.now().date()
             ).scalar() or 0
+
 
 
             for client in employee.clients:
@@ -1366,15 +1365,35 @@ def box():
                 )
             )
 
-            # Calcula la cantidad de clientes recaudados en el día
-            total_clients_collected = sum(
-                1 for client in salesman.employee.clients
-                for loan in client.loans
-                if loan.status and any(
-                    installment.status == InstallmentStatus.PAGADA
-                    for installment in loan.installments
-                )
-            )
+            # Crear subconsulta para obtener los IDs de los clientes
+            client_subquery = db.session.query(Client.id).filter(Client.employee_id == 2).subquery()
+
+            # Crear subconsulta para obtener los IDs de los préstamos
+            loan_subquery = db.session.query(Loan.id).filter(Loan.client_id.in_(client_subquery)).subquery()
+
+
+            # Crear subconsulta para contar los préstamos únicos
+            subquery = db.session.query(
+                Loan.id
+            ).join(
+                LoanInstallment, LoanInstallment.loan_id == Loan.id
+            ).join(
+                Payment, Payment.installment_id == LoanInstallment.id
+            ).filter(
+                Loan.id.in_(loan_subquery),
+                func.date(Payment.payment_date) == datetime.now().date(),
+                LoanInstallment.status.in_(['PAGADA', 'ABONADA'])
+            ).group_by(
+                Loan.id
+            ).subquery()
+
+            # Contar el número de préstamos únicos
+            total_clients_collected = db.session.query(
+                func.count()
+            ).select_from(
+                subquery
+            ).scalar() or 0
+
 
             # Convertir los valores de estadísticas a números antes de agregarlos a salesmen_stats
             # Obtener el estado del modelo Employee
@@ -1416,7 +1435,7 @@ def box():
                 'total_pending_installments_amount': total_pending_installments_amount,
                 # Nuevo campo para el total de los montos de las cuotas pendientes
                 'all_loans_paid_today': all_loans_paid_today,
-                'total_clients_collected': total_clients_collected-customers_in_arrears+total_clients_collected_close,
+                'total_clients_collected': total_clients_collected,
                 'status_box': status_box,
                 'box_value': box_value,
                 'initial_box_value': initial_box_value
@@ -2969,3 +2988,6 @@ def edit_payment(loan_id):
     # db.session.commit()
 
     return jsonify({"message": "El pago se ha registrado correctamente."}), 200
+
+
+
