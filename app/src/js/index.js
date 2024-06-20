@@ -298,7 +298,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if(document.getElementById('confirmPaymentBtn')) {
         document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
             console.log('Confirmar pago')
-            console.log('Hola Mundo')
             var loanId = document.getElementById('loanId').value; // Obtener ID de préstamo desde el campo oculto
             var customPayment = document.getElementById('customPayment').value; // Obtener valor de pago personalizado
             // Enviar solicitud POST al servidor con los datos del pago

@@ -871,6 +871,7 @@ def payments_list(user_id):
     # Inicializa la lista para almacenar la información de los clientes
     clients_information = []
 
+
     # Obtiene los clientes del empleado con préstamos activos o en mora
     for client in employee.clients:
         for loan in client.loans:
@@ -1265,14 +1266,17 @@ def box():
             #     LoanInstallment.due_date == datetime.now().date()
             # ).scalar() or 0
 
+
+
             for client in employee.clients:
                 for loan in client.loans:
-                    if loan.status:
-                        # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
-                        total_pending_installments_amount += LoanInstallment.query.filter_by(loan_id=loan.id,
-                                                                           status=InstallmentStatus.PENDIENTE).order_by(
-                        LoanInstallment.due_date.asc()).first().fixed_amount
-
+                    # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
+                    pending_installment = LoanInstallment.query.filter(
+                        LoanInstallment.loan_id == loan.id,
+                        LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.PAGADA])
+                    ).order_by(LoanInstallment.due_date.asc()).first()
+                    if pending_installment:
+                        total_pending_installments_amount += pending_installment.fixed_amount
 
 
             # Calcula la cantidad de nuevos clientes registrados en el día
