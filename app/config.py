@@ -4,6 +4,7 @@
 SQLALCHEMY_DATABASE_URI = 'mysql://root:123456@localhost/rutzchile'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+
 # Configuración avanzada de SQLAlchemy
 SQLALCHEMY_ENGINE_OPTIONS = {
     'pool_pre_ping': True,
