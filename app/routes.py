@@ -604,7 +604,7 @@ def renewal():
             )
             
             # Descontar el valor del loan del box_value del modelo employee
-            employee.box_value -= renewal_loan.amount
+            employee.box_value -= Decimal(renewal_loan.amount)
 
             # Guardar la renovación de préstamo en la base de datos
             db.session.add(renewal_loan)
@@ -987,6 +987,9 @@ def payments_list(user_id):
     filtered_clients_information = [client_info for client_info in clients_information if
                                     search_term.lower() in f"{client_info['First Name']} {client_info['Last Name']}".lower()]
 
+    # Ordena la lista filtrada por fecha de modificación ascendente
+    filtered_clients_information.sort(key=lambda x: x['Last Loan Modification Date'])
+
     # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
     return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box, employee_id=employee_id, user_id=user_id)
 
@@ -1209,6 +1212,7 @@ def box():
             total_pending_installments_amount = 0  # Monto total de cuotas pendientes
             box_value = 0  # Valor de la caja del vendedor
             initial_box_value = 0
+            total_pending_installments_loan_close_amount = 0  # Monto total de cuotas pendientes de préstamos por cerrar
 
 
             # Obtener el valor de la caja del vendedor
@@ -1219,9 +1223,6 @@ def box():
             employee_records = EmployeeRecord.query.filter_by(employee_id=salesman.employee_id).order_by(EmployeeRecord.id.desc()).first()
             if employee_records:
                 initial_box_value = employee_records.closing_total
-
-            
-
 
 
             all_loans_paid = Loan.query.filter_by(employee_id=salesman.employee_id)
@@ -1248,35 +1249,17 @@ def box():
                 func.date(Payment.payment_date) == datetime.now().date()
             ).scalar() or 0
 
-            # # Calcula el total de los montos de las cuotas en estado PENDIENTE, MORA o ABONADA, donde la fecha sea menor o igual a hoy
-            # total_pending_installments_amount = db.session.query(
-            #     func.sum(LoanInstallment.fixed_amount)
-            # ).join(
-            #     Loan, LoanInstallment.loan_id == Loan.id
-            # ).join(
-            #     Client, Loan.client_id == Client.id
-            # ).join(
-            #     Employee, Client.employee_id == Employee.id
-            # ).join(
-            #     Salesman, Employee.id == Salesman.employee_id
-            # ).filter(
-            #     Salesman.employee_id == salesman.employee_id,
-            #     LoanInstallment.status.in_(
-            #         [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA, InstallmentStatus.PAGADA]),
-            #     LoanInstallment.due_date == datetime.now().date()
-            # ).scalar() or 0
-
-
 
             for client in employee.clients:
                 for loan in client.loans:
-                    # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
-                    pending_installment = LoanInstallment.query.filter(
-                        LoanInstallment.loan_id == loan.id,
-                        LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.PAGADA])
-                    ).order_by(LoanInstallment.due_date.asc()).first()
-                    if pending_installment:
-                        total_pending_installments_amount += pending_installment.fixed_amount
+                    if loan.status:
+                        # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
+                        pending_installment = LoanInstallment.query.filter(
+                            LoanInstallment.loan_id == loan.id,
+                            LoanInstallment.status.in_([InstallmentStatus.PENDIENTE])
+                        ).order_by(LoanInstallment.due_date.asc()).first()
+                        if pending_installment:
+                            total_pending_installments_amount += pending_installment.fixed_amount
 
 
             # Calcula la cantidad de nuevos clientes registrados en el día
@@ -1373,12 +1356,29 @@ def box():
                 )
             )
 
+            # Calcula la cantidad de clientes recaudados en el día
+            total_clients_collected_close = sum(
+                1 for client in salesman.employee.clients
+                for loan in client.loans
+                if loan.status == False and any(
+                    installment.status == InstallmentStatus.PAGADA and installment.payment_date == datetime.now().date()
+                    for installment in loan.installments
+                )
+            )
+
+            # Calcula la cantidad de clientes recaudados en el día
+            total_clients_collected = sum(
+                1 for client in salesman.employee.clients
+                for loan in client.loans
+                if loan.status and any(
+                    installment.status == InstallmentStatus.PAGADA
+                    for installment in loan.installments
+                )
+            )
+
             # Convertir los valores de estadísticas a números antes de agregarlos a salesmen_stats
             # Obtener el estado del modelo Employee
             employee_status = salesman.employee.status
-
-            # print("employee_status: ", employee_status)
-            # print("all_loans: ", all_loans_paid_today)
 
             status_box = ""
 
@@ -1391,7 +1391,6 @@ def box():
             else:
                 status_box = "Activa"
 
-            # print("status_box: ", status_box)
 
             box_value = initial_box_value + float(total_collections_today) - float(daily_withdrawals) - float(daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount) - float(total_renewal_loans_amount)
 
@@ -1417,6 +1416,7 @@ def box():
                 'total_pending_installments_amount': total_pending_installments_amount,
                 # Nuevo campo para el total de los montos de las cuotas pendientes
                 'all_loans_paid_today': all_loans_paid_today,
+                'total_clients_collected': total_clients_collected-customers_in_arrears+total_clients_collected_close,
                 'status_box': status_box,
                 'box_value': box_value,
                 'initial_box_value': initial_box_value
@@ -2380,6 +2380,25 @@ def add_employee_record(employee_id):
             .join(Loan) \
             .filter(Loan.employee_id == employee_id) \
             .subquery()
+        
+        
+                
+        # Obtén la fecha de mañana
+        tomorrow = datetime.now().date() + timedelta(days=1)
+
+        total_pending_installments_amount = 0
+
+        for client in employee.clients:
+            for loan in client.loans:
+                # Encuentra todas las cuotas con fecha de vencimiento igual a mañana y estado pendiente o pagada
+                installments_tomorrow = LoanInstallment.query.filter(
+                    LoanInstallment.loan_id == loan.id,
+                    LoanInstallment.due_date == tomorrow,
+                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.PAGADA])
+                ).all()
+                
+                for installment in installments_tomorrow:
+                    total_pending_installments_amount += installment.fixed_amount
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo PAGADA del empleado
         paid_installments_query = db.session.query(LoanInstallment.id) \
@@ -2524,6 +2543,7 @@ def add_employee_record(employee_id):
                 expenses=daily_expenses_amount,
                 sales=new_clients_loan_amount,
                 renewals=total_renewal_loans_amount,
+                due_to_collect_tomorrow=total_pending_installments_amount,
                 withdrawals=daily_withdrawals,
                 total_collected=total_collected,
                 closing_total=Decimal(initial_state)
@@ -2594,6 +2614,15 @@ def all_open_boxes():
     return redirect(url_for('routes.box'))
 
 
+
+
+
+
+
+
+
+# Cierra las cajas desde la vista del vendedor
+
 @routes.route('/add-daily-collected/<int:employee_id>', methods=['POST'])
 def add_daily_collected(employee_id):
     fecha_actual = datetime.now().date()
@@ -2651,6 +2680,26 @@ def add_daily_collected(employee_id):
             Transaction.employee_id == employee_id,
             Transaction.approval_status == ApprovalStatus.PENDIENTE
         ).count()
+
+            
+        # Obtén la fecha de mañana
+        tomorrow = datetime.now().date() + timedelta(days=1)
+
+        total_pending_installments_amount = 0
+
+        for client in employee.clients:
+            for loan in client.loans:
+                # Encuentra todas las cuotas con fecha de vencimiento igual a mañana y estado pendiente o pagada
+                installments_tomorrow = LoanInstallment.query.filter(
+                    LoanInstallment.loan_id == loan.id,
+                    LoanInstallment.due_date == tomorrow,
+                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.PAGADA])
+                ).all()
+                
+                for installment in installments_tomorrow:
+                    total_pending_installments_amount += installment.fixed_amount
+
+
 
         # Obtener los IDs de las transacciones pendientes del vendedor
         pending_transaction_ids = Transaction.query.filter(
@@ -2776,6 +2825,7 @@ def add_daily_collected(employee_id):
                 expenses=daily_expenses_amount,
                 sales=new_clients_loan_amount,
                 renewals=total_renewal_loans_amount,
+                due_to_collect_tomorrow=total_pending_installments_amount,
                 withdrawals=daily_withdrawals,
                 total_collected=total_collected,
                 closing_total=int(initial_state) + int(paid_installments)
