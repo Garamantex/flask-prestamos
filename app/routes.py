@@ -1058,7 +1058,7 @@ def get_loan_details(loan_id):
 
     # SE DEBE MODIFICAR EL CALCULO DE LA SUMA DEL SALDO PENDIENTE
     saldo_pendiente = valor_total - sum(
-        installment.amount for installment in installments if installment.status == InstallmentStatus.PAGADA)
+        installment.fixed_amount for installment in installments if installment.status == InstallmentStatus.PAGADA)
 
     # Formatear los valores sin decimales
     valor_total = int(valor_total)
@@ -1150,11 +1150,11 @@ def box():
         # Obtener el ID del manager del coordinador
         manager_id = db.session.query(Manager.id).filter_by(employee_id=coordinator.id).scalar()
 
+
         if not manager_id:
             return jsonify({'message': 'No se encontró ningún coordinador asociado a este empleado'}), 404
 
         salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
-        # print("Salesmen: ", salesmen[1].employee_id)
 
         # Funciones para sumar el valor de todas las transacciones en estado: APROBADO y Tipo: INGRESO/RETIRO
         current_date = datetime.now().date()
@@ -1173,6 +1173,8 @@ def box():
             Transaction.creation_date.between(start_of_day, end_of_day)  # Filtrar por fecha actual
         ).group_by(Salesman.manager_id).all()
 
+
+
         # Filtrar las transacciones para el día actual
         total_inbound_amount = db.session.query(
             func.sum(Transaction.amount).label('total_amount'),
@@ -1183,7 +1185,6 @@ def box():
             func.date(Transaction.creation_date) == current_date  # Filtrar por fecha actual
         ).group_by(Salesman.manager_id).all()
 
-        # print("Total Inbound Amount: ", total_inbound_amount)
 
         # Verificar si todos los préstamos tienen un pago igual al de hoy
 
@@ -1210,11 +1211,10 @@ def box():
             box_value = 0  # Valor de la caja del vendedor
             initial_box_value = 0
             total_pending_installments_loan_close_amount = 0  # Monto total de cuotas pendientes de préstamos por cerrar
-
-
+            
             # Obtener el valor de la caja del vendedor
             employee = Employee.query.get(salesman.employee_id)
-            
+            employee_id = employee.id
 
             # Obtener el valor inicial de la caja del vendedor
             employee_records = EmployeeRecord.query.filter_by(employee_id=salesman.employee_id).order_by(EmployeeRecord.id.desc()).first()
@@ -1338,6 +1338,36 @@ def box():
                 func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
             ).count() or 0
 
+
+            # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de creación descendente
+            transactions = Transaction.query.filter_by(employee_id=employee_id).order_by(Transaction.creation_date.desc()).all()
+
+
+
+            # Filtrar transacciones por tipo y fecha
+            today = datetime.today().date()
+            expenses = [trans for trans in transactions if
+                        trans.transaction_types == TransactionType.GASTO and trans.creation_date.date() == today]
+            incomes = [trans for trans in transactions if
+                    trans.transaction_types == TransactionType.INGRESO and trans.approval_status == ApprovalStatus.APROBADA and trans.creation_date.date() == today]
+            withdrawals = [trans for trans in transactions if
+                        trans.transaction_types == TransactionType.RETIRO and trans.approval_status == ApprovalStatus.APROBADA and trans.creation_date.date() == today]
+            
+            
+            # Recopilar detalles con formato de fecha y clases de Bootstrap
+            expense_details = [
+                {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+                'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
+            income_details = [
+                {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+                'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y'), 'employee_id': employee_id, 'username': Employee.query.get(employee_id).user.username} for trans in incomes]
+            withdrawal_details = [
+                {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+                'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y'), 'employee_id': employee_id, 'username': Employee.query.get(employee_id).user.username} for trans in withdrawals]
+            
+            print("Ingresos: ", income_details)
+
+
             # Número total de clientes del vendedor
             total_customers = sum(
                 1 for client in salesman.employee.clients
@@ -1369,8 +1399,7 @@ def box():
             client_subquery = db.session.query(Client.id).filter(Client.employee_id == 2).subquery()
 
             # Crear subconsulta para obtener los IDs de los préstamos
-            loan_subquery = db.session.query(Loan.id).filter(Loan.client_id.in_(client_subquery)).subquery()
-
+            loan_subquery = db.session.query(Loan.id).filter(Loan.client_id.in_(client_subquery.select())).subquery()
 
             # Crear subconsulta para contar los préstamos únicos
             subquery = db.session.query(
@@ -1380,7 +1409,7 @@ def box():
             ).join(
                 Payment, Payment.installment_id == LoanInstallment.id
             ).filter(
-                Loan.id.in_(loan_subquery),
+                Loan.id.in_(loan_subquery.select()),
                 func.date(Payment.payment_date) == datetime.now().date(),
                 LoanInstallment.status.in_(['PAGADA', 'ABONADA'])
             ).group_by(
@@ -1438,7 +1467,10 @@ def box():
                 'total_clients_collected': total_clients_collected,
                 'status_box': status_box,
                 'box_value': box_value,
-                'initial_box_value': initial_box_value
+                'initial_box_value': initial_box_value,
+                'expense_details': expense_details,
+                'income_details': income_details,
+                'withdrawal_details': withdrawal_details                
             }
 
             salesmen_stats.append(salesman_data)
@@ -1461,13 +1493,33 @@ def box():
             'total_outbound_amount': float(total_outbound_amount[0][0]) if total_outbound_amount else 0,
             'total_inbound_amount': float(total_inbound_amount[0][0]) if total_inbound_amount else 0
         }
+        
+
+        # Obtener los gastos del coordinador
+        expenses = Transaction.query.filter(
+            
+                Transaction.employee_id == coordinator.id,
+                Transaction.transaction_types == 'GASTO',
+                func.date(Transaction.creation_date) == current_date
+            
+        ).all()
+        
+        # Obtener el valor total de los gastos
+        total_expenses = sum(expense.amount for expense in expenses)
+
+
+        expense_details = [
+            {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+             'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
+        
+        print("Gastos: ", expense_details)
 
         # print(salesmen_stats)
 
         # Renderizar la plantilla con las variables
         return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats,
                                search_term=search_term, all_boxes_closed=all_boxes_closed,
-                               coordinator_name=coordinator_name, user_id=user_id)
+                               coordinator_name=coordinator_name, user_id=user_id, expense_details=expense_details, total_expenses=total_expenses)
 
 
     except Exception as e:
@@ -2988,6 +3040,5 @@ def edit_payment(loan_id):
     # db.session.commit()
 
     return jsonify({"message": "El pago se ha registrado correctamente."}), 200
-
 
 

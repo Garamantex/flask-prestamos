@@ -44,7 +44,9 @@
               Valor Caja: $ {{ '{:,.0f}'.format(coordinator_box['maximum_cash'])
               }}
             </li>
-            <li class="c-card__internal"></li>
+            <li class="c-card__internal">
+              Total Gastos: $ {{ '{:,.0f}'.format(total_expenses) }}
+            </li>
             <li class="c-card__internal">
               Total de Ingresos: $ {{
               '{:,.0f}'.format(coordinator_box['total_inbound_amount']) }}
@@ -54,6 +56,9 @@
               '{:,.0f}'.format(coordinator_box['total_outbound_amount']) }}
             </li>
           </ul>
+          <a type="button" class="c-btn c-btn-primary" data-toggle="modal" data-target="#exampleModal">
+            Gestión Caja
+          </a>
         </div>
       </div>
     </div>
@@ -164,6 +169,130 @@
     </div>
   </div>
 </div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="exampleModalLabel">Gestión</h3>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+              
+              <h5 class="mb-4">Gastos:</h5>
+              <table class="c-table" style="color: white">
+                <thead>
+                  <tr>
+                    <th class="c-table__box">Descripcion</th>
+                    <th class="c-table__box">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="c-table__box">
+                      {% for expense in expense_details %}
+                      {{ expense['description'] }}
+                      {% endfor %}
+                    </td>
+                    <td class="c-table__box">
+                      {% for expense in expense_details %}
+                      $ {{ '{:,.0f}'.format(expense['amount']) }}
+                      {% endfor %}
+                    </td>
+                  </tr>
+                </tbody>                
+              </table>
+              <h5 class="mb-4 mt-4">Ingresos:</h5>
+              <table class="c-table" style="color: white">
+                <thead>
+                  <tr>
+                    <th class="c-table__box">Venedor</th>
+                    <th class="c-table__box">Valor</th>
+                    <th class="c-table__box">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for salesman in salesmen_stats %}
+                  <tr>
+                    <td class="c-table__box">
+                      {% for withdrawal in salesman['withdrawal_details'] %}
+                      {{ withdrawal['username'] }}
+                      {% endfor %}
+                    </td>
+                    <td class="c-table__box">
+                      {% for withdrawal in salesman['withdrawal_details'] %}
+                      {{ withdrawal['description'] }}
+                      {% endfor %}
+                    </td>
+                    <td class="c-table__box">$ 
+                      {% for withdrawal in salesman['withdrawal_details'] %}
+                      {{ '{:,.0f}'.format(withdrawal['amount']) }}
+                      {% endfor %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              <h5 class="mb-4 mt-4">Retiros:</h5>
+              <table class="c-table" style="color: white">
+                <thead>
+                  <tr>
+                    <th class="c-table__box">Venedor</th>
+                    <th class="c-table__box">Descripcion</th>
+                    <th class="c-table__box">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for salesman in salesmen_stats %}
+                  <tr>
+                    <td class="c-table__box">
+                      {% for income in salesman['income_details'] %}
+                      {{ income['username'] }}
+                      {% endfor %}
+                    </td>
+                    <td class="c-table__box">
+                      {% for income in salesman['income_details'] %}
+                      {{ income['description'] }}
+                      {% endfor %}
+                    </td>
+                    <td class="c-table__box">$ 
+                      {% for income in salesman['income_details'] %}
+                      {{ '{:,.0f}'.format(income['amount']) }}
+                      {% endfor %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overlay -->
+<div class="modal-overlay"></div>
+<style>
+    .modal-overlay {
+        background-color: rgba(0, 0, 0, 0.7);
+        /* Color negro con transparencia del 70% */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 999;
+        display: none;
+    }
+</style>
+
+
+
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const salesmen = document.querySelectorAll('.js-box-status');
@@ -192,4 +321,6 @@
     });
   });
 </script>
+
+
 {% endblock %}
