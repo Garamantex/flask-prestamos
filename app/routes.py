@@ -805,6 +805,11 @@ def mark_overdue():
     else:
         return 'Método no permitido'
 
+
+
+
+
+
 @routes.route('/payment_list/<int:user_id>', methods=['GET'])
 def payments_list(user_id):
     # Obtiene el ID de usuario desde la ruta
@@ -829,7 +834,7 @@ def payments_list(user_id):
         for installment in loan_installments:
             payments = Payment.query.filter_by(installment_id=installment.id).all()
             for payment in payments:
-                print(payment.payment_date)
+                # print(payment.payment_date)
                 if payment.payment_date.date() == current_date:
                     # all_loans_paid_today = True
                     all_loans_paid_count += 1
@@ -846,6 +851,20 @@ def payments_list(user_id):
 
     print("Creditos Activos: ", active_loans_count)
     print("Creditos Pagados Hoy: ", all_loans_paid_count)
+
+                # Calcula el total de cobros para el día con estado "PAGADA"           
+    total_collections_today = db.session.query(
+        func.sum(Payment.amount)
+    ).join(
+        LoanInstallment, Payment.installment_id == LoanInstallment.id
+    ).join(
+        Loan, LoanInstallment.loan_id == Loan.id
+    ).filter(
+        Loan.client.has(employee_id=employee_id),
+        func.date(Payment.payment_date) == datetime.now().date()
+    ).scalar() or 0
+
+    print("Total Collections Today: ", total_collections_today)
 
 
     status_box = ""
@@ -877,8 +896,6 @@ def payments_list(user_id):
                 paid_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
                                                                     status=InstallmentStatus.PAGADA).count()
 
-                total_credits = LoanInstallment.query.filter_by(loan_id=loan.id).count()
-
                 # Calcula el número de cuotas vencidas 
                 overdue_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
                                                                        status=InstallmentStatus.MORA).count()
@@ -892,8 +909,11 @@ def payments_list(user_id):
                 ).scalar() or 0
                 
 
-                total_amount_paid = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
-                                                                                                 status=InstallmentStatus.ABONADA).scalar() or 0
+                total_amount_paid = db.session.query(func.sum(LoanInstallment.fixed_amount)).filter(
+                    LoanInstallment.loan_id == loan.id,
+                    LoanInstallment.status.in_([InstallmentStatus.ABONADA, InstallmentStatus.PAGADA])
+                ).scalar() or 0
+                
                 
                 total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
                                                                                                     status=InstallmentStatus.MORA).scalar() or 0
@@ -903,12 +923,15 @@ def payments_list(user_id):
                                                                            status=InstallmentStatus.PENDIENTE).order_by(
                     LoanInstallment.due_date.asc()).first()
 
+                               
+
                 # Encuentra la fecha de modificación más reciente del préstamo
                 last_loan_modification_date = Loan.query.filter_by(client_id=client.id).order_by(
                     Loan.modification_date.desc()).first()
 
                 # Obtiene la fecha del último pago
                 # last_payment_date = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).order_by(LoanInstallment.payment_date.desc()).first()
+
 
                 # Encuentra la fecha del último pago
                 last_payment_date = Payment.query \
@@ -987,9 +1010,16 @@ def payments_list(user_id):
     # Ordena la lista filtrada por fecha de modificación ascendente
     filtered_clients_information.sort(key=lambda x: x['Last Loan Modification Date'])
 
-    # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
-    return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box, employee_id=employee_id, user_id=user_id)
+    # Calcular la suma total de los valores de pagos a plazos
+    total_installment_value = sum(client['Installment Value'] for client in clients_information)
 
+    porcentaje_cobro = int(total_collections_today / total_installment_value * 100)
+
+    print("Total Installment Value: ", total_installment_value)
+
+
+    # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
+    return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box, employee_id=employee_id, user_id=user_id, active_loans_count=active_loans_count, all_loans_paid_count=all_loans_paid_count, total_installment_value=total_installment_value, total_collections_today=total_collections_today, porcentaje_cobro=porcentaje_cobro)
 
 
 def is_workday(date):

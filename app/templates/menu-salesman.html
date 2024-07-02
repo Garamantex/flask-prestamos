@@ -9,30 +9,7 @@
                             <div class="col">
                                 <h4>Hola, {{ salesman_name }}</h4>
                                 <hr>
-                                
-                                <!-- Información de bienvenida -->
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mt-2 text-center">
-                                <i class="bi bi-person-check-fill d-inline-block" title="Clientes ACTIVOS"></i>
-                                <p class="d-inline-block px-3" title="Clientes ACTIVOS">{{ total_credits }}</p>
-                            </div>
-                            <div class="col-md-6 mt-2 text-center">
-                                <i class="bi bi-person-fill-exclamation d-inline-block" title="Clientes en mora"></i>
-                                <p class="d-inline-block px-3" title="Clientes en mora">{{ delinquent_clients }}</p>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mt-2 text-center">
-                                <i class="bi bi-cash d-inline-block"></i>
-                                <p class="d-inline-block px-3">$ {{ '{:,.0f}'.format( today_revenue | float | int) }}
-                                </p>
-                            </div>
-                            <div class="col-md-6 mt-2 text-center">
-                                <i class="bi bi-cash-coin d-inline-block"></i>
-                                <p class="d-inline-block px-3">$ {{ '{:,.0f}'.format( total_arrears_value | float | int) }}
-                            </div> 
                         </div>
                     </div>
             </div>
