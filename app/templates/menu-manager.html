@@ -13,7 +13,7 @@
                 <div class="col">
                     <nav class="c-menu d-flex flex-wrap justify-content-center justify-content-md-start align-items-center h-100">
                         <a href="{{ url_for('routes.box') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-lock-fill me-3"></i> Manejo de Cajas</a>
-                        <a href="" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-calendar3 me-3"></i> Historial de Cajas</a>
+                        <a href="{{ url_for('routes.history_box') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-calendar3 me-3"></i> Historial de Cajas</a>
                         <a href="{{ url_for('routes.debtor_manager') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-person-vcard me-3"></i> Morosos</a>
                         <a href="{{ url_for('routes.approval_expenses') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-cash me-3"></i> Transacciones</a>                        
                         <a href="{{ url_for('routes.list_expenses') }}" class="c-btn c-btn-primary mb-1"><i class="c-icon c-icon--white bi bi-cash me-3"></i> Mis Transacciónes</a>
