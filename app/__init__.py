@@ -16,6 +16,7 @@ def create_app():
     # Inicializar la instancia de SQLAlchemy
     db.init_app(app)
 
+
     # Configurar la migración de la base de datos
     from flask_migrate import Migrate
     migrate = Migrate(app, db)
