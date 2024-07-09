@@ -917,11 +917,13 @@ def payments_list(user_id):
                 
                 total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
                                                                                                     status=InstallmentStatus.MORA).scalar() or 0
+                
+
 
                 # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
                 last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan.id,
                                                                            status=InstallmentStatus.PENDIENTE).order_by(
-                    LoanInstallment.due_date.asc()).first()
+                    LoanInstallment.due_date.asc()).first() or 0
 
                                
 
@@ -1013,7 +1015,10 @@ def payments_list(user_id):
     # Calcular la suma total de los valores de pagos a plazos
     total_installment_value = sum(client['Installment Value'] for client in clients_information)
 
-    porcentaje_cobro = int(total_collections_today / total_installment_value * 100)
+    if total_installment_value == 0:
+        porcentaje_cobro = 0
+    else:
+        porcentaje_cobro = int(total_collections_today / total_installment_value * 100)
 
     print("Total Installment Value: ", total_installment_value)
 
@@ -1281,12 +1286,11 @@ def box():
                 for loan in client.loans:
                     if loan.status:
                         # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
-                        pending_installment = LoanInstallment.query.filter(
-                            LoanInstallment.loan_id == loan.id,
-                            func.date(LoanInstallment.due_date) == datetime.now().date(),
-                        ).order_by(LoanInstallment.due_date.asc()).first()
+                        pending_installment =  LoanInstallment.query.filter_by(loan_id=loan.id,
+                                                                        status=InstallmentStatus.PENDIENTE).order_by(LoanInstallment.due_date.asc()).first() or 0
                         if pending_installment:
                             total_pending_installments_amount += pending_installment.fixed_amount
+
 
 
             # Calcula la cantidad de nuevos clientes registrados en el día
@@ -1463,6 +1467,8 @@ def box():
                 status_box = "Activa"
             else:
                 status_box = "Activa"
+
+
 
 
             box_value = initial_box_value + float(total_collections_today) - float(daily_withdrawals) - float(daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount) - float(total_renewal_loans_amount)
@@ -3201,17 +3207,18 @@ def history_box():
             Loan.client.has(employee_id=salesman.employee_id),
             func.date(Payment.payment_date) == filter_date
         ).scalar() or 0
+        
 
-        # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
         for client in employee.clients:
             for loan in client.loans:
                 if loan.status:
-                    pending_installment = LoanInstallment.query.filter(
-                        LoanInstallment.loan_id == loan.id,
-                        func.date(LoanInstallment.due_date) == filter_date,
-                    ).order_by(LoanInstallment.due_date.asc()).first()
+                    # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
+                    pending_installment =  LoanInstallment.query.filter_by(loan_id=loan.id,
+                                                                    status=InstallmentStatus.PENDIENTE).order_by(LoanInstallment.due_date.asc()).first() or 0
                     if pending_installment:
                         total_pending_installments_amount += pending_installment.fixed_amount
+
+
 
         # Calcula la cantidad de nuevos clientes registrados en el día
         new_clients_loan = Client.query.filter(
