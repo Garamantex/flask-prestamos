@@ -18,8 +18,10 @@
     <div class="row">
       <form action="{{ url_for('routes.history_box') }}" method="POST" class="">
         <div class="col-12 mt-2">
-          <input class="c-form c-form__input" type="date" name="filter_date">
-          <button type="submit" class="c-btn c-btn-summit">Buscar</button>
+          <div style="display: flex; justify-content: space-between">
+            <input class="c-form c-form__input" type="date" name="filter_date" style="margin: 0px 10px; width: 60%;">
+            <button type="submit" class="c-btn c-btn-summit" >Buscar</button>
+          </div>
         </div>
       </form>
     </div>
@@ -72,7 +74,7 @@
                 {{ salesman['salesman_name'] }}
               </h4>
               <div class="" style="display: flex; flex-wrap: wrap">
-                <a
+                <a<
                 href="./box-detail?employee_id={{ salesman['employee_id'] }}"
                 class="c-btn c-btn-summit js-btn-ocultar"
                 style="width: 45%;"
@@ -197,8 +199,8 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for salesman in salesmen_stats %}
                   <tr>
+                  {% for salesman in salesmen_stats %}
                     <td class="c-table__box">
                       {% for withdrawal in salesman['withdrawal_details'] %}
                       {{ withdrawal['username'] }}
@@ -214,8 +216,8 @@
                       {{ '{:,.0f}'.format(withdrawal['amount']) }}
                       {% endfor %}
                     </td>
+                    {% endfor %}
                   </tr>
-                  {% endfor %}
                 </tbody>
               </table>
               <h5 class="mb-4 mt-4">Retiros:</h5>
@@ -228,8 +230,8 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for salesman in salesmen_stats %}
                   <tr>
+                  {% for salesman in salesmen_stats %}
                     <td class="c-table__box">
                       {% for income in salesman['income_details'] %}
                       {{ income['username'] }}
@@ -245,8 +247,8 @@
                       {{ '{:,.0f}'.format(income['amount']) }}
                       {% endfor %}
                     </td>
+                    {% endfor %}
                   </tr>
-                  {% endfor %}
                 </tbody>
               </table>
             </div>
