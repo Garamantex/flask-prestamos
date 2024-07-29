@@ -4,6 +4,8 @@
 SQLALCHEMY_DATABASE_URI = 'mysql://root:123456@localhost/rutzchile'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+# SQLALCHEMY_DATABASE_URI = 'mysql://prestchile13:3AHV4D0PS1s-@localhost/rutzchile'
+
 
 # Configuración avanzada de SQLAlchemy
 SQLALCHEMY_ENGINE_OPTIONS = {
