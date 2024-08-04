@@ -41,6 +41,7 @@
                         <legend style="color: white;">Concepto</legend>
                         <div class="mb-3">
                             <select id="concept" name="concept_id" class="c-form c-form__dropdown" aria-label="Default select example">
+                                <option value="">Seleccione un concepto</option>
                                 {% for concept in concepts %}
                                     <option value="{{ concept.id }}" data-transaction-type="{{ concept.transaction_types.value }}">{{ concept.name }}</option>
                                 {% endfor %}
