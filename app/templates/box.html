@@ -14,17 +14,8 @@
       </div>
     </div>
     <div class="row">
-      <div class="col mt-4">
-        <form
-          action="{{ url_for('routes.box') }}"
-          method="GET"
-          style="display: flex"
-        >
-          <input type="text" style="border-radius: 6px 0 0 6px ;"
-            class="form-control" id="salesman_name" name="salesman_name"
-            value="{{ search_term }}" placeholder="Buscar un vendedor">
-          <button type="submit" class="c-btn c-btn-summit">Buscar</button>
-        </form>
+      <div class="col-12 mt-4 mb-2">
+        <input type="text" name="search" id="searcher" class="form-control" style="border-radius: 6px 0 0 6px ;" placeholder="Buscar Vendedor">
       </div>
     </div>
 
@@ -78,11 +69,12 @@
       <div class="col-12">
         <ul class="c-cajas">
           {% for salesman in salesmen_stats %}
-          <li class="c-cajas__item">
+          <li class="c-cajas__item search-salesman-card">
             <div style="display: flex; justify-content: center; flex-wrap: wrap;" class="mb-4">
-              <h4 class="c-cajas__item__title c-headings__h4">
+              <h4 class="c-cajas__item__title c-headings__h4 mb-4">
+                <i class=" bi {{ '' if salesman['role_employee'] == 'VENDEDOR' else 'bi-person-badge-fill' }}"></i>  
                 {{ salesman['salesman_name'] }}
-              </h4>
+              </h4>              
               <div class="" style="display: flex; flex-wrap: wrap">
                 <a
                 href="./box-detail?employee_id={{ salesman['employee_id'] }}"
@@ -162,7 +154,7 @@
               </li>
             </ul>
           </li>
-          <hr>
+          <hr class="mt-4">
           {% endfor %}
         </ul>
       </div>

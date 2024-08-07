@@ -47,12 +47,7 @@
         </div>
         <div class="row">
             <div class="col-12">
-                <form method="GET" action="{{ url_for('routes.payments_list', user_id=user_id) }}" class="mb-2"
-                    style="display: flex; align-items: center; justify-content: center;">
-                    <input type="text" name="search" class="form-control" style="border-radius: 6px 0 0 6px ;"
-                        placeholder="Buscar por cliente">
-                    <button type="submit" class="c-btn c-btn-summit">Buscar</button>
-                </form>
+                    <input type="text" name="search" id="searcher" class="form-control" style="border-radius: 6px 0 0 6px ;" placeholder="Buscar por cliente">
             </div>
             <div class="col-12">
                     <form  action="/add-daily-collected/{{ employee_id }}" method="POST">
@@ -64,7 +59,7 @@
             <div class="col">
                 <ul class="list-group " style="padding: 0 0.5em;">
                     {% for client in clients %}
-                        <li class="mb-4 c-card__box-mannager"
+                        <li class="mb-4 c-card__box-mannager search-card"
                             data-due-date="{{ client['Due Date'] }}"
                             data-current-date="{{ client['Current Date'] }}"
                             data-last-payment-date="{{ client['Last Payment Date front'] }}"

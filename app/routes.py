@@ -1271,7 +1271,12 @@ def box():
             
             # Obtener el valor de la caja del vendedor
             employee = Employee.query.get(salesman.employee_id)
-            employee_id = employee.id
+            employee_id = employee.id 
+            
+            employee_userid  = User.query.get(employee.user_id)
+            role_employee = employee_userid.role.value
+
+            print(role_employee)
 
             # Obtener el valor inicial de la caja del vendedor
             employee_records = EmployeeRecord.query.filter_by(employee_id=salesman.employee_id).order_by(EmployeeRecord.id.desc()).first()
@@ -1524,7 +1529,8 @@ def box():
                 'initial_box_value': initial_box_value,
                 'expense_details': expense_details,
                 'income_details': income_details,
-                'withdrawal_details': withdrawal_details                
+                'withdrawal_details': withdrawal_details,
+                'role_employee': role_employee,
             }
 
             salesmen_stats.append(salesman_data)
@@ -1876,6 +1882,10 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import join
 
 
+upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'images')
+if not os.path.exists(upload_folder):
+    os.makedirs(upload_folder)
+
 @routes.route('/transaction', methods=['GET', 'POST'])
 def transactions():
     if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
@@ -1886,6 +1896,7 @@ def transactions():
         employee = Employee.query.filter_by(user_id=user_id).first()
 
         transaction_type = ''  # Definir transaction_type por defecto
+        concepts = []  # Definir concepts por defecto
 
         if request.method == 'POST':
             # Manejar la creación de la transacción
@@ -1901,15 +1912,13 @@ def transactions():
             concept_id = request.form.get('concept_id')
             description = request.form.get('description')
             amount = request.form.get('quantity')
-            attachment = request.files['photo']  # Obtener el archivo de imagen
-            concepts = Concept.query.filter_by(transaction_types=transaction_type).all()
+            attachment = request.files.get('photo')  # Obtener el archivo de imagen
 
-            # Generar un nombre único para el archivo
-            filename = str(uuid.uuid4()) + secure_filename(attachment.filename)
-
-            # Guardar el archivo en la carpeta 'static/images'
-            upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'images')
-            attachment.save(os.path.join(upload_folder, filename))
+            if attachment:  # Verificar que se haya subido un archivo
+                filename = str(uuid.uuid4()) + secure_filename(attachment.filename)
+                attachment.save(os.path.join(upload_folder, filename))
+            else:
+                filename = None  # O manejar el caso de que no haya archivo
 
             current_date = datetime.now()
 
@@ -1938,10 +1947,7 @@ def transactions():
 
             return render_template('transactions.html', concepts=concepts, user_role=user_role, user_id=user_id)
     else:
-        # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
         return "Acceso no autorizado."
-
-
 
 
 
@@ -2045,6 +2051,7 @@ def modify_transaction(transaction_id):
         return redirect('/approval-expenses')
 
     except Exception as e:
+        
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 

@@ -497,3 +497,45 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+document.addEventListener("keyup", e=>{
+
+    if (e.target.matches("#searcher")){
+  
+        if (e.key ==="Escape")e.target.value = ""
+  
+        document.querySelectorAll(".search-card").forEach(payment =>{
+  
+            if (payment.textContent.toLowerCase().includes(e.target.value.toLowerCase())) {
+                payment.classList.add("c-card__box-mannager");      
+            } else {
+                payment.classList.add("filter");
+                payment.classList.remove("c-card__box-mannager");
+            }
+        })
+
+        document.querySelectorAll(".search-salesman-card").forEach(payment =>{
+  
+            if (payment.textContent.toLowerCase().includes(e.target.value.toLowerCase())) {
+                payment.classList.remove("filter");   
+            } else {
+                payment.classList.add("filter");
+            }
+        })
+  
+    }
+  })
+
+  document.getElementById('photo').addEventListener('change', function() {
+    checkImageFilled();
+});
+
+function checkImageFilled() {
+    var photoInput = document.getElementById('photo');
+    var submitButton = document.querySelector('button[type="submit"]');
+    
+    if (photoInput.files.length > 0) {
+        submitButton.removeAttribute('disabled');
+    } else {
+        submitButton.setAttribute('disabled', 'disabled');
+    }
+}
