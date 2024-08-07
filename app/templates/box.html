@@ -72,7 +72,7 @@
           <li class="c-cajas__item search-salesman-card">
             <div style="display: flex; justify-content: center; flex-wrap: wrap;" class="mb-4">
               <h4 class="c-cajas__item__title c-headings__h4 mb-4">
-                <i class=" bi {{ '' if salesman['role_employee'] == 'VENDEDOR' else 'bi-person-badge-fill' }}"></i>  
+                <i class="bi {{ '' if salesman['role_employee'] == 'VENDEDOR' else 'bi-person-badge-fill' }}" style="margin-right: 10px;"></i>  
                 {{ salesman['salesman_name'] }}
               </h4>              
               <div class="" style="display: flex; flex-wrap: wrap">
@@ -153,8 +153,8 @@
                 {{ salesman['status_box'] }}
               </li>
             </ul>
+            <hr class="mt-4">
           </li>
-          <hr class="mt-4">
           {% endfor %}
         </ul>
       </div>
@@ -176,56 +176,50 @@
             </div>
             <div class="modal-body">
               
-              <h5 class="mb-4">Gastos:</h5>
+              <h5 class="mb-4">Gastos Coordinador:</h5>
               <table class="c-table" style="color: white">
                 <thead>
                   <tr>
-                    <th class="c-table__box">Descripcion</th>
-                    <th class="c-table__box">Valor</th>
+                    <th class="c-table__box text-center">Descripcion</th>
+                    <th class="c-table__box text-center">Valor</th>
                   </tr>
                 </thead>
                 <tbody>
+                  {% for expense in expense_details %}
                   <tr>
                     <td class="c-table__box">
-                      {% for expense in expense_details %}
                       {{ expense['description'] }}
-                      {% endfor %}
                     </td>
                     <td class="c-table__box">
-                      {% for expense in expense_details %}
                       $ {{ '{:,.0f}'.format(expense['amount']) }}
-                      {% endfor %}
                     </td>
                   </tr>
+                  {% endfor %}
                 </tbody>                
               </table>
               <h5 class="mb-4 mt-4">Ingresos:</h5>
               <table class="c-table" style="color: white">
                 <thead>
                   <tr>
-                    <th class="c-table__box">Venedor</th>
-                    <th class="c-table__box">Descripcion</th>
-                    <th class="c-table__box">Valor</th>
+                    <th class="c-table__box text-center">Venedor</th>
+                    <th class="c-table__box text-center">Descripcion</th>
+                    <th class="c-table__box text-center">Valor</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for salesman in salesmen_stats %}
                   <tr>
+                    {% for withdrawal in salesman['withdrawal_details'] %}
                     <td class="c-table__box">
-                      {% for withdrawal in salesman['withdrawal_details'] %}
                       {{ withdrawal['username'] }}
-                      {% endfor %}
                     </td>
                     <td class="c-table__box">
-                      {% for withdrawal in salesman['withdrawal_details'] %}
                       {{ withdrawal['description'] }}
-                      {% endfor %}
                     </td>
                     <td class="c-table__box">$ 
-                      {% for withdrawal in salesman['withdrawal_details'] %}
                       {{ '{:,.0f}'.format(withdrawal['amount']) }}
-                      {% endfor %}
                     </td>
+                    {% endfor %}
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -242,21 +236,17 @@
                 <tbody>
                   {% for salesman in salesmen_stats %}
                   <tr>
+                    {% for income in salesman['income_details'] %}
                     <td class="c-table__box">
-                      {% for income in salesman['income_details'] %}
                       {{ income['username'] }}
-                      {% endfor %}
                     </td>
                     <td class="c-table__box">
-                      {% for income in salesman['income_details'] %}
                       {{ income['description'] }}
-                      {% endfor %}
                     </td>
                     <td class="c-table__box">$ 
-                      {% for income in salesman['income_details'] %}
                       {{ '{:,.0f}'.format(income['amount']) }}
-                      {% endfor %}
                     </td>
+                    {% endfor %}
                   </tr>
                   {% endfor %}
                 </tbody>
