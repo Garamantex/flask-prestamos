@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Agrega un evento de clic al botón de "Confirmar Pago"
     if(document.getElementById('confirmPaymentBtn')) {
         document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
-            console.log('Confirmar pago')
+            // console.log('Confirmar pago')
             var loanId = document.getElementById('loanId').value; // Obtener ID de préstamo desde el campo oculto
             var customPayment = document.getElementById('customPayment').value; // Obtener valor de pago personalizado
             // Enviar solicitud POST al servidor con los datos del pago
@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Verificar el estado de la respuesta
                     if (xhr.status === 200) {
                         // Procesar respuesta del servidor
-                        console.log(xhr.responseText);
+                        // console.log(xhr.responseText);
                         // Recargar la página después de confirmar el pago
                         window.location.reload();
                     } else {
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
-                        console.log(xhr.responseText);
+                        // console.log(xhr.responseText);
                         window.location.reload();
                     } else {
                         console.error('Error al marcar como MORA:', xhr.responseText);
@@ -384,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Itera sobre cada cuota
     cuotas.forEach(function (cuota) {
-        console.log(cuota);
+        // console.log(cuota);
         
         // Obtén el estado de la cuota desde el atributo data
         var estadoCuotaAnterior = cuota.getAttribute('data-previous-installment-status');
@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Obtén la fecha de pago de la cuota desde el atributo data y formatea la fecha
         var fechaPago = cuota.getAttribute('data-last-payment-date');
-        console.log(fechaPago);
+        // console.log(fechaPago);
 
         // Obtén la fecha actual y formatea la fecha
         var fechaActual = cuota.getAttribute('data-current-date');
@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else  {
             cuota.classList.add('u-block');
         }
-        console.log(cuota);
+        // console.log(cuota);
     });
     
      // Función para cambiar el ícono del botón btn-ocultar
@@ -499,17 +499,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
 document.addEventListener("keyup", e=>{
 
+
     if (e.target.matches("#searcher")){
+
   
         if (e.key ==="Escape")e.target.value = ""
-  
+        
         document.querySelectorAll(".search-card").forEach(payment =>{
-  
-            if (payment.textContent.toLowerCase().includes(e.target.value.toLowerCase())) {
+
+            const searchValue = e.target.value.toLowerCase()
+
+            if (searchValue.length > 2 && payment.textContent.toLowerCase().includes(searchValue)) {
                 payment.classList.add("c-card__box-mannager");      
             } else {
                 payment.classList.add("filter");
                 payment.classList.remove("c-card__box-mannager");
+            }
+
+            if(searchValue.length === 0){
+                payment.classList.remove("filter");
+                payment.classList.add("c-card__box-mannager"); 
             }
         })
 
