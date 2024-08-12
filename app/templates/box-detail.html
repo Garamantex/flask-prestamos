@@ -15,10 +15,12 @@
         <a class="c-btn c-btn-primary c-btn-block mb-3" href="./logout">Salir</a>
       </div>
     </div>
-    <h2 class="c-headings c-headings__h3 mb-4 mt-4">
+    <h2 class="c-headings c-headings__h3 mt-4 text-center">
       Detalle Caja: {{ salesman.employee.user.first_name
       }} {{ salesman.employee.user.last_name }}
     </h2>
+    <hr class="mb-3">
+    <h2 class="c-headings c-headings__h3 mb-4 mt-4">Ventas</h2>
     <table class="c-table">
       <thead>
         <tr>
@@ -74,12 +76,9 @@
           <td class="c-table__box">
             <!-- Enlace para ver el adjunto si existe -->
             {% if withdrawal_detail.attachment %}
-            <button class="c-btn c-btn-primary c-btn-details" data-target="modal{{ loop.index }}"> <i class="bi bi-eye"
-                title="details"></i> </button>
+            <button class="c-btn c-btn-primary c-btn-details js-comprobante" data-target="modal{{ loop.index }}"> <i class="bi bi-eye" title="details"></i> </button>
             <div class="c-modal" id="modal{{ loop.index }}">
-              <img class="img-attachment"
-                src="{{ url_for('static', filename='images/' +  withdrawal_detail.attachment ) }}"
-                alt="Imagen de la transacción">
+              <img class="img-attachment" src="{{ url_for('static', filename='images/' +  withdrawal_detail.attachment ) }}" alt="Imagen de la transacción">
             </div>
             {% else %} N/A {% endif %}
           </td>
@@ -125,7 +124,7 @@
           <td class="c-table__box">
             <!-- Enlace para ver el adjunto si existe -->
             {% if income_detail.attachment %}
-            <button class="c-btn c-btn-primary c-btn-details" data-target="modal{{ loop.index }}" title="details"><i
+            <button class="c-btn c-btn-primary c-btn-details js-comprobante" data-target="modal{{ loop.index }}" title="details"><i
                 class="bi bi-eye"></i> </button>
             <div class="c-modal" id="modal{{ loop.index }}">
               <img class="img-attachment" src="{{ url_for('static', filename='images/' +  income_detail.attachment ) }}"
@@ -172,7 +171,7 @@
           <td class="c-table__box">
             <!-- Enlace para ver el adjunto si existe -->
             {% if expense_detail.attachment %}
-            <button class="c-btn c-btn-primary c-btn-details" data-target="modal{{ loop.index }}" title="details"><i
+            <button class="c-btn c-btn-primary c-btn-details js-comprobante" data-target="modal{{ loop.index }}" title="details"><i
                 class="bi bi-eye"></i> </button>
             <div class="c-modal" id="modal{{ loop.index }}">
               <img class="img-attachment"

@@ -14,7 +14,6 @@ class Role(Enum):
     def to_json(self):
         return self.name
 
-
 class User(db.Model):
     """Modelo de Usuario"""
 

@@ -225,31 +225,60 @@ def create_user():
                 db.session.add(manager)
                 db.session.commit()
 
-            # Verificar si se seleccionó el rol "Vendedor"
-            if role == 'VENDEDOR':
-                # Obtén el ID del empleado recién creado (el empleado asociado al usuario que acaba de registrarse)
-                employee_id_recien_creado = employee.id
+            if session['role'] == 'ADMINISTRADOR':
+                # Verificar si se seleccionó el rol "Vendedor"
+                if role == 'VENDEDOR':
+                    # Obtén el ID del empleado recién creado (el empleado asociado al usuario que acaba de registrarse)
+                    employee_id_recien_creado = employee.id
 
-                # Obtén el ID del empleado de la sesión (el empleado que está logeado)
-                user_id_empleado_sesion = session['user_id']
-                employee_id_empleado_sesion = Employee.query.filter_by(user_id=user_id_empleado_sesion).first().id
+                    # Obtén el ID del empleado de la sesión (el empleado que está logeado)
+                    user_id_empleado_sesion = session['user_id']
+                    employee_id_empleado_sesion = Employee.query.filter_by(user_id=user_id_empleado_sesion).first().id
 
-                # Busca el ID del gerente (manager) a partir del  ID del empleado de la sesión
-                manager = Manager.query.filter_by(employee_id=employee_id_empleado_sesion).first()
+                    # Busca el ID del gerente (manager) a partir del  ID del empleado de la sesión
+                    manager = Manager.query.filter_by(employee_id=employee_id_empleado_sesion).first()
 
-                if manager:
-                    # Si se encuentra el gerente, obtén su ID
-                    manager_id = manager.id
+                    if manager:
+                        # Si se encuentra el gerente, obtén su ID
+                        manager_id = manager.id
 
-                    # Crea un nuevo objeto Salesman asociado al empleado recién creado y al gerente
-                    salesman = Salesman(
-                        employee_id=employee_id_recien_creado,
-                        manager_id=manager_id
-                    )
+                        # Crea un nuevo objeto Salesman asociado al empleado recién creado y al gerente
+                        salesman = Salesman(
+                            employee_id=employee_id_recien_creado,
+                            manager_id=manager_id
+                        )
 
-                    # Guarda el nuevo vendedor en la base de datos
-                    db.session.add(salesman)
-                    db.session.commit()
+                        # Guarda el nuevo vendedor en la base de datos
+                        db.session.add(salesman)
+                        db.session.commit()
+            
+            else:
+
+                # Verificar si se seleccionó el rol "Vendedor"
+                if role in {'VENDEDOR', 'COORDINADOR'}:
+                    # Obtén el ID del empleado recién creado (el empleado asociado al usuario que acaba de registrarse)
+                    employee_id_recien_creado = employee.id
+
+                    # Obtén el ID del empleado de la sesión (el empleado que está logeado)
+                    user_id_empleado_sesion = session['user_id']
+                    employee_id_empleado_sesion = Employee.query.filter_by(user_id=user_id_empleado_sesion).first().id
+
+                    # Busca el ID del gerente (manager) a partir del  ID del empleado de la sesión
+                    manager = Manager.query.filter_by(employee_id=employee_id_empleado_sesion).first()
+
+                    if manager:
+                        # Si se encuentra el gerente, obtén su ID
+                        manager_id = manager.id
+
+                        # Crea un nuevo objeto Salesman asociado al empleado recién creado y al gerente
+                        salesman = Salesman(
+                            employee_id=employee_id_recien_creado,
+                            manager_id=manager_id
+                        )
+
+                        # Guarda el nuevo vendedor en la base de datos
+                        db.session.add(salesman)
+                        db.session.commit()
 
             # Redirecciona a la página de lista de usuarios o a donde corresponda
             return redirect(url_for('routes.user_list'))
@@ -1013,7 +1042,7 @@ def payments_list(user_id):
     # Calcular la suma total de los valores de pagos a plazos
     total_installment_value = sum(client['Installment Value'] for client in clients_information)
 
-    porcentaje_cobro = int(total_collections_today / total_installment_value * 100)
+    porcentaje_cobro = int(total_collections_today / total_installment_value * 100) if total_installment_value != 0 else 0
 
     print("Total Installment Value: ", total_installment_value)
 
@@ -1242,7 +1271,12 @@ def box():
             
             # Obtener el valor de la caja del vendedor
             employee = Employee.query.get(salesman.employee_id)
-            employee_id = employee.id
+            employee_id = employee.id 
+            
+            employee_userid  = User.query.get(employee.user_id)
+            role_employee = employee_userid.role.value
+
+            print(role_employee)
 
             # Obtener el valor inicial de la caja del vendedor
             employee_records = EmployeeRecord.query.filter_by(employee_id=salesman.employee_id).order_by(EmployeeRecord.id.desc()).first()
@@ -1495,7 +1529,8 @@ def box():
                 'initial_box_value': initial_box_value,
                 'expense_details': expense_details,
                 'income_details': income_details,
-                'withdrawal_details': withdrawal_details                
+                'withdrawal_details': withdrawal_details,
+                'role_employee': role_employee,
             }
 
             salesmen_stats.append(salesman_data)
@@ -1847,6 +1882,10 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import join
 
 
+upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'images')
+if not os.path.exists(upload_folder):
+    os.makedirs(upload_folder)
+
 @routes.route('/transaction', methods=['GET', 'POST'])
 def transactions():
     if 'user_id' in session and (session['role'] == 'COORDINADOR' or session['role'] == 'VENDEDOR'):
@@ -1857,23 +1896,29 @@ def transactions():
         employee = Employee.query.filter_by(user_id=user_id).first()
 
         transaction_type = ''  # Definir transaction_type por defecto
+        concepts = []  # Definir concepts por defecto
 
         if request.method == 'POST':
             # Manejar la creación de la transacción
             transaction_type = request.form.get('transaction_type')
+            
+            print(transaction_type)
+
+            if transaction_type != 'GASTO':
+                approval_status = "APROBADA"
+            else:
+                approval_status = request.form.get('status')
+
             concept_id = request.form.get('concept_id')
             description = request.form.get('description')
             amount = request.form.get('quantity')
-            attachment = request.files['photo']  # Obtener el archivo de imagen
-            approval_status = request.form.get('status')
-            concepts = Concept.query.filter_by(transaction_types=transaction_type).all()
+            attachment = request.files.get('photo')  # Obtener el archivo de imagen
 
-            # Generar un nombre único para el archivo
-            filename = str(uuid.uuid4()) + secure_filename(attachment.filename)
-
-            # Guardar el archivo en la carpeta 'static/images'
-            upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'images')
-            attachment.save(os.path.join(upload_folder, filename))
+            if attachment:  # Verificar que se haya subido un archivo
+                filename = str(uuid.uuid4()) + secure_filename(attachment.filename)
+                attachment.save(os.path.join(upload_folder, filename))
+            else:
+                filename = None  # O manejar el caso de que no haya archivo
 
             current_date = datetime.now()
 
@@ -1893,7 +1938,7 @@ def transactions():
             db.session.add(transaction)
             db.session.commit()
 
-            return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',
+            return render_template('menu-salesman.html', message='Transacción creada exitosamente.', alert='success',
                                    concepts=concepts, user_role=user_role, user_id=user_id)
 
         else:
@@ -1902,10 +1947,7 @@ def transactions():
 
             return render_template('transactions.html', concepts=concepts, user_role=user_role, user_id=user_id)
     else:
-        # Manejar el caso en el que el usuario no esté autenticado o no tenga el rol adecuado
         return "Acceso no autorizado."
-
-
 
 
 
@@ -1969,41 +2011,47 @@ def modify_transaction(transaction_id):
 
         print(TransactionType)
     
-        if user_role == Role.COORDINADOR and TransactionType == TransactionType.INGRESO:
-            box_value = Employee.query.filter_by(user_id=user_id).first().box_value
-            Employee.query.filter_by(user_id=user_id).update({'box_value': box_value + transaction.amount})
-        elif user_role == Role.COORDINADOR and TransactionType == TransactionType.GASTO:
-            box_value = Employee.query.filter_by(user_id=user_id).first().box_value
-            Employee.query.filter_by(user_id=user_id).update({'box_value': box_value - transaction.amount})
-        elif user_role == Role.COORDINADOR and TransactionType == TransactionType.RETIRO:
-            box_value = Employee.query.filter_by(user_id=user_id).first().box_value
-            Employee.query.filter_by(user_id=user_id).update({'box_value': box_value - transaction.amount})
+        def update_box_value(employee, amount, add=True):
+                """
+                Función para actualizar el box_value de un empleado y de sus superiores.
+                """
+                current_employee = employee
+                while current_employee:
+                    if add:
+                        current_employee.box_value += amount
+                    else:
+                        current_employee.box_value -= amount
+                    db.session.add(current_employee)  # Agregar el empleado modificado a la sesión
+                    current_employee = current_employee.manager.employee if current_employee.manager else None
 
+        if user_role == Role.COORDINADOR:
+                if TransactionType == TransactionType.INGRESO:
+                    update_box_value(employee, transaction.amount, add=True)
+                elif TransactionType == TransactionType.GASTO or TransactionType == TransactionType.RETIRO:
+                    update_box_value(employee, transaction.amount, add=False)
 
-        if user_role == Role.VENDEDOR and TransactionType == TransactionType.INGRESO:
-            coordinator_id = Salesman.query.filter_by(employee_id=employee_id).first().manager_id
-            box_value = Employee.query.filter_by(user_id=user_id).first().box_value
-            Employee.query.filter_by(user_id=user_id).update({'box_value': box_value + transaction.amount})
-            coordinator = Employee.query.get(coordinator_id)
-            coordinator.box_value -= transaction.amount
-        elif user_role == Role.VENDEDOR and TransactionType == TransactionType.GASTO:
-            box_value = Employee.query.filter_by(user_id=user_id).first().box_value
-            Employee.query.filter_by(user_id=user_id).update({'box_value': box_value - transaction.amount})
-        elif user_role == Role.VENDEDOR and TransactionType == TransactionType.RETIRO:
-            box_value = Employee.query.filter_by(user_id=user_id).first().box_value
-            Employee.query.filter_by(user_id=user_id).update({'box_value': box_value - transaction.amount})
-            coordinator_id = Salesman.query.filter_by(employee_id=employee_id).first().manager_id
-            coordinator = Employee.query.get(coordinator_id)
-            coordinator.box_value += transaction.amount
+        if user_role == Role.VENDEDOR:
+                salesman = Salesman.query.filter_by(employee_id=employee_id).first()
+                coordinator = salesman.manager.employee
+                if TransactionType == TransactionType.INGRESO:
+                    employee.box_value += transaction.amount
+                    db.session.add(employee)  # Agregar el vendedor modificado a la sesión
+                    update_box_value(coordinator, transaction.amount, add=False)
+                elif TransactionType == TransactionType.GASTO:
+                    employee.box_value -= transaction.amount
+                elif TransactionType == TransactionType.RETIRO:
+                    employee.box_value -= transaction.amount
+                    db.session.add(employee)  # Agregar el vendedor modificado a la sesión
+                    update_box_value(coordinator, transaction.amount, add=True)
 
-
-        # Guardar los cambios en la base de datos
+            # Guardar los cambios en la base de datos
         db.session.commit()
 
-        # Redirigir al usuario a la página de solicitudes pendientes
+            # Redirigir al usuario a la página de solicitudes pendientes
         return redirect('/approval-expenses')
 
     except Exception as e:
+        
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
