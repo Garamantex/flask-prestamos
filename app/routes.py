@@ -127,7 +127,7 @@ def menu_salesman(user_id):
     ).filter(
         db.func.date(Payment.payment_date) == datetime.now().date(),
         Payment.installment.has(Loan.employee_id == employee_id)
-    ).scalar()
+    ).scalar() or 0
 
     # Si no hay recaudo, establecerlo como 0
     today_revenue = today_revenue or 0

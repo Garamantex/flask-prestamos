@@ -72,46 +72,106 @@
 
 
 <script>
-        // Obtener el tipo de transacción pasado desde el backend
-        var transactionType = "{{ transaction_type }}";
-        // Filtrar las opciones del segundo select basado en el tipo de transacción inicial
+    // Obtener el tipo de transacción pasado desde el backend
+    var transactionType = "{{ transaction_type }}";
+    // Filtrar las opciones del segundo select basado en el tipo de transacción inicial
+    filterConceptOptions(transactionType);
+
+    document.getElementById('transactionType').addEventListener('change', function() {
+        var transactionType = this.value;
+        // Llamar a la función de filtrado cuando cambia el tipo de transacción
         filterConceptOptions(transactionType);
-    
-        document.getElementById('transactionType').addEventListener('change', function() {
-            var transactionType = this.value;
-            // Llamar a la función de filtrado cuando cambia el tipo de transacción
-            filterConceptOptions(transactionType);
-        });
-    
-        document.getElementById('photo').addEventListener('change', function() {
-            checkImageFilled();
-        });
-    
-        function checkImageFilled() {
-            var photoInput = document.getElementById('photo');
-            var submitButton = document.querySelector('button[type="submit"]');
-            
-            if (photoInput.files.length > 0) {
-                submitButton.removeAttribute('disabled');
-            } else {
-                submitButton.setAttribute('disabled', 'disabled');
-            }
-        }
-    
-        function filterConceptOptions(transactionType) {
-            console.log("Transaction Type:", transactionType);
-            var conceptOptions = document.querySelectorAll('#concept option');
-            conceptOptions.forEach(function(option) {
-                var dataTransactionType = option.getAttribute('data-transaction-type');
-                console.log("Data Transaction Type:", dataTransactionType);
-                if (transactionType === '' || dataTransactionType === transactionType) {
-                    option.style.display = '';
-                } else {
-                    option.style.display = 'none';
-                }
+    });
+
+    document.getElementById('photo').addEventListener('change', function(event) {
+        var file = event.target.files[0];
+        if (file) {
+            compressAndConvertImage(file, function(compressedFile) {
+                // Aquí puedes manejar el archivo comprimido y convertirlo a JPG
+                var dataTransfer = new DataTransfer();
+                dataTransfer.items.add(compressedFile);
+                document.getElementById('photo').files = dataTransfer.files;
+                checkImageFilled();
             });
         }
-</script>
+    });
 
+    function compressAndConvertImage(file, callback) {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function(event) {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                const maxWidth = img.width;
+                const maxHeight = img.height;
+                let width = img.width;
+                let height = img.height;
+
+                // Redimensionar si la imagen es demasiado grande
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width *= maxHeight / height;
+                        height = maxHeight;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(function(blob) {
+                    if (blob.size > 600 * 1024) { // Si la imagen sigue siendo grande, reducir la calidad
+                        canvas.toBlob(function(compressedBlob) {
+                            const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            callback(compressedFile);
+                        }, 'image/jpeg', 0.6);
+                    } else {
+                        const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        callback(compressedFile);
+                    }
+                }, 'image/jpeg', 0.8); // calidad inicial
+            }
+        }
+    }
+
+    function checkImageFilled() {
+        var photoInput = document.getElementById('photo');
+        var submitButton = document.querySelector('button[type="submit"]');
+
+        if (photoInput.files.length > 0) {
+            submitButton.removeAttribute('disabled');
+        } else {
+            submitButton.setAttribute('disabled', 'disabled');
+        }
+    }
+
+    function filterConceptOptions(transactionType) {
+        console.log("Transaction Type:", transactionType);
+        var conceptOptions = document.querySelectorAll('#concept option');
+        conceptOptions.forEach(function(option) {
+            var dataTransactionType = option.getAttribute('data-transaction-type');
+            console.log("Data Transaction Type:", dataTransactionType);
+            if (transactionType === '' || dataTransactionType === transactionType) {
+                option.style.display = '';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    }
+</script>
 
 {% endblock %}
