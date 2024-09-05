@@ -1949,109 +1949,89 @@ def transactions():
     else:
         return "Acceso no autorizado."
 
-
-
-# Ruta para modificar el estado de una transacción
 @routes.route('/modify-transaction/<int:transaction_id>', methods=['POST'])
 def modify_transaction(transaction_id):
+    print(transaction_id)
     
     try:
-        # Obtener la transacción
-        transaction = Transaction.query.get(transaction_id)
+        with db.session.no_autoflush:
+            # Obtener la transacción
+            transaction = Transaction.query.get(transaction_id)
 
-        if not transaction:
-            return jsonify({'message': 'Transacción no encontrada'}), 404
+            if not transaction:
+                return jsonify({'message': 'Transacción no encontrada'}), 404
 
-        # Obtener el nuevo estado de la transacción desde el formulario
-        new_status = request.form.get('new_status')
+            new_status = request.form.get('new_status')
 
-        # Verificar si el nuevo estado es válido
-        if new_status not in [ApprovalStatus.APROBADA.value, ApprovalStatus.RECHAZADA.value]:
-            return jsonify({'message': 'Estado no válido'}), 400
+            if new_status not in [ApprovalStatus.APROBADA.value, ApprovalStatus.RECHAZADA.value]:
+                return jsonify({'message': 'Estado no válido'}), 400
 
-        # Actualizar el estado de la transacción
-        transaction.approval_status = ApprovalStatus(new_status)
+            transaction.approval_status = ApprovalStatus(new_status)
 
-        # Verificar si la transacción tiene un loan_id
-        if transaction.loan_id:
-            # Buscar el préstamo correspondiente en el modelo Loan
-            prestamo = Loan.query.get(transaction.loan_id)
-            #  print(prestamo)
-            if prestamo:
-                if transaction.approval_status == ApprovalStatus.APROBADA:
-                    prestamo.approved = True
-                    db.session.add(prestamo)
-                    generate_loan_installments(prestamo)
-                elif transaction.approval_status == ApprovalStatus.RECHAZADA:
-                    # Eliminar el préstamo si la transacción se marca como rechazada
-                    prestamo.status = 0
-                    # Cambiar el estado del cliente a 0
-                    cliente = Client.query.filter_by(id=prestamo.client_id).first()
-                    if cliente:
-                        cliente.status = 0
-                        db.session.add(cliente)
-            else:
-                return redirect('/approval-expenses')
+            if transaction.loan_id:
+                prestamo = Loan.query.get(transaction.loan_id)
+                if prestamo:
+                    if transaction.approval_status == ApprovalStatus.APROBADA:
+                        prestamo.approved = True
+                        generate_loan_installments(prestamo)
+                    elif transaction.approval_status == ApprovalStatus.RECHAZADA:
+                        prestamo.status = 0
+                        cliente = Client.query.filter_by(id=prestamo.client_id).first()
+                        if cliente:
+                            cliente.status = 0
+                            db.session.add(cliente)
+                else:
+                    return redirect('/approval-expenses')
             
-        # Obtener el employee_id de la transacción
-        employee_id = transaction.employee_id
+            employee_id = transaction.employee_id
+            print(employee_id)
+            employee = Employee.query.get(employee_id)
+            if not employee:
+                return jsonify({'message': 'Empleado no encontrado'}), 404
 
-        # Obtener el usuario asociado al empleado
-        employee = Employee.query.get(employee_id)
-        if not employee:
-            return jsonify({'message': 'Empleado no encontrado'}), 404
+            user_id = employee.user_id
+            user_role = User.query.get(user_id).role
 
-        # Obtener el id de usuario y el rol del usuario
-        user_id = employee.user_id
-        user_role = User.query.get(user_id).role
+            print(user_role.value)
 
-        print(user_role)
+            TransactionType = transaction.transaction_types
 
-        TransactionType = transaction.transaction_types
-
-        print(TransactionType)
-    
-        def update_box_value(employee, amount, add=True):
-                """
-                Función para actualizar el box_value de un empleado y de sus superiores.
-                """
+            def update_box_value(employee, amount, add=True):
                 current_employee = employee
                 while current_employee:
                     if add:
                         current_employee.box_value += amount
                     else:
                         current_employee.box_value -= amount
-                    db.session.add(current_employee)  # Agregar el empleado modificado a la sesión
+                    db.session.add(current_employee)
                     current_employee = current_employee.manager.employee if current_employee.manager else None
 
-        if user_role == Role.COORDINADOR:
+            if user_role.value == Role.COORDINADOR:
                 if TransactionType == TransactionType.INGRESO:
                     update_box_value(employee, transaction.amount, add=True)
-                elif TransactionType == TransactionType.GASTO or TransactionType == TransactionType.RETIRO:
+                elif TransactionType in [TransactionType.GASTO, TransactionType.RETIRO]:
                     update_box_value(employee, transaction.amount, add=False)
 
-        if user_role == Role.VENDEDOR:
+            if user_role.value == Role.VENDEDOR:
                 salesman = Salesman.query.filter_by(employee_id=employee_id).first()
                 coordinator = salesman.manager.employee
                 if TransactionType == TransactionType.INGRESO:
                     employee.box_value += transaction.amount
-                    db.session.add(employee)  # Agregar el vendedor modificado a la sesión
+                    db.session.add(employee)
                     update_box_value(coordinator, transaction.amount, add=False)
                 elif TransactionType == TransactionType.GASTO:
                     employee.box_value -= transaction.amount
                 elif TransactionType == TransactionType.RETIRO:
                     employee.box_value -= transaction.amount
-                    db.session.add(employee)  # Agregar el vendedor modificado a la sesión
+                    db.session.add(employee)
                     update_box_value(coordinator, transaction.amount, add=True)
 
-            # Guardar los cambios en la base de datos
-        db.session.commit()
+            db.session.commit()
 
-            # Redirigir al usuario a la página de solicitudes pendientes
         return redirect('/approval-expenses')
 
     except Exception as e:
-        
+        db.session.rollback()  # Revertir cambios en caso de error
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
