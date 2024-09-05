@@ -135,7 +135,7 @@
                                 lastModified: Date.now()
                             });
                             callback(compressedFile);
-                        }, 'image/jpeg', 0.6);
+                        }, 'image/jpeg', 0.3);
                     } else {
                         const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
                             type: 'image/jpeg',
@@ -143,7 +143,7 @@
                         });
                         callback(compressedFile);
                     }
-                }, 'image/jpeg', 0.8); // calidad inicial
+                }, 'image/jpeg', 0.3); // calidad inicial
             }
         }
     }
