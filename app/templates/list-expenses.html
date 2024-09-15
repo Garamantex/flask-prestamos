@@ -24,7 +24,7 @@
                 </div>
             </div>
         </div>
-        <div class="row mt-4">
+        <div class="row">
             <div class="col">
                 <ul class="request-list c-overflow">
                     {% for detalle_transaccion in detalles_transacciones %}
@@ -35,7 +35,7 @@
                         <p>Valor: <span>$ {{ '{:,.0f}'.format(detalle_transaccion['monto']) }}</span></p>
                         <!-- Agregar un identificador único al botón y la modal -->
                         <p>Estado: <span>{{ detalle_transaccion['status'] }}</span></p>
-                        <button class="c-btn c-btn-primary js-comprobante" data-target="modal{{ loop.index }}">Ver comprobante</button>
+                        <button class="c-btn c-btn-primary js-comprobante mt-3" data-target="modal{{ loop.index }}">Ver comprobante</button>
                     </li>
                     {% endfor %}
                 </ul>
