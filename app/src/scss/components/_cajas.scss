@@ -1,14 +1,15 @@
 .c-cajas {
     padding: 0;
-    background: rgba(20, 40, 40, 0.8);
-    color: white;
+    background: #D6D6D6;
+    color: #272727;
+    border-radius: 5px;
 
     &__item {
         list-style: none;
         padding: 1rem;
 
         &--action {
-            color: white;
+            color: #272727;
         }
     }
 
@@ -50,10 +51,10 @@
     &__item__body__item__label {
         font-weight: bold;
         font-size: 1.2rem;
-        color: white;
+        color: #272727;
     }
     &__item__body__item__value {
         font-size: 1.2rem;
-        color: white;
+        color: #272727;
     }
 }

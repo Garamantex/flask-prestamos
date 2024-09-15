@@ -1,6 +1,6 @@
 .c-card {
-    background-color: #111;
-    color: white;
+    background-color: #C0C4C1;
+    color: #272727;
     padding: 1rem;
     border-radius: 10px;
 
@@ -10,23 +10,24 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-
     }
 
     &__box-mannager {
         display: flex;
         list-style: none;
         flex-wrap: wrap;
-        background-color: black;
-        border: 0.1rem solid white;
+        background-color: #F5F5F5;
+        border: 0.1rem solid #272727;
         padding: 10px;
+        border-radius: 5px;
 
         &--pagada {
             background-color: #8FC0A9;
         }
 
         &--mora {
-            background-color: #EF476F;
+            background-color: #eb5c7e;
+            color: white;
         }
 
         &--abonada {
@@ -36,7 +37,7 @@
     &__internal {
         width: 50%;
         padding: 0 2px 5px;
-        color: white;
+        color: #272727;
         font-size: 13px;
         
         & p {

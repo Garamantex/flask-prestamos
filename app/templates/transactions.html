@@ -25,11 +25,11 @@
                 </div>
             </div>
         </div>
-        <div class="row mt-5">
+        <div class="row my-3">
             <div id="select-container" class="col">
                 <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data">
                     <fieldset>
-                        <legend style="color: white;">Tipo</legend>
+                        <legend style="color: #272727;">Tipo</legend>
                         <div class="mb-3">
                             <select id="transactionType" name="transaction_type" class="c-form c-form__dropdown" aria-label="Default select example">
                                 <option value="">Seleccione tipo de transacción</option>
@@ -38,7 +38,7 @@
                                 <option value="RETIRO">Retiro</option>
                             </select>
                         </div>
-                        <legend style="color: white;">Concepto</legend>
+                        <legend style="color: #272727;">Concepto</legend>
                         <div class="mb-3">
                             <select id="concept" name="concept_id" class="c-form c-form__dropdown" aria-label="Default select example">
                                 <option value="">Seleccione un concepto</option>
@@ -50,17 +50,17 @@
                     </fieldset>
                     <fieldset>
                         <div class="mb-3">
-                            <legend for="description" style="color: white;" class="form-label">Descripción</legend>
+                            <legend for="description" style="color: #272727;" class="form-label">Descripción</legend>
                             <textarea class="c-form" style="width: 100%;" name="description" id="description" cols="30" rows="10"></textarea>
                         </div>
                     </fieldset>
                     <fieldset>
                         <div class="mb-3">
-                            <legend style="color: white;">Valor</legend>
+                            <legend style="color:#272727;">Valor</legend>
                             <input type="text" class="c-form c-form__input" id="quantity" name="quantity" placeholder="">
                         </div>
                         <div class="mb-3">
-                            <label for="photo" style="color: white;" class="form-label">Subir foto:</label>
+                            <label for="photo" style="color:#272727;" class="form-label">Subir foto:</label>
                             <input type="file" class="form-control" id="photo" accept="image/*" capture="user" name="photo">
                         </div>
                         <button class="c-btn c-btn-primary mb-4" disabled type="submit">Enviar</button>
