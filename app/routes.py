@@ -943,16 +943,13 @@ def payments_list(user_id):
                     LoanInstallment.status.in_([InstallmentStatus.ABONADA, InstallmentStatus.PAGADA])
                 ).scalar() or 0
                 
-                
                 total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
                                                                                                     status=InstallmentStatus.MORA).scalar() or 0
 
                 # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
                 last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan.id,
                                                                            status=InstallmentStatus.PENDIENTE).order_by(
-                    LoanInstallment.due_date.asc()).first()
-
-                               
+                    LoanInstallment.due_date.asc()).first()                               
 
                 # Encuentra la fecha de modificación más reciente del préstamo
                 last_loan_modification_date = Loan.query.filter_by(client_id=client.id).order_by(
@@ -1131,7 +1128,6 @@ def get_loan_details(loan_id):
         'valor_total': valor_total,
         'saldo_pendiente': saldo_pendiente
     }
-
     return detalles_prestamo
 
 
@@ -1199,16 +1195,13 @@ def box():
             return jsonify({'message': 'El usuario no es un coordinador válido'}), 403
 
         # Obtener la información de la caja del coordinador
-
         coordinator = Employee.query.filter_by(user_id=user_id).first()
         coordinator_cash = coordinator.box_value
-
 
         coordinator_name = f"{user.first_name} {user.last_name}"
 
         # Obtener el ID del manager del coordinador
         manager_id = db.session.query(Manager.id).filter_by(employee_id=coordinator.id).scalar()
-
 
         if not manager_id:
             return jsonify({'message': 'No se encontró ningún coordinador asociado a este empleado'}), 404
@@ -1231,8 +1224,6 @@ def box():
             Transaction.approval_status == 'APROBADA',
             Transaction.creation_date.between(start_of_day, end_of_day)  # Filtrar por fecha actual
         ).group_by(Salesman.manager_id).all()
-
-
 
         # Filtrar las transacciones para el día actual
         total_inbound_amount = db.session.query(
@@ -1300,7 +1291,7 @@ def box():
             # Calcula el total de cobros para el día con estado "PAGADA"           
             total_collections_today = db.session.query(
                 func.sum(Payment.amount)
-            ).join(
+            ).join( 
                 LoanInstallment, Payment.installment_id == LoanInstallment.id
             ).join(
                 Loan, LoanInstallment.loan_id == Loan.id
@@ -1316,8 +1307,7 @@ def box():
                     if loan.status:
                         # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
                         pending_installment = LoanInstallment.query.filter(
-                            LoanInstallment.loan_id == loan.id,
-                            func.date(LoanInstallment.due_date) == datetime.now().date(),
+                            LoanInstallment.loan_id == loan.id
                         ).order_by(LoanInstallment.due_date.asc()).first()
                         if pending_installment:
                             total_pending_installments_amount += pending_installment.fixed_amount
@@ -1400,11 +1390,8 @@ def box():
                 func.date(Transaction.creation_date) == datetime.now().date()  # Filtrar por fecha actual
             ).count() or 0
 
-
             # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de creación descendente
             transactions = Transaction.query.filter_by(employee_id=employee_id).order_by(Transaction.creation_date.desc()).all()
-
-
 
             # Filtrar transacciones por tipo y fecha
             today = datetime.today().date()
@@ -1414,8 +1401,7 @@ def box():
                     trans.transaction_types == TransactionType.INGRESO and trans.approval_status == ApprovalStatus.APROBADA and trans.creation_date.date() == today]
             withdrawals = [trans for trans in transactions if
                         trans.transaction_types == TransactionType.RETIRO and trans.approval_status == ApprovalStatus.APROBADA and trans.creation_date.date() == today]
-            
-            
+              
             # Recopilar detalles con formato de fecha y clases de Bootstrap
             expense_details = [
                 {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
@@ -1505,7 +1491,6 @@ def box():
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
                 'employee_id': salesman.employee_id,
                 'employee_status': employee_status,
-                # Convertir los valores de estadísticas a números
                 'total_collections_today': total_collections_today,
                 'new_clients': new_clients,
                 'daily_expenses': daily_expenses_count,
@@ -1516,12 +1501,10 @@ def box():
                 'customers_in_arrears_for_the_day': customers_in_arrears,
                 'total_renewal_loans': total_renewal_loans,
                 'total_new_clients_loan_amount': new_clients_loan_amount,
-                # Nuevo campo para el total de los préstamos de los nuevos clientes
                 'total_renewal_loans_amount': total_renewal_loans_amount,
                 'daily_withdrawals_count': daily_withdrawals_count,
                 'daily_collection_count': daily_collection_count,
                 'total_pending_installments_amount': total_pending_installments_amount,
-                # Nuevo campo para el total de los montos de las cuotas pendientes
                 'all_loans_paid_today': all_loans_paid_today,
                 'total_clients_collected': total_clients_collected,
                 'status_box': status_box,
@@ -1557,7 +1540,6 @@ def box():
 
         # Obtener los gastos del coordinador
         expenses = Transaction.query.filter(
-            
                 Transaction.employee_id == coordinator.id,
                 Transaction.transaction_types == 'GASTO',
                 func.date(Transaction.creation_date) == current_date
@@ -1580,13 +1562,11 @@ def box():
         return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats,
                                search_term=search_term, all_boxes_closed=all_boxes_closed,
                                coordinator_name=coordinator_name, user_id=user_id, expense_details=expense_details, total_expenses=total_expenses)
-
-
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
-# Define the endpoint route to list clients in arrears
+
 @routes.route('/debtor', methods=['GET'])
 def debtor():
     try:
@@ -1596,13 +1576,11 @@ def debtor():
         if user_id is None:
             return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
 
-        # Buscar al empleado correspondiente al user_id de la sesión
         empleado = Employee.query.filter_by(user_id=user_id).first()
 
         if not empleado:
             return jsonify({'message': 'Empleado no encontrado'}), 404
 
-        # Crear una lista para almacenar los detalles de los clientes en MORA
         mora_debtors_details = []
 
         # Obtener todos los clientes asociados a este empleado que tienen préstamos en estado "MORA"
@@ -1948,6 +1926,7 @@ def transactions():
             return render_template('transactions.html', concepts=concepts, user_role=user_role, user_id=user_id)
     else:
         return "Acceso no autorizado."
+
 
 @routes.route('/modify-transaction/<int:transaction_id>', methods=['POST'])
 def modify_transaction(transaction_id):
