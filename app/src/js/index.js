@@ -499,7 +499,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 document.addEventListener("keyup", e=>{
 
-
     if (e.target.matches("#searcher")){
 
   
@@ -532,9 +531,9 @@ document.addEventListener("keyup", e=>{
         })
   
     }
-  })
+});
 
-  document.getElementById('photo').addEventListener('change', function() {
+document.getElementById('photo').addEventListener('change', function() {
     checkImageFilled();
 });
 
