@@ -836,9 +836,6 @@ def mark_overdue():
 
 
 
-
-
-
 @routes.route('/payment_list/<int:user_id>', methods=['GET'])
 def payments_list(user_id):
     # Obtiene el ID de usuario desde la ruta
@@ -858,30 +855,39 @@ def payments_list(user_id):
     all_loans_paid_count = 0
 
     all_loans_paid_today = False
+
+
+
+    # Inicializa un set para almacenar los IDs de clientes que tienen pagos hoy
+    clients_with_payments_today = set()
+
+    # Obtiene todos los préstamos del empleado
+    all_loans_paid = Loan.query.filter_by(employee_id=employee.id).all()
+
+    # Recorre cada préstamo y sus cuotas para verificar pagos del día de hoy
     for loan in all_loans_paid:
         loan_installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
         for installment in loan_installments:
             payments = Payment.query.filter_by(installment_id=installment.id).all()
             for payment in payments:
-                # print(payment.payment_date)
                 if payment.payment_date.date() == current_date:
-                    # all_loans_paid_today = True
-                    all_loans_paid_count += 1
+                    # Agrega el ID del cliente al set si hay un pago hoy
+                    clients_with_payments_today.add(loan.client_id)
                     break
-            if all_loans_paid_today:
-                break
-        if all_loans_paid_today:
-            break
-    
+
+    # La cantidad de clientes con pagos hoy es el tamaño del set
+    all_loans_paid_count = len(clients_with_payments_today)
+
+
     active_loans_count = Loan.query.filter_by(employee_id=employee.id, status=True).count()
 
     if active_loans_count == all_loans_paid_count:
         all_loans_paid_today = True
 
-    print("Creditos Activos: ", active_loans_count)
-    print("Creditos Pagados Hoy: ", all_loans_paid_count)
+    # print("Creditos Activos: ", active_loans_count)
+    # print("Creditos Pagados Hoy: ", all_loans_paid_count)
 
-                # Calcula el total de cobros para el día con estado "PAGADA"           
+    # Calcula el total de cobros para el día con estado "PAGADA"           
     total_collections_today = db.session.query(
         func.sum(Payment.amount)
     ).join(
@@ -893,7 +899,9 @@ def payments_list(user_id):
         func.date(Payment.payment_date) == datetime.now().date()
     ).scalar() or 0
 
-    print("Total Collections Today: ", total_collections_today)
+
+
+    # print("Total Collections Today: ", total_collections_today)
 
 
     status_box = ""
@@ -1041,7 +1049,7 @@ def payments_list(user_id):
 
     porcentaje_cobro = int(total_collections_today / total_installment_value * 100) if total_installment_value != 0 else 0
 
-    print("Total Installment Value: ", total_installment_value)
+    print("clientes ordenados: ", filtered_clients_information)
 
 
     # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
@@ -2301,6 +2309,10 @@ def box_detail():
         {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
          'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in withdrawals]
 
+
+    
+
+
     # Calcular clientes con cuotas en mora y cuya fecha de vencimiento sea la de hoy
     clients_in_arrears = []
     for loan in loans:
@@ -2311,7 +2323,8 @@ def box_detail():
                     'client_name': loan.client.first_name + ' ' + loan.client.last_name,
                     'arrears_count': sum(1 for inst in loan.installments if inst.is_in_arrears()),
                     'overdue_balance': sum(inst.amount for inst in loan.installments if inst.is_in_arrears()),
-                    'total_loan_amount': loan.amount
+                    'total_loan_amount': loan.amount,
+                    'loan_id': loan.id
                 }
                 clients_in_arrears.append(client_arrears)
 
@@ -2337,15 +2350,16 @@ def box_detail():
             remaining_balance = sum(inst.amount for inst in payment.installment.loan.installments if inst.status in (
             InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA))
             total_credit = payment.installment.loan.amount  # Total credit from the loan model
-            payment_summary[(client_name, payment_date)] = {
-                'loan_id': payment.installment.loan.id,  # Add loan_id to the payment details
-                'installment_id': payment.installment.id,  # Add installment_id to the payment details
-                'client_name': client_name,
-                'payment_amount': payment.amount,
-                'remaining_balance': remaining_balance,
-                'total_credit': total_credit,  # Add total credit to the payment details
-                'payment_date': payment_date.strftime('%d/%m/%Y'),
-            }
+            if payment.amount > 0:  # Only include payments greater than 0
+                payment_summary[(client_name, payment_date)] = {
+                    'loan_id': payment.installment.loan.id,  # Add loan_id to the payment details
+                    'installment_id': payment.installment.id,  # Add installment_id to the payment details
+                    'client_name': client_name,
+                    'payment_amount': payment.amount,
+                    'remaining_balance': remaining_balance,
+                    'total_credit': total_credit,  # Add total credit to the payment details
+                    'payment_date': payment_date.strftime('%d/%m/%Y'),
+                }
 
     # Convert payment summary dictionary to a list of payment details
     payment_details = list(payment_summary.values())

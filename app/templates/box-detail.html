@@ -167,6 +167,9 @@
           <th class="c-table__box">C. MORA</th>
           <th class="c-table__box">Saldo</th>
           <th class="c-table__box">Valor Total</th>
+                        {% if user_role == 'VENDEDOR' %}
+              <th class="c-table__box">Acción</th>
+              {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -176,6 +179,19 @@
           <td class="c-table__box">{{ client_in_arrears.arrears_count }}</td>
           <td class="c-table__box">$ {{ '{:,.0f}'.format(client_in_arrears.overdue_balance) }}</td>
           <td class="c-table__box">$ {{ '{:,.0f}'.format(client_in_arrears.total_loan_amount) }}</td>
+          {% if user_role == 'VENDEDOR' %}
+          <td class="c-table__box">
+            <a class="c-btn c-btn-primary js-btn-editar-pago cuota-label"
+              style="width: 60%; padding: 0.4rem 0;"
+              data-id="{{ client_in_arrears.loan_id }}"
+              data-installment-value="{{ client_in_arrears.installment_value }}"
+              data-overdue-amount="{{ client_in_arrears.overdue_balance }}"
+              data-toggle="modal"
+              data-target="#editPaymentModal">
+              <i class="bi bi-pencil"></i>            
+            </a>
+           </td>
+           {% endif %}
         </tr>
         {% endfor %}
       </tbody>
