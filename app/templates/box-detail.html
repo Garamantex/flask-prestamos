@@ -15,11 +15,33 @@
         <a class="c-btn c-btn-primary c-btn-block mb-3" href="./logout">Salir</a>
       </div>
     </div>
+
+    
+
+
+
+
     <h2 class="c-headings c-headings__h3 mt-4 text-center">
       Detalle Caja: {{ salesman.employee.user.first_name
       }} {{ salesman.employee.user.last_name }}
     </h2>
     <hr class="mb-3">
+    <table class="c-table">
+      <thead>
+        <tr>
+          <th class="c-table__box">Total Ingresos</th>
+          <th class="c-table__box">Total Egresos</th>
+          <th class="c-table__box">Total Final Caja</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(total_ingresos) }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(total_egresos) }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(total_ingresos - total_egresos) }}</td>
+        </tr>
+      </tbody>
+    </table>
     <h2 class="c-headings c-headings__h3 mt-4">Ventas</h2>
     <table class="c-table">
       <thead>
