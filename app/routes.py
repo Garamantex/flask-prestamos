@@ -2298,6 +2298,8 @@ def box_detail():
     withdrawals = [trans for trans in transactions if
                    trans.transaction_types == TransactionType.RETIRO and trans.creation_date.date() == today]
 
+
+
     # Recopilar detalles con formato de fecha y clases de Bootstrap
     expense_details = [
         {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
@@ -2369,6 +2371,17 @@ def box_detail():
     loan_id = payment_details[0].get('loan_id') if payment_details else None
     installment_id = payment_details[0].get('installment_id') if payment_details else None
 
+        # *** Cálculo de totales (INGRESOS y EGRESOS) ***
+    # Calcular el total de pagos e ingresos
+    total_ingresos = sum(payment['payment_amount'] for payment in payment_details) + \
+                     sum(income['amount'] for income in income_details)
+
+    # Calcular el total de egresos (retiros, gastos, préstamos, renovaciones)
+    total_egresos = sum(withdrawal['amount'] for withdrawal in withdrawal_details) + \
+                    sum(expense['amount'] for expense in expense_details) + \
+                    sum(loan['loan_amount'] for loan in loan_details) + \
+                    sum(renewal['loan_amount'] for renewal in renewal_loan_details)
+
     # print(clients_in_arrears)
     # Renderizar la plantilla HTML con los datos recopilados
     return render_template('box-detail.html',
@@ -2379,6 +2392,8 @@ def box_detail():
                            income_details=income_details,
                            withdrawal_details=withdrawal_details,
                            clients_in_arrears=clients_in_arrears,
+                           total_ingresos=total_ingresos,  # <-- Total ingresos agregado
+                           total_egresos=total_egresos,
                            payment_details=payment_details,
                            user_role=user_role,
                            loan_id=loan_id,
