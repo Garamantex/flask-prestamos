@@ -5,10 +5,12 @@
     <div class="container pt-1">
         <div class="row">
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3"
+                    href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver</a>
             </div>
             <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
+                <a class="c-btn c-btn-primary c-btn-block mb-3"
+                    href="{{ url_for('routes.logout') }}">Salir</a>
             </div>
         </div>
         <div class="row">
@@ -20,25 +22,32 @@
                         </div>
                     </div>
                     <div class="col-4 col-md-5">
-                        <button class="c-btn c-btn-summit js-btn-ocultar" id="btn-ocultar">
-                            <i id="icono-ocultar" class="bi bi-eye js-icono-ocultar"></i>
+                        <button class="c-btn c-btn-summit js-btn-ocultar"
+                            id="btn-ocultar">
+                            <i id="icono-ocultar"
+                                class="bi bi-eye js-icono-ocultar"></i>
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="row">
                     <div class="col-4">
-                        <i class="bi bi-person-check-fill d-inline-block" title="Clientes ACTIVOS"></i>
-                        <p class="d-inline-block px-2" title="Clientes ACTIVOS">{{ all_loans_paid_count }} / {{ active_loans_count}}</p>
+                        <i class="bi bi-person-check-fill d-inline-block"
+                            title="Clientes ACTIVOS"></i>
+                        <p class="d-inline-block px-2"
+                            title="Clientes ACTIVOS">{{ all_loans_paid_count }}
+                            / {{ active_loans_count}}</p>
                     </div>
                     <div class="col-8">
                         <i class="bi bi-cash-coin d-inline-block"></i>
-                        <p class="d-inline-block px-2">                            
-                        $ {{ '{:,.0f}'.format(total_collections_today | float | int) }}
-                        /
-                        $ {{ '{:,.0f}'.format(total_installment_value | float | int) }}
+                        <p class="d-inline-block px-2">
+                            $ {{ '{:,.0f}'.format(total_collections_today |
+                            float | int) }}
+                            /
+                            $ {{ '{:,.0f}'.format(total_installment_value |
+                            float | int) }}
 
-                        ({{ porcentaje_cobro}}%)
+                            ({{ porcentaje_cobro}}%)
                         </p>
                     </div>
                 </div>
@@ -47,58 +56,99 @@
         </div>
         <div class="row">
             <div class="col-12">
-                    <input type="text" name="search" id="searcher" class="form-control" style="border-radius: 6px 0 0 6px ;" placeholder="Buscar por cliente">
+                <input type="text" name="search" id="searcher"
+                    class="form-control" style="border-radius: 6px 0 0 6px ;"
+                    placeholder="Buscar por cliente">
             </div>
             <div class="col-12">
-                    <form  action="/add-daily-collected/{{ employee_id }}" method="POST">
-                        <button class="c-btn c-btn-primary mb-3" type="submit" >Cerrar Caja</button>
-                    </form>
+                <form action="/add-daily-collected/{{ employee_id }}"
+                    method="POST">
+                    <button class="c-btn c-btn-primary mb-3"
+                        type="submit">Cerrar Caja</button>
+                </form>
             </div>
         </div>
         <div class="row">
             <div class="col">
                 <ul class="list-group " style="padding: 0 0.5em;">
-                    
+
                     {% for client in clients %}
-                        <li class="mb-4 c-card__box-mannager search-card"
-                            data-due-date="{{ client['Due Date'] }}"
-                            data-current-date="{{ client['Current Date'] }}"
-                            data-last-payment-date="{{ client['Last Payment Date front'] }}"
-                            data-last-loan-modification-date="{{ client['Last Loan Modification Date'] }}"
-                            data-previous-installment-status="{{ client['Previous Installment Status'] }}"
-                            data-installment-status="{{ client['Installment Status'] }}">
+                    <li class="mb-4 c-card__box-mannager search-card"
+                        data-due-date="{{ client['Due Date'] }}"
+                        data-current-date="{{ client['Current Date'] }}"
+                        data-last-payment-date="{{ client['Last Payment Date front'] }}"
+                        data-last-loan-modification-date="{{ client['First Modification Date'] }}"
+                        data-previous-installment-status="{{ client['Previous Installment Status'] }}"
+                        data-installment-status="{{ client['Installment Status'] }}">
                         <div class="c-card__internal">
-                            <p style="margin-bottom: 0.2rem;">{{ client['First Name'] | capitalize }} {{ client['Last Name'] | capitalize }}</p>
-                            <p style="margin-bottom: 0.2rem;">{{ client['Alias Client'] | capitalize }}</p>
-                            <p style="margin-bottom: 1rem;">Saldo: $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}</p>
-                            <p style="margin-bottom: 1rem;" class="{{ 'badge bg-success' if client['Approved'] == 'Aprobado' else 'badge bg-warning text-dark' }}" >
+                            <p style="margin-bottom: 0.2rem;">{{
+                                client['First Name'] | capitalize }} {{
+                                client['Last Name'] | capitalize }}</p>
+                            <p style="margin-bottom: 0.2rem;">{{
+                                client['Alias Client'] | capitalize }}</p>
+                            <p style="margin-bottom: 1rem;">Saldo: $ {{
+                                '{:,.0f}'.format(client['Total Outstanding Amount']
+                                | float | int) }}</p>
+                            <p style="margin-bottom: 1rem;"
+                                class="{{ 'badge bg-success' if client['Approved'] == 'Aprobado' else 'badge bg-warning text-dark' }}">
                                 {{ client['Approved'] | capitalize }}
                             </p>
-                            <p class="hidden" style="margin-bottom: 0.2rem;">Estado: {{ client['Previous Installment Status'] | capitalize }}</p>
-                            <p class="u-hidden" style="margin-bottom: 0.2rem;">{{ client['Installment Status'] | capitalize }}</p>
-                            <p class="hidden dates" style="margin-bottom: 0.2rem;">Ultima fecha de pago: <br> {{ client['Last Payment Date front'] | capitalize }}</p>
-                            <p class="u-hidden dates" style="margin-bottom: 0.2rem;">Fecha modificacion: {{ client['Last Loan Modification Date'] | capitalize }}</p>
+                            <p class="hidden"
+                                style="margin-bottom: 0.2rem;">Estado: {{
+                                client['Previous Installment Status'] |
+                                capitalize }}</p>
+                            <p class="u-hidden"
+                                style="margin-bottom: 0.2rem;">{{
+                                client['Installment Status'] | capitalize }}</p>
+                            <p class="hidden dates"
+                                style="margin-bottom: 0.2rem;">Ultima fecha de
+                                pago: <br> {{ client['Last Payment Date front']
+                                | capitalize }}</p>
+                            <p class="u-hidden dates"
+                                style="margin-bottom: 0.2rem;">Fecha
+                                modificacion: {{
+                                client['Last Loan Modification Date'] |
+                                capitalize }}</p>
                         </div>
                         <div class="c-card__internal">
-                            <p style="margin-bottom: 0.2rem;">Cuota: {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}</p>
-                            <p class="" style="margin-bottom: 2rem;">Valor cuota: $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}</p>
+                            <p style="margin-bottom: 0.2rem;">Cuota: {{
+                                client['Cuota Number'] }} / {{
+                                client['Total Installments'] | float | int
+                                }}</p>
+                            <p class style="margin-bottom: 2rem;">Valor cuota: $
+                                {{ '{:,.0f}'.format(client['Installment Value']
+                                | float | int) }}</p>
                             <!-- <p class="hidden" style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p> -->
-                            <p class="hidden" style="margin-bottom: 0.2rem;">En mora: $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}</p>
-                            <p class="hidden" class="" style="margin-bottom: 0.2rem;">Valor Pagado: $ {{ '{:,.0f}'.format(client['Previous Installment Paid Amount'] | float | int) }}</p>
-                            <a class="c-btn c-btn-summit mt-4" href="{{ url_for('routes.credit_detail', id=client['Loan ID']) }}" title="credit_detail">
+                            <p class="hidden" style="margin-bottom: 0.2rem;">En
+                                mora: $ {{
+                                '{:,.0f}'.format(client['Total Overdue Amount']
+                                | float | int) }}</p>
+                            <p class="hidden" class
+                                style="margin-bottom: 0.2rem;">Valor Pagado: $
+                                {{
+                                '{:,.0f}'.format(client['Previous Installment Paid Amount']
+                                | float | int) }}</p>
+                            <a class="c-btn c-btn-summit mt-4"
+                                href="{{ url_for('routes.credit_detail', id=client['Loan ID']) }}"
+                                title="credit_detail">
                                 <i id="icono-ocultar" class="bi bi-eye"></i>
                             </a>
                         </div>
-                        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-                            <a type="button" class="c-btn c-btn-primary btn-pagar cuota-label"
-                                style="width: 60%; padding: 0.4rem 0;" data-id="{{ client['Loan ID'] }}"
+                        <div
+                            style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                            <a type="button"
+                                class="c-btn c-btn-primary btn-pagar cuota-label"
+                                style="width: 60%; padding: 0.4rem 0;"
+                                data-id="{{ client['Loan ID'] }}"
                                 data-installment-value="{{ client['Installment Value'] }}"
-                                data-overdue-amount="{{ client['Total Overdue Amount'] }}" data-toggle="modal"
+                                data-overdue-amount="{{ client['Total Overdue Amount'] }}"
+                                data-toggle="modal"
                                 data-target="#exampleModal">
                                 Pagar
                             </a>
                             <a class="c-btn c-btn-primary btn-mora cuota-label"
-                                style="width: 40%; margin-left: 1rem; padding: 0.4rem 0;" href="#"
+                                style="width: 40%; margin-left: 1rem; padding: 0.4rem 0;"
+                                href="#"
                                 data-id="{{ client['Loan ID'] }}">
                                 Mora
                             </a>
@@ -113,14 +163,16 @@
 <!-- Modal -->
 
 <!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog"
+    aria-labelledby="exampleModalLabel"
     aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="exampleModalLabel">Procesando
                     PAGO</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-dismiss="modal"
+                    aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -128,25 +180,30 @@
                 <!-- Resumen del pago -->
                 <div class="row mb-1">
                     <div class="col">
-                        <p><strong>Valor Cuota:</strong> $ <span id="installmentValue"></span></p>
+                        <p><strong>Valor Cuota:</strong> $ <span
+                                id="installmentValue"></span></p>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col">
-                        <p><strong>Valor en Mora:</strong> $ <span id="overdueAmount"></span></p>
+                        <p><strong>Valor en Mora:</strong> $ <span
+                                id="overdueAmount"></span></p>
                     </div>
                 </div>
                 <!-- Formulario de pago -->
                 <div class="form-group mb-4">
-                    <label for="paymentAmount" style="padding-bottom: 0.5rem;">Monto a pagar:</label>
-                    <input type="number" class="form-control" id="customPayment" name="customPayment">
+                    <label for="paymentAmount"
+                        style="padding-bottom: 0.5rem;">Monto a pagar:</label>
+                    <input type="number" class="form-control" id="customPayment"
+                        name="customPayment">
                 </div>
 
                 <!-- Campo oculto para almacenar el ID del préstamo -->
                 <input type="hidden" id="loanId" name="loanId" value>
 
                 <div class="modal-footer text-center">
-                    <button type="button" class="btn btn-primary" id="confirmPaymentBtn" data-dismiss="modal">Confirmar
+                    <button type="button" class="btn btn-primary"
+                        id="confirmPaymentBtn" data-dismiss="modal">Confirmar
                         Pago</button>
                 </div>
             </div>

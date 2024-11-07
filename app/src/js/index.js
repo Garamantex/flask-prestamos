@@ -2,20 +2,20 @@ import '../scss/main.scss';
 import 'bootstrap';
 
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
 
     var plazoInput = document.getElementById('dues');
     var interesInput = document.getElementById('interest');
     var cuotaAproxInput = document.getElementById('amountPerPay');
 
     if (plazoInput) {
-        plazoInput.addEventListener('input', function() {
+        plazoInput.addEventListener('input', function () {
             calcularCuotaAproximada();
         });
     }
 
     if (interesInput) {
-        interesInput.addEventListener('input', function() {
+        interesInput.addEventListener('input', function () {
             calcularCuotaAproximada();
         });
     }
@@ -50,14 +50,14 @@ async function obtenerValoresMaximos() {
         const montoInput = document.getElementById("amount");
         const cuotasSelect = document.getElementById("dues");
         const interesSelect = document.getElementById("interest");
-        
-        // Configurar el máximo de monto permitido
-        if(montoInput) montoInput.setAttribute("max", data.maximum_amount);
 
-        if(montoInput){
-            montoInput.addEventListener("input", function() {
+        // Configurar el máximo de monto permitido
+        if (montoInput) montoInput.setAttribute("max", data.maximum_amount);
+
+        if (montoInput) {
+            montoInput.addEventListener("input", function () {
                 const monto = parseFloat(montoInput.value);
-                
+
                 if (monto > data.maximum_sale) {
                     // Mostrar un mensaje de error
                     alert('El monto máximo permitido es de $' + data.maximum_sale + ' Quedara en estado Pendiente de Aprobación');
@@ -65,21 +65,21 @@ async function obtenerValoresMaximos() {
                 }
             });
         }
-        
+
         // Configurar el máximo de cuotas permitidas
         for (let i = 1; i <= data.maximum_installments; i++) {
             const option = document.createElement("option");
             option.text = i;
-            if(cuotasSelect){
+            if (cuotasSelect) {
                 cuotasSelect.add(option);
             }
         }
-        
+
         // Configurar el mínimo de interés permitido
         for (let i = data.minimum_interest; i <= 50; i++) {
             const option = document.createElement("option");
             option.text = i;
-            if(interesSelect){
+            if (interesSelect) {
                 interesSelect.add(option);
             }
         }
@@ -113,11 +113,11 @@ obtenerValoresMaximos();
 
 function formatNumericFields() {
     const numericFields = document.querySelectorAll('.js-number');
-    
-    numericFields.forEach(function(field) {
+
+    numericFields.forEach(function (field) {
         const rawValue = field.value.replace(/,/g, ''); // Eliminar comas si las hubiera
         const parsedValue = parseFloat(rawValue);
-        
+
         if (!isNaN(parsedValue)) {
             field.value = parsedValue.toLocaleString('es-ES', { minimumFractionDigits: 2 });
         }
@@ -126,12 +126,12 @@ function formatNumericFields() {
 
 formatNumericFields();
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Verifica si la URL actual es la página de inicio
     if (window.location.href.endsWith('/')) {
         var form = document.getElementById('login-form');
 
-        form.addEventListener('submit', function(event) {
+        form.addEventListener('submit', function (event) {
             event.preventDefault(); // Evita el comportamiento predeterminado de envío del formulario
 
             var emailInput = document.getElementById('email').value;
@@ -210,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 document.addEventListener('DOMContentLoaded', function () {
     var installmentsContainer = document.getElementById('installmentsContainer');
-    
+
     if (installmentsContainer) {
         // Recorre las cuotas y aplica estilos según el estado
         var installments = installmentsContainer.querySelectorAll('.request-item');
@@ -230,10 +230,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
- // Agrega un evento de clic al botón para mostrar/ocultar detalles
- var verDetallesBtn = document.getElementById('verDetallesBtn');
- var detallesContainer = document.getElementById('detallesContainer');
- 
+// Agrega un evento de clic al botón para mostrar/ocultar detalles
+var verDetallesBtn = document.getElementById('verDetallesBtn');
+var detallesContainer = document.getElementById('detallesContainer');
+
 if (verDetallesBtn && detallesContainer) {
     verDetallesBtn.addEventListener('click', function () {
         if (detallesContainer.style.display === 'none') {
@@ -248,14 +248,14 @@ if (verDetallesBtn && detallesContainer) {
     });
 }
 
-   // Función para actualizar los valores en la modal
-   function updateModalValues(installmentValue, overdueAmount) {
+// Función para actualizar los valores en la modal
+function updateModalValues(installmentValue, overdueAmount) {
     document.getElementById('installmentValue').textContent = installmentValue.toLocaleString();
     document.getElementById('overdueAmount').textContent = overdueAmount.toLocaleString();
 }
-    function toggleHiddenParagraphs() {
+function toggleHiddenParagraphs() {
     var hiddenParagraphs = document.querySelectorAll('.u-hidden');
-    hiddenParagraphs.forEach(function(paragraph) {
+    hiddenParagraphs.forEach(function (paragraph) {
         paragraph.classList.toggle('u-hidden');
     });
 }
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     // Agrega un evento de clic al botón de "Confirmar Pago"
-    if(document.getElementById('confirmPaymentBtn')) {
+    if (document.getElementById('confirmPaymentBtn')) {
         document.getElementById('confirmPaymentBtn').addEventListener('click', function () {
             // console.log('Confirmar pago')
             var loanId = document.getElementById('loanId').value; // Obtener ID de préstamo desde el campo oculto
@@ -322,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    
+
     btnsMora.forEach(function (btn) {
         btn.addEventListener('click', function () {
             var loanId = this.getAttribute('data-id');
@@ -343,22 +343,22 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    if(document.getElementById('btn-ocultar')){
+    if (document.getElementById('btn-ocultar')) {
         document.getElementById('btn-ocultar').addEventListener('click', function () {
             // Convertir NodeList a un array para usar el método sort()
             var cuotasArray = Array.from(cuotas);
-        
+
             // Ordenar los elementos por fecha de modificación del más viejo al más reciente
             cuotasArray.sort(function (a, b) {
                 var fechaA = new Date(a.getAttribute('data-last-loan-modification-date')).getTime();
                 var fechaB = new Date(b.getAttribute('data-last-loan-modification-date')).getTime();
                 return fechaA - fechaB;
             });
-        
+
             // Limpiar el contenedor antes de mostrar los elementos ordenados
             var contenedor = document.querySelector('.list-group');
             contenedor.innerHTML = '';
-        
+
             // Mostrar los elementos ordenados en el DOM
             cuotasArray.forEach(function (cuota) {
                 contenedor.appendChild(cuota);
@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Itera sobre cada cuota
     cuotas.forEach(function (cuota) {
         // console.log(cuota);
-        
+
         // Obtén el estado de la cuota desde el atributo data
         var estadoCuotaAnterior = cuota.getAttribute('data-previous-installment-status');
 
@@ -400,14 +400,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if ((estadoCuotaAnterior === 'PAGADA' || estadoCuotaAnterior === 'ABONADA' || estadoCuotaAnterior === 'MORA') && fechaPago == fechaActual) {
             cuota.classList.add('u-hidden'); // Oculta el elemento
             cuota.classList.remove('c-card__box-mannager'); // Remueve la clase c-card__box-mannager
-        } else  {
+        } else {
             cuota.classList.add('u-block');
         }
         // console.log(cuota);
     });
-    
-     // Función para cambiar el ícono del botón btn-ocultar
-    if(document.querySelector('.js-btn-ocultar')){
+
+    // Función para cambiar el ícono del botón btn-ocultar
+    if (document.querySelector('.js-btn-ocultar')) {
         document.querySelector('.js-btn-ocultar').addEventListener('click', function () {
 
 
@@ -426,15 +426,15 @@ document.addEventListener('DOMContentLoaded', function () {
             // Lógica para mostrar u ocultar elementos aquí...
         });
     }
-   
+
 });
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Obtenemos todos los elementos con la clase c-card__box-mannager
     var cards = document.querySelectorAll('.u-hidden');
 
     // Iteramos sobre cada tarjeta
-    cards.forEach(function(card) {
+    cards.forEach(function (card) {
         // Obtenemos los datos necesarios de la tarjeta
         var previousInstallmentStatus = card.getAttribute('data-previous-installment-status');
         var installmentStatus = card.getAttribute('data-installment-status');
@@ -457,90 +457,85 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     var cerrarCajaForms = document.querySelectorAll('.js-cerrar-caja');
-    cerrarCajaForms.forEach(function(form) {
-      
+    cerrarCajaForms.forEach(function (form) {
+
 
     });
 
-    document.querySelectorAll('.js-eye-button').forEach(function(element) {
-    element.addEventListener('click', function() {
-        element.classList.toggle('c-btn--closed');
-        document.querySelectorAll('.js-eye-icon').forEach(function(icon) {
-        icon.classList.toggle('bi-eye');
-        icon.classList.toggle('bi-eye-slash');
+    document.querySelectorAll('.js-eye-button').forEach(function (element) {
+        element.addEventListener('click', function () {
+            element.classList.toggle('c-btn--closed');
+            document.querySelectorAll('.js-eye-icon').forEach(function (icon) {
+                icon.classList.toggle('bi-eye');
+                icon.classList.toggle('bi-eye-slash');
+            });
         });
-    });
     });
 });
 
 // Esperamos a que el documento esté completamente cargado
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Obtenemos todos los elementos <li> que representan las tarjetas de cliente
     var cards = document.querySelectorAll('.c-card__box-mannager');
 
     // Iteramos sobre cada tarjeta
-    cards.forEach(function(card) {
+    cards.forEach(function (card) {
         // Obtenemos el estado de la cuota de la tarjeta
         var installmentStatus = card.getAttribute('data-installment-status');
 
         // Si el estado de la cuota es "PENDIENTE", ocultamos los elementos relevantes
-        if (installmentStatus === 'PENDIENTE') {
-            card.querySelectorAll('.hidden').forEach(function(hiddenElement) {
+        if (installmentStatus === 'PENDIENTE' || installmentStatus === 'ABONADA' || installmentStatus === 'MORA') {
+            card.querySelectorAll('.hidden').forEach(function (hiddenElement) {
                 hiddenElement.classList.add('u-hidden'); // Agregamos la clase 'hidden' para ocultarlos
-            });
-        } else {
-            // Si el estado de la cuota no es "PENDIENTE", aseguramos que los elementos relevantes estén visibles
-            card.querySelectorAll('.hidden').forEach(function(hiddenElement) {
-                hiddenElement.classList.remove('u-hidden'); // Removemos la clase 'hidden' para mostrarlos
             });
         }
     });
 });
 
-document.addEventListener("keyup", e=>{
+document.addEventListener("keyup", e => {
 
-    if (e.target.matches("#searcher")){
+    if (e.target.matches("#searcher")) {
 
-  
-        if (e.key ==="Escape")e.target.value = ""
-        
-        document.querySelectorAll(".search-card").forEach(payment =>{
+
+        if (e.key === "Escape") e.target.value = ""
+
+        document.querySelectorAll(".search-card").forEach(payment => {
 
             const searchValue = e.target.value.toLowerCase()
 
             if (searchValue.length > 2 && payment.textContent.toLowerCase().includes(searchValue)) {
-                payment.classList.add("c-card__box-mannager");      
+                payment.classList.add("c-card__box-mannager");
             } else {
                 payment.classList.add("filter");
                 payment.classList.remove("c-card__box-mannager");
             }
 
-            if(searchValue.length === 0){
+            if (searchValue.length === 0) {
                 payment.classList.remove("filter");
-                payment.classList.add("c-card__box-mannager"); 
+                payment.classList.add("c-card__box-mannager");
             }
         })
 
-        document.querySelectorAll(".search-salesman-card").forEach(payment =>{
-  
+        document.querySelectorAll(".search-salesman-card").forEach(payment => {
+
             if (payment.textContent.toLowerCase().includes(e.target.value.toLowerCase())) {
-                payment.classList.remove("filter");   
+                payment.classList.remove("filter");
             } else {
                 payment.classList.add("filter");
             }
         })
-  
+
     }
 });
 
-document.getElementById('photo').addEventListener('change', function() {
+document.getElementById('photo').addEventListener('change', function () {
     checkImageFilled();
 });
 
 function checkImageFilled() {
     var photoInput = document.getElementById('photo');
     var submitButton = document.querySelector('button[type="submit"]');
-    
+
     if (photoInput.files.length > 0) {
         submitButton.removeAttribute('disabled');
     } else {
