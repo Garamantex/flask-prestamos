@@ -3,19 +3,19 @@
   <div class="container pt-5">
     <div class="row">
       <div class="col">
-        <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver</a>
+        <a class="c-btn c-btn-primary c-btn-block mb-3"
+          href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver</a>
       </div>
       <div class="col">
         <a
           class="c-btn c-btn-primary c-btn-block mb-3"
-          href="{{ url_for('routes.logout') }}"
-          >Salir</a
-        >
+          href="{{ url_for('routes.logout') }}">Salir</a>
       </div>
     </div>
     <div class="row">
       <div class="col-12 mt-4 mb-2">
-        <input type="text" name="search" id="searcher" class="form-control" style="border-radius: 6px 0 0 6px ;" placeholder="Buscar Vendedor">
+        <input type="text" name="search" id="searcher" class="form-control"
+          style="border-radius: 6px 0 0 6px ;" placeholder="Buscar Vendedor">
       </div>
     </div>
 
@@ -47,20 +47,22 @@
               '{:,.0f}'.format(coordinator_box['total_outbound_amount']) }}
             </li>
           </ul>
-          <a type="button" class="c-btn c-btn-primary" data-toggle="modal" data-target="#exampleModal">
+          <a type="button" class="c-btn c-btn-primary" data-toggle="modal"
+            data-target="#exampleModal">
             Gestión Caja
           </a>
         </div>
       </div>
     </div>
     <!-- Logica para calculo de ocultar, abrir rutas -->
-    
+
     <div class="row">
       <div class="col">
         {% if all_boxes_closed %}
-          <form  action="/all-open-boxes" method="POST">
-              <button class="c-btn c-btn-primary mb-3" type="submit" >Abrir todas las cajas</button>
-          </form>
+        <form action="/all-open-boxes" method="POST">
+          <button class="c-btn c-btn-primary mb-3" type="submit">Abrir todas las
+            cajas</button>
+        </form>
         {% endif %}
       </div>
     </div>
@@ -70,44 +72,56 @@
         <ul class="c-cajas">
           {% for salesman in salesmen_stats %}
           <li class="c-cajas__item search-salesman-card">
-            <div style="display: flex; justify-content: center; flex-wrap: wrap;" class="mb-4">
+            <div
+              style="display: flex; justify-content: center; flex-wrap: wrap;"
+              class="mb-4">
               <h4 class="c-cajas__item__title c-headings__h4 mb-4">
-                <i class="bi {{ '' if salesman['role_employee'] == 'VENDEDOR' else 'bi-person-badge-fill' }}" style="margin-right: 10px;"></i>  
+                <i
+                  class="bi {{ '' if salesman['role_employee'] == 'VENDEDOR' else 'bi-person-badge-fill' }}"
+                  style="margin-right: 10px;"></i>
                 {{ salesman['salesman_name'] }}
-              </h4>              
-              <div class="" style="display: flex; flex-wrap: wrap">
+              </h4>
+              <div class style="display: flex; flex-wrap: wrap">
                 <a
-                href="./box-detail?employee_id={{ salesman['employee_id'] }}"
-                class="c-btn c-btn-summit js-btn-ocultar"
-                style="width: 45%;"
-                type="submit"
-                >
-                <i class="bi bi-inboxes " title="Ver detalle"></i>
+                  href="./box-detail?employee_id={{ salesman['employee_id'] }}"
+                  class="c-btn c-btn-summit js-btn-ocultar"
+                  style="width: 45%;"
+                  type="submit">
+                  <i class="bi bi-inboxes " title="Ver detalle"></i>
                 </a>
-                <form style="width: 45%; margin-left: 15px"  action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST" class="js-cerrar-caja" data-employee-id="{{ salesman['employee_id'] }}"  data-status-box="{{ salesman['status_box'] }}">
-                  <button type="submit" class="js-eye-button c-btn c-btn-primary">
-                    <i class="js-eye-icon  bi {{ 'bi-eye' if salesman['employee_status'] == True else 'bi-eye-slash' }}" title="operar caja"></i>
+                <form style="width: 45%; margin-left: 15px"
+                  action="/add-employee-record/{{ salesman['employee_id'] }}"
+                  method="POST" class="js-cerrar-caja"
+                  data-employee-id="{{ salesman['employee_id'] }}"
+                  data-status-box="{{ salesman['status_box'] }}">
+                  <button type="submit"
+                    class="js-eye-button c-btn c-btn-primary">
+                    <i
+                      class="js-eye-icon  bi {{ 'bi-eye' if salesman['employee_status'] == True else 'bi-eye-slash' }}"
+                      title="operar caja"></i>
                   </button>
                 </form>
               </div>
             </div>
             <ul class="c-card__box-mannager">
               <li class="c-card__internal">
-                Valor Inicial: $ {{ '{:,.0f}'.format(salesman['initial_box_value'])
+                Valor Inicial: $ {{
+                '{:,.0f}'.format(salesman['initial_box_value'])
                 }}
               </li>
               <li class="c-card__internal">
                 Valor Final: $ {{
-                  '{:,.0f}'.format(salesman['box_value']) }}
+                '{:,.0f}'.format(salesman['box_value']) }}
               </li>
               <li class="c-card__internal">
                 Debido Cobrar: $ {{
-                '{:,.0f}'.format(salesman['total_pending_installments_amount'])
+                '{:,.0f}'.format(salesman['total_pending_installments_amount']+salesman['total_pending_installments_loan_close_amount'])
                 }}
               </li>
               <li class="c-card__internal">
                 Recaudo: $ {{
-                '{:,.0f}'.format(salesman['total_collections_today']) }} ({{ salesman['total_clients_collected'] }})
+                '{:,.0f}'.format(salesman['total_collections_today']) }} ({{
+                salesman['total_clients_collected'] }})
               </li>
               <li class="c-card__internal">
                 Ventas: $ {{
@@ -137,7 +151,8 @@
                 {{ salesman['daily_withdrawals_count'] }}
               </li>
               <li class="c-card__internal">
-                Ingresos: $ {{ '{:,.0f}'.format(salesman['daily_collections_made']) }}
+                Ingresos: $ {{
+                '{:,.0f}'.format(salesman['daily_collections_made']) }}
               </li>
               <li class="c-card__internal">
                 {{ '{:,.0f}'.format(salesman['daily_collection_count']) }}
@@ -162,98 +177,99 @@
   </div>
 </div>
 
-
 <!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="exampleModalLabel">Gestión</h3>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-              
-              <h5 class="mb-4">Gastos Coordinador:</h5>
-              <table class="c-table" style="color: white">
-                <thead>
-                  <tr>
-                    <th class="c-table__box text-center">Descripcion</th>
-                    <th class="c-table__box text-center">Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for expense in expense_details %}
-                  <tr>
-                    <td class="c-table__box">
-                      {{ expense['description'] }}
-                    </td>
-                    <td class="c-table__box">
-                      $ {{ '{:,.0f}'.format(expense['amount']) }}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>                
-              </table>
-              <h5 class="mb-4 mt-4">Ingresos:</h5>
-              <table class="c-table" style="color: white">
-                <thead>
-                  <tr>
-                    <th class="c-table__box text-center">Venedor</th>
-                    <th class="c-table__box text-center">Descripcion</th>
-                    <th class="c-table__box text-center">Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for salesman in salesmen_stats %}
-                  <tr>
-                    {% for withdrawal in salesman['withdrawal_details'] %}
-                    <td class="c-table__box">
-                      {{ withdrawal['username'] }}
-                    </td>
-                    <td class="c-table__box">
-                      {{ withdrawal['description'] }}
-                    </td>
-                    <td class="c-table__box">$ 
-                      {{ '{:,.0f}'.format(withdrawal['amount']) }}
-                    </td>
-                    {% endfor %}
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-              <h5 class="mb-4 mt-4">Retiros:</h5>
-              <table class="c-table" style="color: white">
-                <thead>
-                  <tr>
-                    <th class="c-table__box">Venedor</th>
-                    <th class="c-table__box">Descripcion</th>
-                    <th class="c-table__box">Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for salesman in salesmen_stats %}
-                  <tr>
-                    {% for income in salesman['income_details'] %}
-                    <td class="c-table__box">
-                      {{ income['username'] }}
-                    </td>
-                    <td class="c-table__box">
-                      {{ income['description'] }}
-                    </td>
-                    <td class="c-table__box">$ 
-                      {{ '{:,.0f}'.format(income['amount']) }}
-                    </td>
-                    {% endfor %}
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-        </div>
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog"
+  aria-labelledby="exampleModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="exampleModalLabel">Gestión</h3>
+        <button type="button" class="close" data-dismiss="modal"
+          aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <h5 class="mb-4">Gastos Coordinador:</h5>
+        <table class="c-table" style="color: white">
+          <thead>
+            <tr>
+              <th class="c-table__box text-center">Descripcion</th>
+              <th class="c-table__box text-center">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for expense in expense_details %}
+            <tr>
+              <td class="c-table__box">
+                {{ expense['description'] }}
+              </td>
+              <td class="c-table__box">
+                $ {{ '{:,.0f}'.format(expense['amount']) }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <h5 class="mb-4 mt-4">Ingresos:</h5>
+        <table class="c-table" style="color: white">
+          <thead>
+            <tr>
+              <th class="c-table__box text-center">Venedor</th>
+              <th class="c-table__box text-center">Descripcion</th>
+              <th class="c-table__box text-center">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for salesman in salesmen_stats %}
+            <tr>
+              {% for withdrawal in salesman['withdrawal_details'] %}
+              <td class="c-table__box">
+                {{ withdrawal['username'] }}
+              </td>
+              <td class="c-table__box">
+                {{ withdrawal['description'] }}
+              </td>
+              <td class="c-table__box">$
+                {{ '{:,.0f}'.format(withdrawal['amount']) }}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <h5 class="mb-4 mt-4">Retiros:</h5>
+        <table class="c-table" style="color: white">
+          <thead>
+            <tr>
+              <th class="c-table__box">Venedor</th>
+              <th class="c-table__box">Descripcion</th>
+              <th class="c-table__box">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for salesman in salesmen_stats %}
+            <tr>
+              {% for income in salesman['income_details'] %}
+              <td class="c-table__box">
+                {{ income['username'] }}
+              </td>
+              <td class="c-table__box">
+                {{ income['description'] }}
+              </td>
+              <td class="c-table__box">$
+                {{ '{:,.0f}'.format(income['amount']) }}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Overlay -->
@@ -271,9 +287,6 @@
         display: none;
     }
 </style>
-
-
-
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
@@ -303,6 +316,5 @@
     });
   });
 </script>
-
 
 {% endblock %}

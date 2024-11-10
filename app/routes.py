@@ -1381,6 +1381,11 @@ def box():
                         ).order_by(LoanInstallment.due_date.asc()).first()
                         if pending_installment:
                             total_pending_installments_amount += pending_installment.fixed_amount
+                    elif loan.status == False and loan.up_to_date and loan.modification_date.date() == datetime.now().date():
+                        pending_installment_paid = LoanInstallment.query.filter(
+                            LoanInstallment.loan_id == loan.id
+                        ).order_by(LoanInstallment.due_date.asc()).first()
+                        total_pending_installments_loan_close_amount += pending_installment_paid.fixed_amount
 
             # Calcula la cantidad de nuevos clientes registrados en el día
             new_clients = Client.query.filter(
@@ -1595,6 +1600,7 @@ def box():
                 'income_details': income_details,
                 'withdrawal_details': withdrawal_details,
                 'role_employee': role_employee,
+                'total_pending_installments_loan_close_amount': total_pending_installments_loan_close_amount
             }
 
             salesmen_stats.append(salesman_data)
@@ -1962,6 +1968,9 @@ def transactions():
         # Obtener el empleado asociado al user_id
         employee = Employee.query.filter_by(user_id=user_id).first()
 
+        # Obtener el employee_id a partir del user_id
+        employee_id = Employee.query.filter_by(user_id=user_id).first().id
+
         transaction_type = ''  # Definir transaction_type por defecto
         concepts = []  # Definir concepts por defecto
 
@@ -2008,7 +2017,7 @@ def transactions():
             db.session.commit()
 
             return render_template('menu-salesman.html', message='Transacción creada exitosamente.', alert='success',
-                                   concepts=concepts, user_role=user_role, user_id=user_id)
+                                   concepts=concepts, user_role=user_role, user_id=user_id, employee_id=employee_id)
 
         else:
             # Obtener todos los conceptos disponibles
