@@ -936,11 +936,13 @@ def payments_list(user_id):
 
     # Inicializa la lista para almacenar la información de los clientes
     clients_information = []
+    clients_information_paid = []
 
     # Obtiene los clientes del empleado con préstamos activos o en mora
     for client in employee.clients:
 
         for loan in client.loans:
+            total_installment_value_paid = 0  # Inicializar variable
 
             if loan.status:
                 # Calcula el número de cuotas pagadas
@@ -973,7 +975,7 @@ def payments_list(user_id):
                 last_pending_installment = LoanInstallment.query.filter(
                     LoanInstallment.loan_id == loan.id,
                     LoanInstallment.status.in_(
-                        [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA])
+                        [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
                 ).order_by(LoanInstallment.due_date.asc()).first()
 
                 # Obtener la primera cuota de cada cliente y su valor
@@ -1060,6 +1062,28 @@ def payments_list(user_id):
 
                 # print(clients_information)
 
+            elif loan.status == False and loan.up_to_date and loan.modification_date.date() == datetime.now().date():
+
+                # Obtener la primera cuota de cada cliente y su valor
+                first_installment_paid = LoanInstallment.query.filter(
+                    LoanInstallment.loan_id == loan.id
+                ).order_by(LoanInstallment.due_date.asc()).first()
+
+                print("First Installment: ", first_installment_paid)
+
+                total_installment_value_paid = sum(
+                    payment.amount for payment in first_installment_paid.payments)
+
+                print("Total Installment Value Paid: ",
+                      total_installment_value_paid)
+
+                # Agrega la información del cliente y su crédito a la lista de información de clientes
+                client_information_paid = {
+                    'Total Installment Value Paid': total_installment_value_paid,
+                }
+
+                clients_information_paid.append(client_information_paid)
+
     # Obtén el término de búsqueda del formulario
     search_term = request.args.get('search', '')
 
@@ -1075,13 +1099,19 @@ def payments_list(user_id):
     total_installment_value = sum(
         client['First Installment Value'] for client in clients_information)
 
+    paid_total_installment_value = sum(
+        client_info_paid['Total Installment Value Paid'] for client_info_paid in clients_information_paid
+    )
+
+    print("Valor total de las cuotas pagadas: ", paid_total_installment_value)
+
     porcentaje_cobro = int(total_collections_today / total_installment_value *
                            100) if total_installment_value != 0 else 0
 
     # print("clientes ordenados: ", filtered_clients_information)
 
     # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
-    return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box, employee_id=employee_id, user_id=user_id, active_loans_count=active_loans_count, all_loans_paid_count=all_loans_paid_count, total_installment_value=total_installment_value, total_collections_today=total_collections_today, porcentaje_cobro=porcentaje_cobro)
+    return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box, employee_id=employee_id, user_id=user_id, active_loans_count=active_loans_count, all_loans_paid_count=all_loans_paid_count, total_installment_value=total_installment_value + paid_total_installment_value, total_collections_today=total_collections_today, porcentaje_cobro=porcentaje_cobro)
 
 
 def is_workday(date):
@@ -2364,8 +2394,6 @@ def box_detail():
     withdrawals = [trans for trans in transactions if
                    trans.transaction_types == TransactionType.RETIRO and trans.creation_date.date() == today]
 
-
-
     # Recopilar detalles con formato de fecha y clases de Bootstrap
     expense_details = [
         {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
@@ -2438,16 +2466,16 @@ def box_detail():
     installment_id = payment_details[0].get(
         'installment_id') if payment_details else None
 
-        # *** Cálculo de totales (INGRESOS y EGRESOS) ***
+    # *** Cálculo de totales (INGRESOS y EGRESOS) ***
     # Calcular el total de pagos e ingresos
     total_ingresos = sum(payment['payment_amount'] for payment in payment_details) + \
-                     sum(income['amount'] for income in income_details)
+        sum(income['amount'] for income in income_details)
 
     # Calcular el total de egresos (retiros, gastos, préstamos, renovaciones)
     total_egresos = sum(withdrawal['amount'] for withdrawal in withdrawal_details) + \
-                    sum(expense['amount'] for expense in expense_details) + \
-                    sum(loan['loan_amount'] for loan in loan_details) + \
-                    sum(renewal['loan_amount'] for renewal in renewal_loan_details)
+        sum(expense['amount'] for expense in expense_details) + \
+        sum(loan['loan_amount'] for loan in loan_details) + \
+        sum(renewal['loan_amount'] for renewal in renewal_loan_details)
 
     # print(clients_in_arrears)
     # Renderizar la plantilla HTML con los datos recopilados
