@@ -1093,7 +1093,8 @@ def payments_list(user_id):
 
     # Ordena la lista filtrada por fecha de modificación ascendente
     filtered_clients_information.sort(
-        key=lambda x: x['First Modification Date'])
+        key=lambda x: x['First Modification Date'] or datetime.max
+    )
 
     # Calcular la suma total de los valores de pagos a plazos
     total_installment_value = sum(
