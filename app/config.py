@@ -1,7 +1,6 @@
 # app/config.py
 
 # Configuración de la base de datos
-SQLALCHEMY_DATABASE_URI = 'mysql://prestchile13:3AHV4D0PS1s-@148.72.27.147/rutzchile'
 # SQLALCHEMY_DATABASE_URI = 'mysql://root@localhost/rutzchile'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
