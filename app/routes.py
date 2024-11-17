@@ -2350,8 +2350,8 @@ def box_detail():
     renewal_loan_details = []  # Detalles de los préstamos que son renovaciones activas
 
     for loan in loans:
-        loan_date = loan.creation_date.date()  # Obtener solo la fecha del préstamo
-        if loan_date == datetime.today().date():  # Verificar si el préstamo se realizó hoy
+        loan_date = loan.creation_date.date() # Obtener solo la fecha del préstamo
+        if loan_date == datetime.today().date() and loan.is_renewal == 0:  # Verificar si el préstamo se realizó hoy
             loan_detail = {
                 'client_name': loan.client.first_name + ' ' + loan.client.last_name,
                 'loan_amount': loan.amount,
