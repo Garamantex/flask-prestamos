@@ -1619,19 +1619,11 @@ def box():
             salesmen_stats = [salesman for salesman in salesmen_stats if
                               search_term.lower() in salesman['salesman_name'].lower()]
 
-        # Construir la respuesta como variables separadas
-        coordinator_box = {
-            'maximum_cash': float(coordinator_cash),
-            'total_outbound_amount': float(total_outbound_amount[0][0]) if total_outbound_amount else 0,
-            'total_inbound_amount': float(total_inbound_amount[0][0]) if total_inbound_amount else 0
-        }
-
         # Obtener los gastos del coordinador
         expenses = Transaction.query.filter(
             Transaction.employee_id == coordinator.id,
             Transaction.transaction_types == 'GASTO',
             func.date(Transaction.creation_date) == current_date
-
         ).all()
 
         # Obtener el valor total de los gastos
@@ -1640,6 +1632,14 @@ def box():
         expense_details = [
             {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
              'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
+
+        # Construir la respuesta como variables separadas
+        coordinator_box = {
+            'maximum_cash': float(coordinator_cash),
+            'total_outbound_amount': float(total_outbound_amount[0][0]) if total_outbound_amount else 0,
+            'total_inbound_amount': float(total_inbound_amount[0][0]) if total_inbound_amount else 0,
+            'final_box_value': float(coordinator_cash) + float(total_inbound_amount[0][0]) - float(total_outbound_amount[0][0]) - float(total_expenses),
+        }
 
         print("Gastos: ", expense_details)
 
