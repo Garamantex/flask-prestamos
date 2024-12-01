@@ -814,10 +814,14 @@ def mark_overdue():
         # Obtener el ID del préstamo de la solicitud POST
         loan_id = request.form['loan_id']
 
+
         # Buscar la última cuota pendiente del préstamo específico
-        last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan_id,
-                                                                   status=InstallmentStatus.PENDIENTE).order_by(
-            LoanInstallment.due_date.asc()).first()
+        last_pending_installment = LoanInstallment.query.filter(
+            (LoanInstallment.loan_id == loan_id) & 
+            ((LoanInstallment.status == InstallmentStatus.PENDIENTE) | 
+             (~LoanInstallment.query.filter_by(loan_id=loan_id, status=InstallmentStatus.PENDIENTE).exists() & 
+              (LoanInstallment.status == InstallmentStatus.MORA)))
+        ).order_by(LoanInstallment.due_date.asc()).first()
 
         if last_pending_installment:
             # Actualizar el estado de la última cuota pendiente a "MORA"
