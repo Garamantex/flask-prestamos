@@ -3575,7 +3575,7 @@ def add_manager_record():
         print("Manager ID: ", manager_id);
 
         # Inicializar las variables
-        initial_state = 0
+        initial_state = 0.0
         loans_to_collect = 0
         paid_installments = 0
         partial_installments = 0
@@ -3592,6 +3592,15 @@ def add_manager_record():
         last_record = EmployeeRecord.query.filter_by(employee_id=manager_id) \
             .filter(func.date(EmployeeRecord.creation_date) <= current_date) \
             .order_by(EmployeeRecord.creation_date.desc()).first()
+            
+            
+        # Obtener el valor de la caja del manager
+        manager_box_value = manager_array.box_value
+
+        # Usar el valor de la caja del manager como el estado inicial
+        initial_state = manager_box_value
+        
+        print("Caja Inicial: ", initial_state)
 
         # Obtener Gastos del Coordinador
         transaction_expenses_today = Transaction.query.filter_by(employee_id=manager_id, transaction_types=TransactionType.GASTO,
@@ -3648,8 +3657,8 @@ def add_manager_record():
             sum(transaction.amount for transaction in transaction_expenses_today))
 
         # Usar el cierre de caja del último registro como el estado inicial, si existe
-        if last_record:
-            initial_state = float(last_record.closing_total) + daily_incomes_amount + total_employee_incomes_amount
+        # if last_record:
+        #     initial_state = float(last_record.closing_total) + daily_incomes_amount + total_employee_incomes_amount
 
         employee_record = EmployeeRecord(
             employee_id=manager_id,
@@ -3657,12 +3666,11 @@ def add_manager_record():
             incomings=daily_incomes_amount,
             expenses=daily_expenses_amount,
             withdrawals=daily_withdrawals_amount,
-            closing_total=int(initial_state) + int(paid_installments)
-            + int(partial_installments)
-            - int(new_clients_loan_amount)
-            - int(total_renewal_loans_amount)
-            - int(daily_withdrawals)
-            - int(daily_expenses_amount),  # Calcular el cierre de caja
+            closing_total=float(initial_state) + float(daily_incomes_amount)
+            - float(new_clients_loan_amount)
+            - float(total_renewal_loans_amount)
+            - float(daily_withdrawals_amount)
+            - float(daily_expenses_amount),  # Calcular el cierre de caja
             creation_date=datetime.now(),
             loans_to_collect=loans_to_collect,  # NO SE USA
             paid_installments=paid_installments,  # NO SE USA
@@ -3674,11 +3682,11 @@ def add_manager_record():
             total_collected=total_collected  # NO SE USA
         )
 
-        # Actualizar el valor de box_value del modelo Employee
-        employee = Employee.query.get(manager_id)
-        if employee:
-            employee.box_value = employee_record.closing_total
-            db.session.add(employee)
+        # # Actualizar el valor de box_value del modelo Employee
+        # employee = Employee.query.get(manager_id)
+        # if employee:
+        #     employee.box_value = employee_record.closing_total
+        #     db.session.add(employee)
 
         # Guardar los cambios en la base de datos
         db.session.add(employee_record)
