@@ -3561,6 +3561,8 @@ def add_manager_record():
         user_id = user.id
         manager_array = Employee.query.filter_by(user_id=user_id).first()
         manager_id = manager_array.id
+        
+        print("Manager ID: ", manager_id);
 
         # Inicializar las variables
         initial_state = 0
@@ -3637,8 +3639,7 @@ def add_manager_record():
 
         # Usar el cierre de caja del último registro como el estado inicial, si existe
         if last_record:
-            initial_state = float(last_record.closing_total) + \
-                daily_incomes_amount + total_employee_incomes_amount
+            initial_state = float(last_record.closing_total) + daily_incomes_amount + total_employee_incomes_amount
 
         employee_record = EmployeeRecord(
             employee_id=manager_id,
@@ -3662,6 +3663,12 @@ def add_manager_record():
             due_to_collect_tomorrow=total_pending_installments_amount,  # NO SE USA
             total_collected=total_collected  # NO SE USA
         )
+
+        # Actualizar el valor de box_value del modelo Employee
+        employee = Employee.query.get(manager_id)
+        if employee:
+            employee.box_value = employee_record.closing_total
+            db.session.add(employee)
 
         # Guardar los cambios en la base de datos
         db.session.add(employee_record)
@@ -3829,10 +3836,10 @@ def add_manager_record():
             expenses=daily_expenses_amount,
             withdrawals=daily_withdrawals_amount,
             closing_total=int(initial_state) + int(paid_installments_amount)
-            + int(partial_installments)
+            + int(partial_installments) + int(daily_incomes_amount)
             - int(new_clients_loan_amount)
             - int(total_renewal_loans_amount)
-            - int(daily_withdrawals)
+            - int(daily_withdrawals_amount)
             - int(daily_expenses_amount),  # Calcular el cierre de caja
             creation_date=datetime.now(),
             loans_to_collect=loans_to_collect,
@@ -3852,3 +3859,8 @@ def add_manager_record():
         print(f"Caja VENDEDOR {employee_id} Cerrada y Guarda Correctamente.")
 
     return render_template('add-manager-record.html')
+
+@routes.route('/closed-boxes')
+def closed_boxes():
+    # Código de la función que quieres ejecutar
+    return "Tarea ejecutada con éxito"
