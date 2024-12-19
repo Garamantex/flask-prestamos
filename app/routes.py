@@ -814,10 +814,15 @@ def mark_overdue():
         # Obtener el ID del préstamo de la solicitud POST
         loan_id = request.form['loan_id']
 
+
         # Buscar la última cuota pendiente del préstamo específico
-        last_pending_installment = LoanInstallment.query.filter_by(loan_id=loan_id,
-                                                                   status=InstallmentStatus.PENDIENTE).order_by(
-            LoanInstallment.due_date.asc()).first()
+        last_pending_installment = LoanInstallment.query.filter(
+            (LoanInstallment.loan_id == loan_id) & 
+            ((LoanInstallment.status == InstallmentStatus.PENDIENTE) | 
+             (~LoanInstallment.query.filter_by(loan_id=loan_id, status=InstallmentStatus.PENDIENTE).exists() & 
+              LoanInstallment.status.in_(
+                        [InstallmentStatus.ABONADA, InstallmentStatus.MORA])))
+        ).order_by(LoanInstallment.due_date.asc()).first()
 
         if last_pending_installment:
             # Actualizar el estado de la última cuota pendiente a "MORA"
@@ -980,10 +985,11 @@ def payments_list(user_id):
 
                 # Obtener la primera cuota de cada cliente y su valor
                 first_installment = LoanInstallment.query.filter(
-                    LoanInstallment.loan_id == loan.id
+                    LoanInstallment.loan_id == loan.id,
+                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA])
                 ).order_by(LoanInstallment.due_date.asc()).first()
 
-                # print("First Installment: ", first_installment)
+                print("First Installment: ", first_installment)
 
                 # Encuentra la fecha de modificación más reciente del préstamo
                 last_loan_modification_date = Loan.query.filter_by(client_id=client.id).order_by(
@@ -1254,6 +1260,7 @@ def box():
         # Obtener el user_id de la sesión
         user_id = session.get('user_id')
 
+
         if user_id is None:
             return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
 
@@ -1305,6 +1312,7 @@ def box():
             # Filtrar por fecha actual
             func.date(Transaction.creation_date) == current_date
         ).group_by(Salesman.manager_id).all()
+
 
         # Inicializa la lista para almacenar las estadísticas de los vendedores
         salesmen_stats = []
@@ -1619,19 +1627,11 @@ def box():
             salesmen_stats = [salesman for salesman in salesmen_stats if
                               search_term.lower() in salesman['salesman_name'].lower()]
 
-        # Construir la respuesta como variables separadas
-        coordinator_box = {
-            'maximum_cash': float(coordinator_cash),
-            'total_outbound_amount': float(total_outbound_amount[0][0]) if total_outbound_amount else 0,
-            'total_inbound_amount': float(total_inbound_amount[0][0]) if total_inbound_amount else 0
-        }
-
         # Obtener los gastos del coordinador
         expenses = Transaction.query.filter(
             Transaction.employee_id == coordinator.id,
             Transaction.transaction_types == 'GASTO',
             func.date(Transaction.creation_date) == current_date
-
         ).all()
 
         # Obtener el valor total de los gastos
@@ -1640,6 +1640,16 @@ def box():
         expense_details = [
             {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
              'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
+
+        coordinator_box = {
+        'maximum_cash': float(coordinator_cash),
+        'total_outbound_amount': float(total_outbound_amount[0][0]) if total_outbound_amount else 0,
+        'total_inbound_amount': float(total_inbound_amount[0][0]) if total_inbound_amount else 0,
+        'final_box_value': float(coordinator_cash) +
+                        (float(total_inbound_amount[0][0]) if total_inbound_amount else 0) -
+                        (float(total_outbound_amount[0][0]) if total_outbound_amount else 0) -
+                        float(total_expenses),
+        }
 
         print("Gastos: ", expense_details)
 
@@ -2017,7 +2027,7 @@ def transactions():
             db.session.add(transaction)
             db.session.commit()
 
-            return render_template('menu-salesman.html', message='Transacción creada exitosamente.', alert='success',
+            return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',
                                    concepts=concepts, user_role=user_role, user_id=user_id, employee_id=employee_id)
 
         else:
