@@ -2027,8 +2027,10 @@ def transactions():
             db.session.add(transaction)
             db.session.commit()
 
-            return render_template('transactions.html', message='Transacción creada exitosamente.', alert='success',
-                                   concepts=concepts, user_role=user_role, user_id=user_id, employee_id=employee_id)
+            if user_role == 'VENDEDOR':
+                return redirect(url_for('routes.menu_salesman', user_id=user_id))
+            elif user_role == 'COORDINADOR':
+                return redirect(url_for('routes.menu_manager', user_id=user_id))
 
         else:
             # Obtener todos los conceptos disponibles
@@ -2485,11 +2487,18 @@ def box_detail():
     loan_id = payment_details[0].get('loan_id') if payment_details else None
     installment_id = payment_details[0].get(
         'installment_id') if payment_details else None
+    
+    # Obtener el valor de closing_total del modelo EmployeeRecord
+    employee_record = EmployeeRecord.query.filter_by(employee_id=employee_id).order_by(EmployeeRecord.creation_date.desc()).first()
+    closing_total = employee_record.closing_total if employee_record else 0
+
 
     # *** Cálculo de totales (INGRESOS y EGRESOS) ***
     # Calcular el total de pagos e ingresos
     total_ingresos = sum(payment['payment_amount'] for payment in payment_details) + \
-        sum(income['amount'] for income in income_details)
+        sum(income['amount'] for income in income_details) + Decimal(closing_total)
+        
+
 
     # Calcular el total de egresos (retiros, gastos, préstamos, renovaciones)
     total_egresos = sum(withdrawal['amount'] for withdrawal in withdrawal_details) + \
@@ -3681,6 +3690,16 @@ def add_manager_record():
             due_to_collect_tomorrow=total_pending_installments_amount,  # NO SE USA
             total_collected=total_collected  # NO SE USA
         )
+        
+        # Actualizar el valor de box_value del modelo Employee
+        # Obtener todos los vendedores asociados al coordinador
+
+        # Actualizar el valor de box_value del modelo Employee
+        manager = Employee.query.get(manager_id)
+        if manager:
+            manager.box_value = employee_record.closing_total
+            db.session.add(manager)
+            
 
         # # Actualizar el valor de box_value del modelo Employee
         # employee = Employee.query.get(manager_id)
@@ -3845,6 +3864,9 @@ def add_manager_record():
 
         if loans_to_collect == all_loans_paid_count:
             all_loans_paid_today = True
+            
+        if last_record:
+            initial_state = float(last_record.closing_total)
 
         # if employee_status == 1 and all_loans_paid_today == True:
         employee_record = EmployeeRecord(
@@ -3871,6 +3893,9 @@ def add_manager_record():
         )
         employee.status = 0
         # Agregar la instancia a la sesión de la base de datos y guardar los cambios
+        
+        employee.box_value = employee_record.closing_total
+
         db.session.add(employee)
         db.session.add(employee_record)
         db.session.commit()
