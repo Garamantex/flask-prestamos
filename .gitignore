@@ -3,7 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 app/node_modules/
-app/static/images/
 
 # Local development environment
 prestamos/
