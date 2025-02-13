@@ -2495,16 +2495,23 @@ def box_detail():
 
     # *** Cálculo de totales (INGRESOS y EGRESOS) ***
     # Calcular el total de pagos e ingresos
-    total_ingresos = sum(payment['payment_amount'] for payment in payment_details) + \
-        sum(income['amount'] for income in income_details) + Decimal(closing_total)
+    # sum(payment['payment_amount'] for payment in payment_details) + \
+    # sum(income['amount'] for income in income_details) + 
+    total_ingresos = Decimal(closing_total)
         
-
+    total_movimientos = sum(payment['payment_amount'] for payment in payment_details) + \
+                        sum(income['amount'] for income in income_details)
 
     # Calcular el total de egresos (retiros, gastos, préstamos, renovaciones)
     total_egresos = sum(withdrawal['amount'] for withdrawal in withdrawal_details) + \
         sum(expense['amount'] for expense in expense_details) + \
         sum(loan['loan_amount'] for loan in loan_details) + \
-        sum(renewal['loan_amount'] for renewal in renewal_loan_details)
+        sum(renewal['loan_amount'] for renewal in renewal_loan_details) \
+        
+    
+    total_final = total_movimientos + total_ingresos - total_egresos
+
+    
 
     # print(clients_in_arrears)
     # Renderizar la plantilla HTML con los datos recopilados
@@ -2517,6 +2524,8 @@ def box_detail():
                            withdrawal_details=withdrawal_details,
                            clients_in_arrears=clients_in_arrears,
                            total_ingresos=total_ingresos,  # <-- Total ingresos agregado
+                           total_final = total_final,
+                           total_movimientos=total_movimientos,
                            total_egresos=total_egresos,
                            payment_details=payment_details,
                            user_role=user_role,
@@ -3129,8 +3138,8 @@ def edit_payment(loan_id):
 
     employee.box_value += Decimal(custom_payment)
 
-    print(installment_number)
-    print(custom_payment)
+    print("cuota numero: ", installment_number)
+    print("Custom payment: ", custom_payment)
 
     # Busca el préstamo según los parámetros dados
     loan = Loan.query.get(loan_id)
@@ -3144,19 +3153,31 @@ def edit_payment(loan_id):
     payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id,
                                                                                           func.date(
                                                                                               Payment.payment_date) == current_date).all()
+    
+    # Calcular el valor pagado del préstamo específico en el día actual
+    loan_payments_today = db.session.query(
+        func.sum(Payment.amount)
+    ).join(LoanInstallment).filter(
+        LoanInstallment.loan_id == loan_id,
+        func.date(Payment.payment_date) == current_date
+    ).scalar() or 0
+
+    print("Valor pagado del préstamo hoy: ", loan_payments_today)
 
     # Obtén el monto del pago realizado hoy
     amount_payment_today = sum(payment.amount for payment in payments_today)
-    print(amount_payment_today)
+    print("valor pagado hoy", amount_payment_today)
 
     new_payment_value = float(int(custom_payment) + int(amount_payment_today))
 
-    print(new_payment_value)
+    print("valor nuevo pagado", new_payment_value)
 
     # Calcular la suma de installmentValue y overdueAmount
     total_amount_due = sum(installment.amount for installment in loan.installments
                            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA,
                                                      InstallmentStatus.ABONADA])
+    
+    print("Total amount due: ", total_amount_due)
 
     if custom_payment >= total_amount_due:
         # Marcar todas las cuotas como "PAGADA" y actualizar la fecha de pago

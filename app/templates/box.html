@@ -50,10 +50,15 @@
               '{:,.0f}'.format(coordinator_box['total_outbound_amount']) }}
             </li>
           </ul>
-          <a type="button" class="c-btn c-btn-primary" data-toggle="modal"
-            data-target="#exampleModal">
-            Gestión Caja
-          </a>
+          <div class="c-btn-flex">
+            <a type="button" class="c-btn c-btn-primary" data-toggle="modal"
+              data-target="#exampleModal">
+              Gestión Caja
+            </a>
+            <a type="button" class="c-btn c-btn-primary" href="/box" style="width: 20%; margin-left: 5px;">
+              <i class="bi bi-arrow-clockwise"></i>
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -196,7 +201,7 @@
       <div class="modal-body">
 
         <h5 class="mb-4">Gastos Coordinador:</h5>
-        <table class="c-table" style="color: white">
+        <table class="c-table" style="color: black">
           <thead>
             <tr>
               <th class="c-table__box text-center">Descripcion</th>
@@ -217,7 +222,7 @@
           </tbody>
         </table>
         <h5 class="mb-4 mt-4">Ingresos:</h5>
-        <table class="c-table" style="color: white">
+        <table class="c-table" style="color: black">
           <thead>
             <tr>
               <th class="c-table__box text-center">Venedor</th>
@@ -244,7 +249,7 @@
           </tbody>
         </table>
         <h5 class="mb-4 mt-4">Retiros:</h5>
-        <table class="c-table" style="color: white">
+        <table class="c-table" style="color: black">
           <thead>
             <tr>
               <th class="c-table__box">Venedor</th>

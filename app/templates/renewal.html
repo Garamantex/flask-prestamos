@@ -24,10 +24,14 @@
                         <label for="usuarios">Usuarios:</label>
                         <select class="c-form c-form__input" name="document_number" title="Document Number">
                             <option value>Seleccionar usuario</option>
-                            {% for client in clients %}
+                            {% for client in clients|sort(attribute=1) %}
                                 <option value="{{ client[0] }}">{{ client[1] }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="valor">Valor del Préstamo:</label>
+                        <input type="text" class="c-form c-form__input" name="amount" id="amount" placeholder="Ingrese el valor del préstamo">
                     </div>
                     <div class="form-group">
                         <label for="cuotas">Número de Cuotas:</label>
@@ -40,10 +44,6 @@
                         <select class="c-form c-form__input" name="interest" id="interest" title="Select interest">
                             <option value>Seleccionar interés del préstamo</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="valor">Valor del Préstamo:</label>
-                        <input type="text" class="c-form c-form__input" name="amount" id="amount" placeholder="Ingrese el valor del préstamo">
                     </div>
                     <button type="submit" class="c-btn c-btn-primary mt-4">Crear Préstamo</button>
                 </form>

@@ -58,32 +58,33 @@ WHERE lp.id = 181;
 
 -- Actualizar Registros por fecha
 UPDATE payment
-SET payment_date = CONCAT('2024-12-17 ', TIME(payment_date))
-WHERE DATE(payment_date) = '2024-12-18';
+SET payment_date = CONCAT('2025-02-10 ', TIME(payment_date))
+WHERE DATE(payment_date) = '2025-02-12';
 
 
 UPDATE transaction
-SET creation_date = CONCAT('2024-12-17 ', TIME(creation_date))
-WHERE DATE(creation_date) = '2024-12-18';
+SET creation_date = CONCAT('2025-02-10 ', TIME(creation_date))
+WHERE DATE(creation_date) = '2025-02-12';
 
 
 UPDATE loan
-SET creation_date = CONCAT('2024-12-17 ', TIME(creation_date))
-WHERE DATE(creation_date) = '2024-12-18';
+SET creation_date = CONCAT('2025-02-10 ', TIME(creation_date))
+WHERE DATE(creation_date) = '2025-02-12';
 
 
 UPDATE employee_record
-SET creation_date = CONCAT('2024-12-17 ', TIME(creation_date))
-WHERE DATE(creation_date) = '2024-12-18';
+SET creation_date = CONCAT('2025-02-10 ', TIME(creation_date))
+WHERE DATE(creation_date) = '2025-02-12';
 
 
 UPDATE loan_installment
-SET payment_date = '2024-12-17'
-WHERE payment_date = '2024-12-18';
+SET payment_date = '2025-02-10'
+WHERE payment_date = '2025-02-12';
+
 
 UPDATE loan
-SET modification_date = CONCAT('2024-12-17 ', TIME(modification_date))
-WHERE modification_date = '2024-12-18' and status = 0;
+SET modification_date = CONCAT('2025-02-10 ', TIME(modification_date))
+WHERE DATE(modification_date) = '2025-02-12' and status = 0;
 
 
 -- ------------------------------------
