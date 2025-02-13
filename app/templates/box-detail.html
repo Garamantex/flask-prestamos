@@ -24,16 +24,16 @@
     <table class="c-table">
       <thead>
         <tr>
-          <th class="c-table__box">Total Ingresos</th>
-          <th class="c-table__box">Total Egresos</th>
-          <th class="c-table__box">Total Final Caja</th>
+          <th class="c-table__box">V. Inicial</th>
+          <th class="c-table__box">V. Moviemientos</th>
+          <th class="c-table__box">V. Final</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td class="c-table__box">$ {{ '{:,.0f}'.format(total_ingresos) }}</td>
-          <td class="c-table__box">$ {{ '{:,.0f}'.format(total_egresos) }}</td>
-          <td class="c-table__box">$ {{ '{:,.0f}'.format(total_ingresos - total_egresos) }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(total_movimientos) }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(total_final) }}</td>
         </tr>
       </tbody>
     </table>

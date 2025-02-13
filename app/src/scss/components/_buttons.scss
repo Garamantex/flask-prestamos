@@ -63,6 +63,12 @@
         margin-top: 0;
         width: 20%;
     }
+    
+    &-flex{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
 }
 
