@@ -688,6 +688,8 @@ def credit_detail(id):
     loans = Loan.query.all()  # Obtener todos los créditos
     loan_detail = get_loan_details(id)
 
+    print(loan_detail)
+
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
                            loan_detail=loan_detail, payments=payments, user_id=session['user_id'])
 
@@ -1179,6 +1181,8 @@ def get_loan_details(loan_id):
     # Obtener todas las cuotas del préstamo
     installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
 
+    loan_id = loan.id
+
     # Calcular los datos requeridos
     total_cuotas = len(installments)
     cuotas_pagadas = sum(
@@ -1197,6 +1201,7 @@ def get_loan_details(loan_id):
 
     # Retornar los detalles del préstamo
     detalles_prestamo = {
+        'loan_id': loan_id,
         'cuotas_totales': total_cuotas,
         'cuotas_pagadas': cuotas_pagadas,
         'cuotas_vencidas': cuotas_vencidas,
@@ -3938,3 +3943,32 @@ def add_manager_record():
 def closed_boxes():
     # Código de la función que quieres ejecutar
     return "Tarea ejecutada con éxito"
+
+
+@routes.route('/cancel_loan/<int:loan_id>', methods=['PUT'])
+def cancel_loan(loan_id):
+    # Buscar el préstamo
+    loan = Loan.query.get(loan_id)
+    
+    if not loan:
+        return jsonify({'error': 'Préstamo no encontrado'}), 404
+
+    # Obtener todas las cuotas del préstamo
+    installments = LoanInstallment.query.filter_by(loan_id=loan_id).all()
+
+    # Obtener el cliente asociado al préstamo
+    client = Client.query.get(loan.client_id)
+    client_name = f"{client.first_name} {client.last_name}"
+
+    # Actualizar cada cuota a 0
+    for installment in installments:
+        installment.amount = 0
+
+    # Desactivar el préstamo
+    loan.status = False
+    loan.modification_date = datetime.now()
+
+    # Guardar cambios en la base de datos
+    db.session.commit()
+
+    return jsonify({'message': f'Préstamo {client_name} cancelado correctamente'}), 200

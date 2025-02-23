@@ -12,11 +12,10 @@
             </div>
         </div>
 
-        <div class="row my-3">
+        <div class="row mt-3">
             <div class="col">
-                <h3 class="c-cajas__item__title c-headings c-headings__h4">Información del crédito </h3>
-                <h2 class="c-cajas__item__title c-headings c-headings__h3">{{ client.first_name }} {{ client.last_name
-                    }}</h2>
+                <h3 class="c-cajas__item__title c-headings c-headings__h4">Información del crédito</h3>
+                <h2 class="c-cajas__item__title c-headings c-headings__h3">{{ client.first_name }} {{ client.last_name }}</h2>
                 <ul class="c-card__box-mannager">
                     <li class="c-card__internal">
                         <p>Cuotas Totales: <span>{{ loan_detail.cuotas_totales }}</span></p>
@@ -25,8 +24,7 @@
                         <p>Cuotas Pagadas: <span>{{ loan_detail.cuotas_pagadas }}</span></p>
                     </li>
                     <li class="c-card__internal">
-                        <p>Cuotas Abonadas: <span>{{ installments|selectattr('status.value', 'equalto',
-                                'ABONADA')|list|length }}</span></p>
+                        <p>Cuotas Abonadas: <span>{{ installments|selectattr('status.value', 'equalto', 'ABONADA')|list|length }}</span></p>
                     </li>
                     <li class="c-card__internal">
                         <p>Cuotas en mora: <span>{{ loan_detail.cuotas_vencidas }}</span></p>
@@ -35,64 +33,155 @@
                         <p>Valor Total: <span>$ {{ '{:,.0f}'.format(loan_detail.valor_total | float | int) }}</span></p>
                     </li>
                     <li class="c-card__internal">
-                        <p>Saldo Pendiente: <span>$ {{ '{:,.0f}'.format(loan_detail.saldo_pendiente | float | int)
-                                }}</span></p>
+                        <p>Saldo Pendiente: <span>$ {{ '{:,.0f}'.format(loan_detail.saldo_pendiente | float | int) }}</span></p>
                     </li>
                 </ul>
             </div>
         </div>
-        <div class="row mt-2">
-            <div class="col">
-                        <div class="card-header mb-4">
-                            <h3 style="text-align: center;">Detalle de Cuotas</h3>
-                        </div>
 
-                        <table class="c-table">
-                            <thead>
-                                <tr>
-                                    <th class="c-table__box">N° Cuota</th>
-                                    <th class="c-table__box">Estado</th>
-                                    <th class="c-table__box">Fecha de Pago</th>
-                                    <th class="c-table__box">Valor de Cuota</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for installment in installments %}
-                                <tr id="installment_{{ installment.id }}">
-                                    <td class="c-table__box">{{ installment.installment_number }}</td>
-                                    <td class="c-table__box">{{ installment.status.value }}</td>
-                                    <td class="c-table__box">{{ installment.due_date.strftime('%d/%m/%Y') }}</td>
-                                    <td class="c-table__box">$ {{ '{:,.0f}'.format(installment.amount | float | int) }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+        <!-- Botón para abrir la modal -->
+        <div>
+            <button class="c-btn" onclick="openModal()">Eliminar Préstamo</button>
+        </div>
 
-                        <div class="card-header mb-4 mt-4">
-                            <h3 style="text-align: center;">Pagos</h3>
-                        </div>
+        <!-- MODAL DE CONFIRMACIÓN -->
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <p>¿Está seguro de que desea eliminar este préstamo?</p>
+                <button class="c-btn c-btn-danger" onclick="deleteLoan('{{ loan_detail.loan_id }}')">Eliminar</button>
+                <button class="c-btn c-btn-secondary" onclick="closeModal()">Cancelar</button>
+            </div>
+        </div>
+
         
-                        <table class="c-table">
-                            <thead>
-                                <tr>
-                                    <th class="c-table__box">Fecha de Pago</th>
-                                    <th class="c-table__box">Monto</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for payment in payments %}
-                                <tr id="payment_{{ payment.id }}">
-                                    <td class="c-table__box">{{ payment.payment_date.strftime('%d/%m/%Y') }}</td>
-                                    <td class="c-table__box">$ {{ '{:,.0f}'.format(payment.amount | float | int) }}</td> <!-- Ajustar el formato del monto -->
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+
+        <div class="row mt-3">
+            <div class="col">
+                <div class="card-header mb-4">
+                    <h3 style="text-align: center;">Detalle de Cuotas</h3>
                 </div>
+
+                <table class="c-table">
+                    <thead>
+                        <tr>
+                            <th class="c-table__box">N° Cuota</th>
+                            <th class="c-table__box">Estado</th>
+                            <th class="c-table__box">Fecha de Pago</th>
+                            <th class="c-table__box">Valor de Cuota</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for installment in installments %}
+                        <tr id="installment_{{ installment.id }}">
+                            <td class="c-table__box">{{ installment.installment_number }}</td>
+                            <td class="c-table__box">{{ installment.status.value }}</td>
+                            <td class="c-table__box">{{ installment.due_date.strftime('%d/%m/%Y') }}</td>
+                            <td class="c-table__box">$ {{ '{:,.0f}'.format(installment.amount | float | int) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="card-header mb-4 mt-4">
+                    <h3 style="text-align: center;">Pagos</h3>
+                </div>
+
+                <table class="c-table">
+                    <thead>
+                        <tr>
+                            <th class="c-table__box">Fecha de Pago</th>
+                            <th class="c-table__box">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr id="payment_{{ payment.id }}">
+                            <td class="c-table__box">{{ payment.payment_date.strftime('%d/%m/%Y') }}</td>
+                            <td class="c-table__box">$ {{ '{:,.0f}'.format(payment.amount | float | int) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Estilos para la modal -->
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 5px;
+        text-align: center;
+        width: 300px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .c-btn-danger {
+        background-color: red;
+        color: white;
+        padding: 10px;
+        margin-right: 10px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .c-btn-secondary {
+        background-color: gray;
+        color: white;
+        padding: 10px;
+        border: none;
+        cursor: pointer;
+    }
+</style>
+
+<!-- JavaScript para manejar la modal y la eliminación -->
+<script>
+    function openModal() {
+        document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+
+    function deleteLoan(loanId) {
+        fetch(`/cancel_loan/` + loanId, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error al cancelar el préstamo');
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert(data.message || 'Préstamo cancelado correctamente');
+            closeModal();
+            location.reload(); // Recargar la página para actualizar el estado
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('No se pudo cancelar el préstamo');
+        });
+    }
+</script>
 
 {% endblock %}
