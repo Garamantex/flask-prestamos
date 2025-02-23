@@ -3123,123 +3123,128 @@ def add_daily_collected(employee_id):
 
 @routes.route('/payments/edit/<int:loan_id>', methods=['POST'])
 def edit_payment(loan_id):
-    # Obtén los datos de la solicitud
-    print("Loan ID: ", loan_id)
-
+    print("📌 Loan ID recibido:", loan_id)
+    
+    # Obtener el ID del usuario desde la sesión
     user_id = session.get('user_id')
 
-    # Buscar al empleado correspondiente al user_id de la sesión
+    # Buscar el empleado asociado al usuario
     employee = Employee.query.filter_by(user_id=user_id).first()
+    if not employee:
+        return jsonify({'message': 'Empleado no encontrado'}), 404
     employee_id = employee.id
 
-    # loan_id = request.form.get('loanId')
+    # Obtener datos del formulario
     installment_number = request.form.get('InstallmentId')
     custom_payment = float(request.form.get('customPayment'))
 
+    # Aumentar el valor en caja del empleado
     employee.box_value += Decimal(custom_payment)
 
-    print("cuota numero: ", installment_number)
-    print("Custom payment: ", custom_payment)
+    print("💰 Cuota número:", installment_number)
+    print("💰 Monto ingresado:", custom_payment)
 
-    # Busca el préstamo según los parámetros dados
+    # Buscar el préstamo asociado
     loan = Loan.query.get(loan_id)
+    if not loan:
+        return jsonify({'message': 'Préstamo no encontrado'}), 404
     client = loan.client
     current_date = datetime.now().date()
 
-    if not loan:
-        return jsonify({'message': 'Préstamo no encontrado'}), 404
+    # 📌 **Registrar el nuevo pago**
+    new_payment_value = custom_payment
+    print("💰 Nuevo pago registrado:", new_payment_value)
 
-    # Obtener todos los pagos realizados hoy
-    payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id,
-                                                                                          func.date(
-                                                                                              Payment.payment_date) == current_date).all()
-    
-    # Calcular el valor pagado del préstamo específico en el día actual
-    loan_payments_today = db.session.query(
-        func.sum(Payment.amount)
-    ).join(LoanInstallment).filter(
+    # 🔄 **Revertir pagos hechos hoy**
+    installments_paid_today = LoanInstallment.query.filter(
         LoanInstallment.loan_id == loan_id,
-        func.date(Payment.payment_date) == current_date
-    ).scalar() or 0
+        (func.date(LoanInstallment.payment_date) == current_date) | (LoanInstallment.payment_date == None),
+        LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA])
+    ).all()
 
-    print("Valor pagado del préstamo hoy: ", loan_payments_today)
+    print("🔄 Cuotas pagadas hoy:", installments_paid_today)
 
-    # Obtén el monto del pago realizado hoy
-    amount_payment_today = sum(payment.amount for payment in payments_today)
-    print("valor pagado hoy", amount_payment_today)
+    for installment in installments_paid_today:
+        if installment.status == InstallmentStatus.PAGADA:
+            # ✅ Restaurar el monto original en cuotas pagadas completamente
+            installment.amount = installment.fixed_amount
+        elif installment.status == InstallmentStatus.ABONADA:
+            # ✅ Restaurar el monto original en cuotas abonadas
+            installment.amount = new_payment_value
+            
 
-    new_payment_value = float(int(custom_payment) + int(amount_payment_today))
+        installment.status = InstallmentStatus.PENDIENTE  # Volver a estado pendiente
+        installment.payment_date = None  # Eliminar la fecha de pago
 
-    print("valor nuevo pagado", new_payment_value)
+    db.session.commit()
+    print("🔄 Cuotas pagadas hoy han sido revertidas.")
 
-    # Calcular la suma de installmentValue y overdueAmount
+    print("🗑️ Pagos previos eliminados.")
+
+    # 🔥 **Eliminar pagos hechos hoy**
+    Payment.query.filter(
+        Payment.installment_id.in_([i.id for i in installments_paid_today]),
+        func.date(Payment.payment_date) == current_date,
+        loan_id == loan_id
+    ).delete(synchronize_session=False)
+
+    db.session.commit()
+
+    # 🔢 **Calcular el total adeudado (incluyendo cuotas abonadas)**
     total_amount_due = sum(installment.amount for installment in loan.installments
                            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA,
                                                      InstallmentStatus.ABONADA])
     
-    print("Total amount due: ", total_amount_due)
+    print("💰 Total adeudado:", total_amount_due)
 
+    # ✅ **Caso 1: Se paga el total adeudado**
     if custom_payment >= total_amount_due:
-        # Marcar todas las cuotas como "PAGADA" y actualizar la fecha de pago
         for installment in loan.installments:
             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
                 installment.status = InstallmentStatus.PAGADA
-                installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
-                # Crear el pago asociado a esta cuota
-                payment = Payment(amount=installment.amount, payment_date=datetime.now(
-                ), installment_id=installment.id)
-                # Establecer el valor de la cuota en 0
+                installment.payment_date = datetime.now()
+                
+                # Registrar el pago completo
+                payment = Payment(amount=installment.amount, payment_date=datetime.now(), installment_id=installment.id)
                 installment.amount = 0
                 db.session.add(payment)
-        # Actualizar el estado del préstamo y el campo up_to_date
-        loan.status = False  # 0 indica que el préstamo está pagado en su totalidad
-        loan.up_to_date = True
-        loan.modification_date = datetime.now()  # El préstamo está al día
-        db.session.commit()
-        return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
-    else:
-        # Lógica para manejar el pago parcial
-        remaining_payment = Decimal(custom_payment)  # Convertir a Decimal
-        for installment in loan.installments:
-            if remaining_payment <= 0:
-                break
-            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
-                if installment.amount <= remaining_payment:
-                    installment.status = InstallmentStatus.PAGADA
-                    installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
-                    remaining_payment -= installment.amount
-                    payment = Payment(amount=installment.amount, payment_date=datetime.now(),
-                                      installment_id=installment.id)
-                    installment.amount = 0
-                else:
-                    # Si el pago es mayor que la cuota actual, se distribuye el excedente
-                    # en las siguientes cuotas hasta completar el pago
-                    installment.status = InstallmentStatus.ABONADA
-                    installment.amount -= remaining_payment
-                    # Crear el pago asociado a este abono parcial
-                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(),
-                                      installment_id=installment.id)
-                    db.session.add(payment)
-                    remaining_payment = 0
-                # Crear el pago asociado a esta cuota
-                db.session.add(payment)
-        # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
+
+        loan.status = False  # Cerrar préstamo
+        loan.up_to_date = True  # Marcar como al día
         loan.modification_date = datetime.now()
-        client.debtor = False
         db.session.commit()
-        return redirect(url_for('routes.box_detail', employee_id=employee_id))
+        return jsonify({"message": "✅ Todas las cuotas han sido pagadas correctamente."}), 200
 
-    # Actualiza los campos del pago según los datos recibidos
-    # payments_today.amount = custom_payment
+    # ✅ **Caso 2: Se abona parcialmente**
+    remaining_payment = Decimal(custom_payment)
 
-    # Actualizar la fecha del pago
-    #  payments_today.payment_date = current_date
+    for installment in loan.installments:
+        if remaining_payment <= 0:
+            break
+        if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
+            if installment.amount <= remaining_payment:
+                # ✅ Si el pago es parcial, se marca como ABONADA, reemplazando el abono anterior
+                installment.status = InstallmentStatus.ABONADA
+                installment.amount = installment.fixed_amount - remaining_payment # Actualizar el saldo pendiente
+                # Registrar pago
+                payment = Payment(amount=remaining_payment, payment_date=datetime.now(), installment_id=installment.id)
+                remaining_payment = 0
+            elif installment.amount > remaining_payment:
+                # ✅ Si el pago es parcial, se marca como ABONADA, reemplazando el abono anterior
+                installment.status = InstallmentStatus.ABONADA
+                installment.amount = installment.fixed_amount - remaining_payment
 
-    # Guarda los cambios en la base de datos
-    # db.session.commit()
+            db.session.add(payment)
 
-    return jsonify({"message": "El pago se ha registrado correctamente."}), 200
+    # 🕒 Actualizar fecha de modificación del préstamo y estado del cliente
+    loan.modification_date = datetime.now()
+    client.debtor = False  # Marcar cliente como no deudor si aplica
+    db.session.commit()
 
+    # Redirigir a la vista de detalles de caja del empleado
+    return redirect(url_for('routes.box_detail', employee_id=employee_id))
+
+    return jsonify({"message": "✅ El pago se ha registrado correctamente."}), 200
 
 @routes.route('/history-box', methods=['POST', 'GET'])
 def history_box():
