@@ -688,6 +688,8 @@ def credit_detail(id):
     loans = Loan.query.all()  # Obtener todos los créditos
     loan_detail = get_loan_details(id)
 
+    print(loan_detail)
+
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
                            loan_detail=loan_detail, payments=payments, user_id=session['user_id'])
 
@@ -1179,6 +1181,8 @@ def get_loan_details(loan_id):
     # Obtener todas las cuotas del préstamo
     installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
 
+    loan_id = loan.id
+
     # Calcular los datos requeridos
     total_cuotas = len(installments)
     cuotas_pagadas = sum(
@@ -1197,6 +1201,7 @@ def get_loan_details(loan_id):
 
     # Retornar los detalles del préstamo
     detalles_prestamo = {
+        'loan_id': loan_id,
         'cuotas_totales': total_cuotas,
         'cuotas_pagadas': cuotas_pagadas,
         'cuotas_vencidas': cuotas_vencidas,
@@ -3123,62 +3128,72 @@ def add_daily_collected(employee_id):
 
 @routes.route('/payments/edit/<int:loan_id>', methods=['POST'])
 def edit_payment(loan_id):
-    # Obtén los datos de la solicitud
-    print("Loan ID: ", loan_id)
-
+    
+    # Obtener el ID del usuario desde la sesión
     user_id = session.get('user_id')
 
-    # Buscar al empleado correspondiente al user_id de la sesión
+    # Buscar el empleado asociado al usuario
     employee = Employee.query.filter_by(user_id=user_id).first()
+    if not employee:
+        return jsonify({'message': 'Empleado no encontrado'}), 404
     employee_id = employee.id
 
-    # loan_id = request.form.get('loanId')
+    # Obtener datos del formulario
     installment_number = request.form.get('InstallmentId')
     custom_payment = float(request.form.get('customPayment'))
 
+    # Aumentar el valor en caja del empleado
     employee.box_value += Decimal(custom_payment)
 
-    print("cuota numero: ", installment_number)
-    print("Custom payment: ", custom_payment)
 
-    # Busca el préstamo según los parámetros dados
+    # Buscar el préstamo asociado
     loan = Loan.query.get(loan_id)
+    if not loan:
+        return jsonify({'message': 'Préstamo no encontrado'}), 404
     client = loan.client
     current_date = datetime.now().date()
 
-    if not loan:
-        return jsonify({'message': 'Préstamo no encontrado'}), 404
+    # 📌 **Registrar el nuevo pago**
+    new_payment_value = custom_payment
 
-    # Obtener todos los pagos realizados hoy
-    payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id,
-                                                                                          func.date(
-                                                                                              Payment.payment_date) == current_date).all()
-    
-    # Calcular el valor pagado del préstamo específico en el día actual
-    loan_payments_today = db.session.query(
-        func.sum(Payment.amount)
-    ).join(LoanInstallment).filter(
+    # 🔄 **Revertir pagos hechos hoy**
+    installments_paid_today = LoanInstallment.query.filter(
         LoanInstallment.loan_id == loan_id,
-        func.date(Payment.payment_date) == current_date
-    ).scalar() or 0
+        (func.date(LoanInstallment.payment_date) == current_date) | (LoanInstallment.payment_date == None),
+        LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA])
+    ).all()
 
-    print("Valor pagado del préstamo hoy: ", loan_payments_today)
 
-    # Obtén el monto del pago realizado hoy
-    amount_payment_today = sum(payment.amount for payment in payments_today)
-    print("valor pagado hoy", amount_payment_today)
+    for installment in installments_paid_today:
+        if installment.status == InstallmentStatus.PAGADA:
+            # ✅ Restaurar el monto original en cuotas pagadas completamente
+            installment.amount = installment.fixed_amount
+        elif installment.status == InstallmentStatus.ABONADA:
+            # ✅ Restaurar el monto original en cuotas abonadas
+            installment.amount = installment.fixed_amount
+            
 
-    new_payment_value = float(int(custom_payment) + int(amount_payment_today))
+        installment.status = InstallmentStatus.PENDIENTE  # Volver a estado pendiente
+        installment.payment_date = None  # Eliminar la fecha de pago
 
-    print("valor nuevo pagado", new_payment_value)
+    db.session.commit()
 
-    # Calcular la suma de installmentValue y overdueAmount
+
+    # 🔥 **Eliminar pagos hechos hoy**
+    Payment.query.filter(
+        Payment.installment_id.in_([i.id for i in installments_paid_today]),
+        func.date(Payment.payment_date) == current_date,
+        loan_id == loan_id
+    ).delete(synchronize_session=False)
+
+    db.session.commit()
+
+    # 🔢 **Calcular el total adeudado (incluyendo cuotas abonadas)**
     total_amount_due = sum(installment.amount for installment in loan.installments
                            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA,
                                                      InstallmentStatus.ABONADA])
-    
-    print("Total amount due: ", total_amount_due)
 
+    # Cuando el valor de pago es mayor al total de las cuotas sumadas en estados diferente de pagada
     if custom_payment >= total_amount_due:
         # Marcar todas las cuotas como "PAGADA" y actualizar la fecha de pago
         for installment in loan.installments:
@@ -3197,6 +3212,7 @@ def edit_payment(loan_id):
         loan.modification_date = datetime.now()  # El préstamo está al día
         db.session.commit()
         return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
+        
     else:
         # Lógica para manejar el pago parcial
         remaining_payment = Decimal(custom_payment)  # Convertir a Decimal
@@ -3225,20 +3241,19 @@ def edit_payment(loan_id):
                 db.session.add(payment)
         # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
         loan.modification_date = datetime.now()
+        if client.first_modification_date != datetime.now().date():
+            client.first_modification_date = datetime.now()
         client.debtor = False
         db.session.commit()
-        return redirect(url_for('routes.box_detail', employee_id=employee_id))
 
-    # Actualiza los campos del pago según los datos recibidos
-    # payments_today.amount = custom_payment
+    # Redirigir a la vista de detalles de caja del empleado
+    return redirect(url_for('routes.box_detail', employee_id=employee_id))
 
-    # Actualizar la fecha del pago
-    #  payments_today.payment_date = current_date
+    return jsonify({"message": "✅ El pago se ha registrado correctamente."}), 200
 
-    # Guarda los cambios en la base de datos
-    # db.session.commit()
 
-    return jsonify({"message": "El pago se ha registrado correctamente."}), 200
+
+
 
 
 @routes.route('/history-box', methods=['POST', 'GET'])
@@ -3928,3 +3943,32 @@ def add_manager_record():
 def closed_boxes():
     # Código de la función que quieres ejecutar
     return "Tarea ejecutada con éxito"
+
+
+@routes.route('/cancel_loan/<int:loan_id>', methods=['PUT'])
+def cancel_loan(loan_id):
+    # Buscar el préstamo
+    loan = Loan.query.get(loan_id)
+    
+    if not loan:
+        return jsonify({'error': 'Préstamo no encontrado'}), 404
+
+    # Obtener todas las cuotas del préstamo
+    installments = LoanInstallment.query.filter_by(loan_id=loan_id).all()
+
+    # Obtener el cliente asociado al préstamo
+    client = Client.query.get(loan.client_id)
+    client_name = f"{client.first_name} {client.last_name}"
+
+    # Actualizar cada cuota a 0
+    for installment in installments:
+        installment.amount = 0
+
+    # Desactivar el préstamo
+    loan.status = False
+    loan.modification_date = datetime.now()
+
+    # Guardar cambios en la base de datos
+    db.session.commit()
+
+    return jsonify({'message': f'Préstamo {client_name} cancelado correctamente'}), 200
