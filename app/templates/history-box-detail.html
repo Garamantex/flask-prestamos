@@ -1,0 +1,321 @@
+{% extends "base.html" %} {% block content %}
+<div class="c-form">
+  <div class="container pt-5">
+    <div class="row">
+      <div class="col">
+        <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver</a>
+      </div>        
+        <div class="col">
+        <a class="c-btn c-btn-primary c-btn-block mb-3" href="./logout">Salir</a>
+      </div>
+    </div>
+
+    <h2 class="c-headings c-headings__h3 mt-4 text-center">
+      Detalle Caja: {{ salesman.employee.user.first_name
+      }} {{ salesman.employee.user.last_name }}
+    </h2>
+    <hr class="mb-3">
+    <table class="c-table">
+      <thead>
+        <tr>
+          <th class="c-table__box">V. Inicial</th>
+          <th class="c-table__box">V. Moviemientos</th>
+          <th class="c-table__box">V. Final</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(total_ingresos) }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(total_movimientos) }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(total_final) }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <h2 class="c-headings c-headings__h3 mt-4">Ventas</h2>
+    <table class="c-table">
+      <thead>
+        <tr>
+          <th class="c-table__box">Cliente</th>
+          <th class="c-table__box">Valor</th>
+          <th class="c-table__box">Cuotas</th>
+          <th class="c-table__box">Interés</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan_detail in loans_details %}
+        <tr>
+          <td class="c-table__box">{{ loan_detail.client_name }}</td>
+          <td class="c-table__box">$-{{ '{:,.0f}'.format(loan_detail.loan_amount) }}</td>
+          <td class="c-table__box">{{ '{:,.0f}'.format(loan_detail.loan_dues) }}</td>
+          <td class="c-table__box">{{ '{:,.0f}'.format(loan_detail.loan_interest) }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- Tabla para los retiros -->
+    <h2 class="c-headings c-headings__h3 mt-4">Retiros</h2>
+    <table class="c-table">
+      <thead>
+        <tr>
+          <th class="c-table__box">Descripción</th>
+          <th class="c-table__box">Valor</th>
+          <th class="c-table__box">Adjunto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for withdrawal_detail in withdrawal_details %}
+        <tr>
+          <td class="c-table__box">{{ withdrawal_detail.description }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(withdrawal_detail.amount) }}</td>
+          <td class="c-table__box">
+            <!-- Enlace para ver el adjunto si existe -->
+            {% if withdrawal_detail.attachment %}
+            <button class="c-btn c-btn-primary c-btn-details js-comprobante" data-target="modal{{ loop.index }}"> <i class="bi bi-eye" title="details"></i> </button>
+            <div class="c-modal" id="modal{{ loop.index }}">
+              <img class="img-attachment" src="{{ url_for('static', filename='images/' +  withdrawal_detail.attachment ) }}" alt="Imagen de la transacción">
+            </div>
+            {% else %} N/A {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Tabla para los ingresos -->
+    <h2 class="c-headings c-headings__h3 mt-4">Ingresos</h2>
+    <table class="c-table">
+      <thead>
+        <tr>
+          <th class="c-table__box">Descripción</th>
+          <th class="c-table__box">Valor</th>
+          <!-- <th class="c-table__box">Estado</th>
+          <th class="c-table__box">Fecha</th> -->
+          <th class="c-table__box">Adjunto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for income_detail in income_details %}
+        <tr>
+          <td class="c-table__box">{{ income_detail.description }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(income_detail.amount) }}</td>
+          <td class="c-table__box">
+            <!-- Enlace para ver el adjunto si existe -->
+            {% if income_detail.attachment %}
+            <button class="c-btn c-btn-primary c-btn-details js-comprobante" data-target="modal{{ loop.index }}" title="details"><i
+                class="bi bi-eye"></i> </button>
+            <div class="c-modal" id="modal{{ loop.index }}">
+              <img class="img-attachment" src="{{ url_for('static', filename='images/' +  income_detail.attachment ) }}"
+                alt="Imagen de la transacción">
+            </div>
+            {% else %} N/A {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Tabla para los gastos -->
+    <h2 class="c-headings c-headings__h3 mt-4">Gastos</h2>
+    <table class="c-table">
+      <thead>
+        <tr>
+          <th class="c-table__box">Descripción</th>
+          <th class="c-table__box">Valor</th>
+          <!-- <th class="c-table__box">Estado</th> -->
+          <th class="c-table__box">Adjunto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for expense_detail in expense_details %}
+        <tr>
+          <td class="c-table__box">{{ expense_detail.description }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(expense_detail.amount) }}</td>
+          <td class="c-table__box">
+            <!-- Enlace para ver el adjunto si existe -->
+            {% if expense_detail.attachment %}
+            <button class="c-btn c-btn-primary c-btn-details js-comprobante" data-target="modal{{ loop.index }}" title="details"><i
+                class="bi bi-eye"></i> </button>
+            <div class="c-modal" id="modal{{ loop.index }}">
+              <img class="img-attachment"
+                src="{{ url_for('static', filename='images/' +  expense_detail.attachment ) }}"
+                alt="Imagen de la transacción">
+            </div>
+            {% else %} N/A {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Tabla para los préstamos de renovación activos -->
+    <h2 class="c-headings c-headings__h3 mt-4">Renovaciones Activas</h2>
+    <table class="c-table">
+      <thead>
+        <tr>
+          <th class="c-table__box">Cliente</th>
+          <th class="c-table__box">Valor</th>
+          <th class="c-table__box">Cuotas</th>
+          <th class="c-table__box">Interés</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for renewal_detail in renewal_loan_details %}
+        <tr>
+          <td class="c-table__box">{{ renewal_detail.client_name }}</td>
+          <td class="c-table__box">$ -{{ '{:,.0f}'.format(renewal_detail.loan_amount) }}</td>
+          <td class="c-table__box">{{ '{:,.0f}'.format(renewal_detail.loan_dues) }}</td>
+          <td class="c-table__box">{{ '{:,.0f}'.format(renewal_detail.loan_interest) }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- Agregar esta tabla para los clientes con cuotas en mora -->
+    <h2 class="c-headings c-headings__h3 mt-4">No Pago</h2>
+    <table class="c-table">
+      <thead>
+        <tr>
+          <th class="c-table__box">Cliente</th>
+          <th class="c-table__box">C. MORA</th>
+          <th class="c-table__box">Saldo</th>
+          <th class="c-table__box">Valor Total</th>
+                        {% if user_role == 'VENDEDOR' %}
+              <th class="c-table__box">Acción</th>
+              {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for client_in_arrears in clients_in_arrears %}
+        <tr>
+          <td class="c-table__box">{{ client_in_arrears.client_name }}</td>
+          <td class="c-table__box">{{ client_in_arrears.arrears_count }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(client_in_arrears.overdue_balance) }}</td>
+          <td class="c-table__box">$ {{ '{:,.0f}'.format(client_in_arrears.total_loan_amount) }}</td>
+          {% if user_role == 'VENDEDOR' %}
+          <td class="c-table__box">
+            <a class="c-btn c-btn-primary js-btn-editar-pago cuota-label"
+              style="width: 60%; padding: 0.4rem 0;"
+              data-id="{{ client_in_arrears.loan_id }}"
+              data-installment-value="{{ client_in_arrears.installment_value }}"
+              data-overdue-amount="{{ client_in_arrears.overdue_balance }}"
+              data-toggle="modal"
+              data-target="#editPaymentModal">
+              <i class="bi bi-pencil"></i>            
+            </a>
+           </td>
+           {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="row">
+      <div class="col">
+        <h2 class="c-headings c-headings__h3 mt-4">Pago</h2>
+        <table class="c-table mb-4">
+          <thead>
+            <tr>
+              <th class="c-table__box">Cliente</th>
+              <th class="c-table__box">Vr. Pago</th>
+              <th class="c-table__box">Fecha de Pago</th>
+              <th class="c-table__box">Saldo</th>
+              {% if user_role == 'VENDEDOR' %}
+              <th class="c-table__box">Acción</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment_detail in payment_details %}
+            <tr>
+              <td class="c-table__box">{{ payment_detail.client_name }}</td>
+              <td class="c-table__box">$ {{ '{:,.0f}'.format(payment_detail.payment_amount) }}</td>
+              <td class="c-table__box"> {{ payment_detail.payment_date }}</td>
+              <td class="c-table__box">$ {{ '{:,.0f}'.format(payment_detail.remaining_balance) }}</td>
+              {% if user_role == 'VENDEDOR' %}
+              <td class="c-table__box">
+                <a type="button" class="c-btn c-btn-primary js-btn-editar-pago cuota-label"
+                style="width: 60%; padding: 0.4rem 0;"
+                data-id="{{ payment_detail.loan_id }}"
+                data-installment-id="{{ payment_detail.installment_id }}"
+                data-overdue-amount="{{ payment_detail.total_credit }}"
+                data-toggle="modal"
+                data-target="#editPaymentModal">
+                <i class="bi bi-pencil"></i>
+             </a>             
+              </td>
+              {% endif %}
+            </tr>
+            <!-- Modal para editar el pago -->
+              <div class="modal fade" id="editPaymentModal" tabindex="-1" role="dialog" aria-labelledby="editPaymentModalLabel" aria-hidden="true" style="color: black">
+                <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="editPaymentModalLabel">Editar Pago</h5>
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <form id="editPaymentForm" method="POST" action="" onsubmit="submitForm(event)">
+                      <div class="modal-body">
+                          <!-- Campos para editar el pago -->
+                          <div class="form-group">
+                              <label for="customPayment">Nuevo Valor del Pago</label>
+                              <input type="text" class="form-control" id="customPayment" name="customPayment" style="border: 1px solid #575a5e;">
+                          </div>
+                      </div>
+                      <div class="modal-footer">
+                          <button type="submit" class="c-btn c-btn-primary">Guardar Cambios</button>
+                      </div>
+                  </form>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+<script>
+    const paymentButtons = document.querySelectorAll('.js-btn-editar-pago');
+    let loanId;
+
+    paymentButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        loanId = button.getAttribute('data-id');
+      });
+    });
+
+    console.log(loanId);
+
+    function submitForm(event) {
+      event.preventDefault();
+      
+      // Obtener los datos del formulario
+      var formData = new FormData(document.getElementById('editPaymentForm'));
+
+      // Realizar la solicitud HTTP
+      fetch('/payments/edit/' + loanId, {
+          method: 'POST',
+          body: formData
+      })
+      .then(response => {
+          if (response.ok) {
+              // Recargar la página
+              window.location.reload();
+          } else {
+              // Manejar errores
+              console.error('Hubo un problema al guardar los cambios');
+          }
+      })
+      .catch(error => {
+          console.error('Error de red:', error);
+      });
+    }
+
+
+</script>
+
+{% endblock %}

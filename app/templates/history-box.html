@@ -74,8 +74,8 @@
                 {{ salesman['salesman_name'] }}
               </h4>
               <div class="" style="display: flex; flex-wrap: wrap">
-                <a<
-                href="./box-detail?employee_id={{ salesman['employee_id'] }}"
+                <a
+                href="{{ url_for('routes.history_box_detail', employee_id=salesman['employee_id'], filter_date=filter_date) }}"
                 class="c-btn c-btn-summit js-btn-ocultar"
                 style="width: 45%;"
                 type="submit"

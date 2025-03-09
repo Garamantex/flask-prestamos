@@ -6,8 +6,11 @@ from decimal import Decimal
 from datetime import timedelta, datetime as dt, date as dt_date
 import os
 import uuid
-
-# Importaciones de librerías externas
+import holidays
+from flask import send_file
+import pandas as pd
+import holidays
+import io
 from operator import and_
 import holidays
 from sqlalchemy import func
@@ -2539,10 +2542,6 @@ def box_detail():
                            user_id=user_id)
 
 
-@routes.route('/reports')
-def reports():
-    return render_template('reports.html')
-
 
 @routes.route('/debtor-manager')
 def debtor_manager():
@@ -3280,7 +3279,9 @@ def history_box():
     coordinator_name = f"{user.first_name} {user.last_name}"
 
     if filter_date != None:
-        coordinator_cash = db.session.query(EmployeeRecord.closing_total).filter(
+        coordinator_cash = db.session.query(
+            func.sum(EmployeeRecord.closing_total)
+        ).filter(
             EmployeeRecord.employee_id == coordinator.id,
             func.date(EmployeeRecord.creation_date) == filter_date
         ).scalar() or 0
@@ -3588,9 +3589,9 @@ def history_box():
     # Obtener el término de búsqueda
     search_term = request.args.get('salesman_name')
 
-    print("Fecha: ", filter_date)
-    print("Sales MAN: ", salesmen_stats)
-    print("Coordinador: ", coordinator_box)
+    # print("Fecha: ", filter_date)
+    # print("Sales MAN: ", salesmen_stats)
+    # print("Coordinador: ", coordinator_box)
 
     # Inicializar search_term como cadena vacía si es None
     search_term = search_term if search_term else ""
@@ -3972,3 +3973,366 @@ def cancel_loan(loan_id):
     db.session.commit()
 
     return jsonify({'message': f'Préstamo {client_name} cancelado correctamente'}), 200
+
+
+
+
+@routes.route('/history-box-detail/<int:employee_id>', methods=['GET', 'POST'])
+def history_box_detail(employee_id):
+    filter_date = request.args.get('filter_date')  # Obtener el parámetro de la URL
+
+    if not filter_date:
+        return jsonify({'error': 'Se requiere filter_date'}), 400
+
+    # Convertir la fecha en un objeto datetime.date si es necesario
+    try:
+        filter_date = datetime.strptime(filter_date, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
+
+    print("Employee ID: ", employee_id)
+    
+    # Obtener el rol y el user_id del empleado
+    employee = Employee.query.get(employee_id)
+    if not employee:
+        return jsonify({'error': 'Empleado no encontrado'}), 404
+
+    role = employee.user.role.name
+    user_id = employee.user_id
+    
+    print("Role: ", role)
+    print("User ID: ", user_id)
+    
+    # Verificar si el employee_id existe en la base de datos
+    employee = Employee.query.get(employee_id)
+    if not employee:
+        return jsonify({'error': 'Empleado no encontrado'}), 404
+
+    # Obtener todos los préstamos asociados a ese vendedor
+    loans = Loan.query.filter_by(employee_id=employee_id).all()
+
+    # Recopilar detalles de los préstamos
+    loan_details = []
+    renewal_loan_details = []  # Detalles de los préstamos que son renovaciones activas
+
+    for loan in loans:
+        loan_date = loan.creation_date.date() # Obtener solo la fecha del préstamo
+        
+        if loan_date == filter_date and loan.is_renewal == 0:  # Verificar si el préstamo se realizó en la fecha filtrada
+            loan_detail = {
+                'client_name': loan.client.first_name + ' ' + loan.client.last_name,
+                'loan_amount': loan.amount,
+                'loan_dues': loan.dues,
+                'loan_interest': loan.interest,
+                # Agregar la fecha del préstamo
+                'loan_date': loan_date.strftime('%d/%m/%Y')
+            }
+            loan_details.append(loan_detail)
+
+        # Si el préstamo es una renovación activa y se realizó en la fecha filtrada, recopilar detalles adicionales
+        if loan.is_renewal and loan.status:
+            # Obtener solo la fecha de la renovación
+            renewal_date = loan.creation_date.date()
+            if renewal_date == filter_date:  # Verificar si la renovación se realizó en la fecha filtrada
+                renewal_loan_detail = {
+                    'client_name': loan.client.first_name + ' ' + loan.client.last_name,
+                    'loan_amount': loan.amount,
+                    'loan_dues': loan.dues,
+                    'loan_interest': loan.interest,
+                    # Agregar la fecha de la renovación
+                    'renewal_date': renewal_date.strftime('%d/%m/%Y')
+                }
+                renewal_loan_details.append(renewal_loan_detail)
+
+    # Calcular el valor total para cada préstamo
+    for loan_detail in loan_details:
+        loan_amount = float(loan_detail['loan_amount'])
+        loan_interest = float(loan_detail['loan_interest'])
+        loan_detail['total_amount'] = loan_amount + \
+            (loan_amount * loan_interest / 100)
+
+    # Calcular el valor total para cada préstamo de renovación activa
+    for renewal_loan_detail in renewal_loan_details:
+        loan_amount = float(renewal_loan_detail['loan_amount'])
+        loan_interest = float(renewal_loan_detail['loan_interest'])
+        renewal_loan_detail['total_amount'] = loan_amount + \
+            (loan_amount * loan_interest / 100)
+
+    # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de creación descendente
+    transactions = Transaction.query.filter_by(
+        employee_id=employee_id).order_by(Transaction.creation_date.desc()).all()
+
+    # Filtrar transacciones por tipo y fecha
+    expenses = [trans for trans in transactions if
+                trans.transaction_types == TransactionType.GASTO and trans.creation_date.date() == filter_date]
+    incomes = [trans for trans in transactions if
+               trans.transaction_types == TransactionType.INGRESO and trans.creation_date.date() == filter_date]
+    withdrawals = [trans for trans in transactions if
+                   trans.transaction_types == TransactionType.RETIRO and trans.creation_date.date() == filter_date]
+
+    # Recopilar detalles con formato de fecha y clases de Bootstrap
+    expense_details = [
+        {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+         'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
+    income_details = [
+        {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+         'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in incomes]
+    withdrawal_details = [
+        {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+         'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in withdrawals]
+
+    # Calcular clientes con cuotas en mora y cuya fecha de vencimiento sea la de la fecha filtrada
+    clients_in_arrears = []
+    for loan in loans:
+        for installment in loan.installments:
+            payment = Payment.query.filter_by(
+                installment_id=installment.id).first()
+            if installment.is_in_arrears() and payment and payment.payment_date.date() == filter_date:
+                client_arrears = {
+                    'client_name': loan.client.first_name + ' ' + loan.client.last_name,
+                    'arrears_count': sum(1 for inst in loan.installments if inst.is_in_arrears()),
+                    'overdue_balance': sum(inst.amount for inst in loan.installments if inst.is_in_arrears()),
+                    'total_loan_amount': loan.amount,
+                    'loan_id': loan.id
+                }
+                clients_in_arrears.append(client_arrears)
+
+    # Obtener todos los pagos realizados en la fecha filtrada
+    payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id,
+                                                                                          func.date(
+                                                                                              Payment.payment_date) == filter_date).all()
+
+    # Recopilar detalles de los pagos realizados en la fecha filtrada
+    payment_details = []
+    payment_summary = {}  # Dictionary to store payment summary for each client and date
+
+    for payment in payments_today:
+        client_name = payment.installment.loan.client.first_name + \
+            ' ' + payment.installment.loan.client.last_name
+        payment_date = payment.payment_date.date()
+
+        # Check if payment summary already exists for the client and date
+        if (client_name, payment_date) in payment_summary:
+            # Update the existing payment summary with the payment amount
+            payment_summary[(client_name, payment_date)
+                            ]['payment_amount'] += payment.amount
+        else:
+            # Create a new payment summary for the client and date
+            remaining_balance = sum(inst.amount for inst in payment.installment.loan.installments if inst.status in (
+                InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA))
+            total_credit = payment.installment.loan.amount  # Total credit from the loan model
+            if payment.amount > 0:  # Only include payments greater than 0
+                payment_summary[(client_name, payment_date)] = {
+                    'loan_id': payment.installment.loan.id,  # Add loan_id to the payment details
+                    # Add installment_id to the payment details
+                    'installment_id': payment.installment.id,
+                    'client_name': client_name,
+                    'payment_amount': payment.amount,
+                    'remaining_balance': remaining_balance,
+                    'total_credit': total_credit,  # Add total credit to the payment details
+                    'payment_date': payment_date.strftime('%d/%m/%Y'),
+                }
+
+    # Convert payment summary dictionary to a list of payment details
+    payment_details = list(payment_summary.values())
+
+    print(payment_details)
+
+    loan_id = payment_details[0].get('loan_id') if payment_details else None
+    installment_id = payment_details[0].get(
+        'installment_id') if payment_details else None
+    
+    # Obtener el valor de closing_total del modelo EmployeeRecord
+    employee_record = EmployeeRecord.query.filter_by(employee_id=employee_id).order_by(EmployeeRecord.creation_date.desc()).first()
+    closing_total = employee_record.closing_total if employee_record else 0
+
+
+    # *** Cálculo de totales (INGRESOS y EGRESOS) ***
+    # Calcular el total de pagos e ingresos
+    # sum(payment['payment_amount'] for payment in payment_details) + \
+    # sum(income['amount'] for income in income_details) + 
+    total_ingresos = Decimal(closing_total)
+        
+    total_movimientos = sum(payment['payment_amount'] for payment in payment_details) + \
+                        sum(income['amount'] for income in income_details)
+
+    # Calcular el total de egresos (retiros, gastos, préstamos, renovaciones)
+    total_egresos = sum(withdrawal['amount'] for withdrawal in withdrawal_details) + \
+        sum(expense['amount'] for expense in expense_details) + \
+        sum(loan['loan_amount'] for loan in loan_details) + \
+        sum(renewal['loan_amount'] for renewal in renewal_loan_details) \
+        
+    
+    total_final = total_movimientos + total_ingresos - total_egresos
+
+    
+
+    # print(clients_in_arrears)
+    # Renderizar la plantilla HTML con los datos recopilados
+    return render_template('history-box-detail.html',
+                           salesman=employee.salesman,
+                           loans_details=loan_details,
+                           renewal_loan_details=renewal_loan_details,
+                           expense_details=expense_details,
+                           income_details=income_details,
+                           withdrawal_details=withdrawal_details,
+                           clients_in_arrears=clients_in_arrears,
+                           total_ingresos=total_ingresos,  # <-- Total ingresos agregado
+                           total_final = total_final,
+                           total_movimientos=total_movimientos,
+                           total_egresos=total_egresos,
+                           payment_details=payment_details,
+                           user_role=role,
+                           user_id=user_id,
+                           employee_id=employee_id,
+                           loan_id=loan_id,
+                           installment_id=installment_id,
+                           filter_date=filter_date)
+
+
+
+@routes.route('/reports', methods=['GET'])
+def reports():
+    try:
+        
+        # Obtener el user_id del usuario desde la sesión
+        user_id = session.get('user_id')
+        print("User ID: ", user_id)
+
+        # Buscar el manager_id asociado al user_id en la tabla Salesman
+        salesman = Salesman.query.filter_by(employee_id=user_id).first()
+        if not salesman:
+            return {"error": "No se encontró el vendedor asociado al usuario"}, 404
+
+        manager_id = salesman.manager_id
+        
+        print("manager_id: ", manager_id)
+        
+        # Obtener parámetros de la solicitud
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        salesman_id = request.args.get('salesman_id')
+
+        # Si no se han seleccionado fechas, mostrar solo el formulario
+        if not start_date or not end_date:
+            salesmen = db.session.query(Employee.id, User.first_name + ' ' + User.last_name).join(User, User.id == Employee.user_id).all()
+            return render_template("reports.html", salesmen=salesmen, report_data=None)
+        
+        # Validar fechas y rango de 30 días
+        start_date = datetime.strptime(start_date, "%Y-%m-%d")
+        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+
+
+        # if (end_date - start_date).days > 30:
+        #     return {"error": "El rango de fechas no puede superar los 30 días"}, 400
+        # Construir la consulta
+        query = db.session.query(
+            User.first_name.label("nombre_empleado"),
+            User.last_name.label("apellido_empleado"),
+            Client.first_name.label("nombre_cliente"),
+            Client.last_name.label("apellido_cliente"),
+            Client.cellphone.label("telefono"),
+            Client.address.label("direccion"),
+            Loan.creation_date.label("fecha_prestamo"),
+            Loan.amount.label("valor_prestamo"),
+            Loan.interest.label("intereses"),
+            Loan.payment.label("valor_cuota"),
+            Loan.status.label("estado_prestamo"),
+            LoanInstallment.installment_number.label("numero_cuota"),
+            LoanInstallment.due_date.label("fecha_cuota"),
+            LoanInstallment.payment_date.label("fecha_pago_cuota"),
+            LoanInstallment.status.label("tipo_pago"),
+            Payment.amount.label("valor_pago"),
+        ).join(Employee, Employee.id == Loan.employee_id) \
+        .join(User, User.id == Employee.user_id) \
+        .join(Client, Client.id == Loan.client_id) \
+        .join(LoanInstallment, LoanInstallment.loan_id == Loan.id) \
+        .join(Payment, Payment.installment_id == LoanInstallment.id) \
+        .filter(Loan.creation_date.between(start_date, end_date))
+        
+        if salesman_id:
+            query = query.filter(Employee.id == salesman_id)
+            
+        
+        results = query.all()
+        print(query)
+
+        # Convertir los resultados en una lista de diccionarios
+        report_data = [dict(row._mapping) for row in results]
+               
+        
+        # Obtener lista de vendedores asociados al coordinador
+        salesmen = db.session.query(Employee.id, User.first_name + ' ' + User.last_name).join(User, User.id == Employee.user_id).join(Salesman, Salesman.employee_id == Employee.id).filter(Salesman.manager_id == manager_id).all()
+
+        print(salesmen)
+
+        return render_template("reports.html", report_data=report_data, salesmen=salesmen)
+
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+
+
+@routes.route('/reports/download', methods=['GET'])
+def download_report():
+    try:
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        salesman_id = request.args.get('salesman_id')
+
+        if not start_date or not end_date:
+            return {"error": "Debe proporcionar un rango de fechas"}, 400
+
+        # Convertir las fechas
+        start_date = datetime.strptime(start_date, "%Y-%m-%d")
+        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+
+        # Construir la consulta
+        query = db.session.query(
+            User.first_name.label("nombre_empleado"),
+            User.last_name.label("apellido_empleado"),
+            Client.first_name.label("nombre_cliente"),
+            Client.last_name.label("apellido_cliente"),
+            Client.cellphone.label("telefono"),
+            Client.address.label("direccion"),
+            Loan.creation_date.label("fecha_prestamo"),
+            Loan.amount.label("valor_prestamo"),
+            Loan.interest.label("intereses"),
+            Loan.payment.label("valor_cuota"),
+            Loan.status.label("estado_prestamo"),
+            LoanInstallment.installment_number.label("numero_cuota"),
+            LoanInstallment.due_date.label("fecha_cuota"),
+            LoanInstallment.payment_date.label("fecha_pago_cuota"),
+            LoanInstallment.status.label("tipo_pago"),
+            Payment.amount.label("valor_pago"),
+        ).join(Employee, Employee.id == Loan.employee_id) \
+        .join(User, User.id == Employee.user_id) \
+        .join(Client, Client.id == Loan.client_id) \
+        .join(LoanInstallment, LoanInstallment.loan_id == Loan.id) \
+        .join(Payment, Payment.installment_id == LoanInstallment.id) \
+        .filter(Loan.creation_date.between(start_date, end_date))
+
+        if salesman_id:
+            query = query.filter(Employee.id == salesman_id)
+
+        results = query.all()
+        report_data = [dict(row._mapping) for row in results]
+
+        if not report_data:
+            return {"error": "No hay datos para exportar"}, 404
+
+        # Convertir datos a un DataFrame de Pandas
+        df = pd.DataFrame(report_data)
+
+        # Crear un archivo Excel en memoria
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            df.to_excel(writer, index=False, sheet_name="Reporte")
+        
+        output.seek(0)
+
+        # Enviar el archivo como respuesta
+        return send_file(output, download_name="reporte.xlsx", as_attachment=True, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    except Exception as e:
+        return {"error": str(e)}, 500

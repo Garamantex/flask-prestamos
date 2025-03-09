@@ -2,470 +2,99 @@
 
 {% block content %}
 <div class="container c-bg c-bg__gray-400 pt-5">
-    <div class="row">
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="./menu-manager">Menu</a>
-        </div>
-        <div class="col">
-            <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <div class="c-morosos c-morosos--evenly">
-                <div class="">
-                    <label class="c-form__label c-form__label--white form-check-label" for="startDate">Fecha de inicio</label>
-                    <input type="date" name="startDate" class="c-form c-form__input">
-                </div>
-                <div class="">
-                    <label class="c-form__label c-form__label--white form-check-label" for="endDate">Fecha final</label>
-                    <input type="date" name="endDate" class="c-form c-form__input">
-                </div>
+    <h2>Reporte de Préstamos</h2>
+    
+    <!-- Formulario para seleccionar fechas y vendedor -->
+    <form id="reportForm" method="GET" action="/reports">
+        <div class="row">
+            <div class="col-md-4">
+                <label for="start_date">Fecha de inicio:</label>
+                <input type="date" id="start_date" name="start_date" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label for="end_date">Fecha final:</label>
+                <input type="date" id="end_date" name="end_date" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label for="salesman_id">Vendedor:</label>
+                <select id="salesman_id" name="salesman_id" class="form-control">
+                    <option value="">Todos</option>
+                    {% for salesman in salesmen %}
+                        <option value="{{ salesman.id }}">{{ salesman.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col-lg-8">
-            <ul class="c-cajas">
-                <li class="c-cajas__item">
-                    <div class="c-cajas__item__header">
-                        <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja 1</h3>
-                        <div class="c-cajas__item__actions">
-                            <a href="#" class="c-cajas__item__action"><i class="c-icon bi bi-pencil-square"></i></a>
-                            <a href="#" class="c-cajas__item__action"><i class="c-icon bi bi-unlock-fill"></i></a>
-                        </div>
-                    </div>
-                    <div class="c-cajas__item__body">
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Nombre:</span>
-                            <span class="c-cajas__item__body__item__value">Vendedor 1</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Tipo de usuario:</span>
-                            <span class="c-cajas__item__body__item__value">vendedor</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Cobro proyectado:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Recaudo:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Ventas:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Renovacones:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Gasto:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Ingreso:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Retiro:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                    </div>
-                </li>
-            </ul>
-        </div>
-        <div class="col-lg-4">
-            <ul class="c-cajas">
-                <li class="c-cajas__item">
+        <br>
+        <button type="submit" class="btn btn-primary">Generar Reporte</button>
+        <button type="button" id="downloadExcel" class="btn btn-success">Descargar Excel</button>
+    </form>
 
-                    <div class="c-cajas__item__body c-cajas__item__body--top">
-                        <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                            <span class="c-cajas__item__body__item__label">% de cobros completado:</span>
-                            <span class="c-cajas__item__body__item__value">%0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Numero de clientes:</span>
-                            <span class="c-cajas__item__body__item__value">0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Clientes en mora:</span>
-                            <span class="c-cajas__item__body__item__value">0</span>
-                        </div>
-                    </div>
-                </li>
-                <li class="c-cajas__item">
-                    <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                        <button class="c-btn c-btn-primary mb-4">Autorizar transacción</button>
-                        <button class="c-btn c-btn-primary mb-4">Historial de transacciónes</button>
-
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-lg-8">
-            <ul class="c-cajas">
-                <li class="c-cajas__item">
-                    <div class="c-cajas__item__header">
-                        <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja 2</h3>
-                        <div class="c-cajas__item__actions">
-                            <a href="#" class="c-cajas__item__action"><i class="c-icon bi bi-pencil-square"></i></a>
-                            <a href="#" class="c-cajas__item__action"><i class="c-icon bi bi-unlock-fill"></i></a>
-                        </div>
-                    </div>
-                    <div class="c-cajas__item__body">
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Nombre:</span>
-                            <span class="c-cajas__item__body__item__value">Vendedor 1</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Tipo de usuario:</span>
-                            <span class="c-cajas__item__body__item__value">vendedor</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Cobro proyectado:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Recaudo:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Ventas:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Renovacones:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Gasto:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Ingreso:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Retiro:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                    </div>
-                </li>
-            </ul>
-        </div>
-        <div class="col-lg-4">
-            <ul class="c-cajas">
-                <li class="c-cajas__item">
-
-                    <div class="c-cajas__item__body c-cajas__item__body--top">
-                        <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                            <span class="c-cajas__item__body__item__label">% de cobros completado:</span>
-                            <span class="c-cajas__item__body__item__value">%0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Numero de clientes:</span>
-                            <span class="c-cajas__item__body__item__value">0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Clientes en mora:</span>
-                            <span class="c-cajas__item__body__item__value">0</span>
-                        </div>
-                    </div>
-                </li>
-                <li class="c-cajas__item">
-                    <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                        <button class="c-btn c-btn-primary mb-4">Autorizar transacción</button>
-                        <button class="c-btn c-btn-primary mb-4">Historial de transacciónes</button>
-
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-
-    <div class="row">
-        <div class="col-lg-8">
-            <ul class="c-cajas">
-                <li class="c-cajas__item">
-                    <div class="c-cajas__item__header">
-                        <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja 3</h3>
-                        <div class="c-cajas__item__actions">
-                            <a href="#" class="c-cajas__item__action"><i class="c-icon bi bi-pencil-square"></i></a>
-                            <a href="#" class="c-cajas__item__action"><i class="c-icon bi bi-unlock-fill"></i></a>
-                        </div>
-                    </div>
-                    <div class="c-cajas__item__body">
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Nombre:</span>
-                            <span class="c-cajas__item__body__item__value">Vendedor 1</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Tipo de usuario:</span>
-                            <span class="c-cajas__item__body__item__value">vendedor</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Cobro proyectado:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Recaudo:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Ventas:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Renovacones:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Gasto:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Ingreso:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Retiro:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                    </div>
-                </li>
-            </ul>
-        </div>
-        <div class="col-lg-4">
-            <ul class="c-cajas">
-                <li class="c-cajas__item">
-
-                    <div class="c-cajas__item__body c-cajas__item__body--top">
-                        <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                            <span class="c-cajas__item__body__item__label">% de cobros completado:</span>
-                            <span class="c-cajas__item__body__item__value">%0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Numero de clientes:</span>
-                            <span class="c-cajas__item__body__item__value">0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Clientes en mora:</span>
-                            <span class="c-cajas__item__body__item__value">0</span>
-                        </div>
-                    </div>
-                </li>
-                <li class="c-cajas__item">
-                    <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                        <button class="c-btn c-btn-primary mb-4">Autorizar transacción</button>
-                        <button class="c-btn c-btn-primary mb-4">Historial de transacciónes</button>
-
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-
-    <div class="row">
-        <div class="col-lg-8">
-            <ul class="c-cajas">
-                <li class="c-cajas__item">
-                    <div class="c-cajas__item__header">
-                        <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja 4</h3>
-                        <div class="c-cajas__item__actions">
-                            <a href="#" class="c-cajas__item__action"><i class="c-icon bi bi-pencil-square"></i></a>
-                            <a href="#" class="c-cajas__item__action"><i class="c-icon bi bi-unlock-fill"></i></a>
-                        </div>
-                    </div>
-                    <div class="c-cajas__item__body">
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Nombre:</span>
-                            <span class="c-cajas__item__body__item__value">Vendedor 1</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Tipo de usuario:</span>
-                            <span class="c-cajas__item__body__item__value">vendedor</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Cobro proyectado:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Recaudo:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Ventas:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Renovacones:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Gasto:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Ingreso:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Retiro:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                    </div>
-                </li>
-            </ul>
-        </div>
-        <div class="col-lg-4">
-            <ul class="c-cajas">
-                <li class="c-cajas__item">
-
-                    <div class="c-cajas__item__body c-cajas__item__body--top">
-                        <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                            <span class="c-cajas__item__body__item__label">% de cobros completado:</span>
-                            <span class="c-cajas__item__body__item__value">%0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Numero de clientes:</span>
-                            <span class="c-cajas__item__body__item__value">0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Clientes en mora:</span>
-                            <span class="c-cajas__item__body__item__value">0</span>
-                        </div>
-                    </div>
-                </li>
-                <li class="c-cajas__item">
-                    <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                        <button class="c-btn c-btn-primary mb-4">Autorizar transacción</button>
-                        <button class="c-btn c-btn-primary mb-4">Historial de transacciónes</button>
-
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-
-    <div class="row">
-        <div class="col-lg-8">
-            <ul class="c-cajas">
-                <li class="c-cajas__item">
-                    <div class="c-cajas__item__header">
-                        <h3 class="c-cajas__item__title c-headings c-headings__h2">Caja 5</h3>
-                        <div class="c-cajas__item__actions">
-                            <a href="#" class="c-cajas__item__action"><i class="c-icon bi bi-pencil-square"></i></a>
-                            <a href="#" class="c-cajas__item__action"><i class="c-icon bi bi-unlock-fill"></i></a>
-                        </div>
-                    </div>
-                    <div class="c-cajas__item__body">
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Nombre:</span>
-                            <span class="c-cajas__item__body__item__value">Vendedor 1</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Tipo de usuario:</span>
-                            <span class="c-cajas__item__body__item__value">vendedor</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Cobro proyectado:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Recaudo:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Ventas:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Renovacones:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Gasto:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Ingreso:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Retiro:</span>
-                            <span class="c-cajas__item__body__item__value">$0</span>
-                            <span class="c-cajas__item__body__item__value">de un total de: 0 clientes</span>
-                        </div>
-                    </div>
-                </li>
-            </ul>
-        </div>
-        <div class="col-lg-4">
-            <ul class="c-cajas">
-                <li class="c-cajas__item">
-
-                    <div class="c-cajas__item__body c-cajas__item__body--top">
-                        <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                            <span class="c-cajas__item__body__item__label">% de cobros completado:</span>
-                            <span class="c-cajas__item__body__item__value">%0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Numero de clientes:</span>
-                            <span class="c-cajas__item__body__item__value">0</span>
-                        </div>
-                        <div class="c-cajas__item__body__item">
-                            <span class="c-cajas__item__body__item__label">Clientes en mora:</span>
-                            <span class="c-cajas__item__body__item__value">0</span>
-                        </div>
-                    </div>
-                </li>
-                <li class="c-cajas__item">
-                    <div class="c-cajas__item__body__item c-cajas__item__body__item--100">
-                        <button class="c-btn c-btn-primary mb-4">Autorizar transacción</button>
-                        <button class="c-btn c-btn-primary mb-4">Historial de transacciónes</button>
-
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-
+    <br>
+    
+    <!-- Tabla de resultados -->
+    {% if report_data %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Empleado</th>
+                <th>Cliente</th>
+                <th>Teléfono</th>
+                <th>Dirección</th>
+                <th>Fecha Préstamo</th>
+                <th>Valor Préstamo</th>
+                <th>Intereses</th>
+                <th>Valor Cuota</th>
+                <th>Número Cuota</th>
+                <th>Fecha Cuota</th>
+                <th>Fecha Pago Cuota</th>
+                <th>Tipo Pago</th>
+                <th>Valor Pago</th>
+                <th>Valor Mora</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in report_data %}
+            <tr>
+                <td>{{ item.nombre_empleado }} {{ item.apellido_empleado }}</td>
+                <td>{{ item.nombre_cliente }} {{ item.apellido_cliente }}</td>
+                <td>{{ item.telefono }}</td>
+                <td>{{ item.direccion }}</td>
+                <td>{{ item.fecha_prestamo }}</td>
+                <td>{{ item.valor_prestamo }}</td>
+                <td>{{ item.intereses }}</td>
+                <td>{{ item.valor_cuota }}</td>
+                <td>{{ item.numero_cuota }}</td>
+                <td>{{ item.fecha_cuota }}</td>
+                <td>{{ item.fecha_pago_cuota }}</td>
+                <td>{{ item.tipo_pago }}</td>
+                <td>{{ item.valor_pago }}</td>
+                <td>{{ item.valor_mora }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
 </div>
+
+<script>
+    document.getElementById("downloadExcel").addEventListener("click", function() {
+        const startDate = document.getElementById("start_date").value;
+        const endDate = document.getElementById("end_date").value;
+        const salesmanId = document.getElementById("salesman_id").value;
+        
+        if (!startDate || !endDate) {
+            alert("Por favor seleccione un rango de fechas.");
+            return;
+        }
+        
+        let url = `/reports/download?start_date=${startDate}&end_date=${endDate}`;
+        if (salesmanId) {
+            url += `&salesman_id=${salesmanId}`;
+        }
+        
+        window.location.href = url;
+    });
+</script>
+
 {% endblock %}
