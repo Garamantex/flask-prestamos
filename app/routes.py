@@ -4193,11 +4193,10 @@ def history_box_detail(employee_id):
 
 @routes.route('/reports', methods=['GET'])
 def reports():
+    # Obtener el user_id del usuario desde la sesión
+    user_id = session.get('user_id')
+    print("user_id: ", user_id)
     try:
-        
-        # Obtener el user_id del usuario desde la sesión
-        user_id = session.get('user_id')
-        print("User ID: ", user_id)
 
         # Buscar el manager_id asociado al user_id en la tabla Salesman
         salesman = Salesman.query.filter_by(employee_id=user_id).first()
@@ -4266,10 +4265,10 @@ def reports():
 
         print(salesmen)
 
-        return render_template("reports.html", report_data=report_data, salesmen=salesmen)
+        return render_template("reports.html", report_data=report_data, salesmen=salesmen, user_id=user_id)
 
     except Exception as e:
-        return {"error": str(e)}, 500
+        return render_template("reports.html", user_id=user_id)
 
 
 
