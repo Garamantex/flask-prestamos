@@ -1,21 +1,32 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container c-bg c-bg__gray-400 pt-5">
-    <h2>Reporte de Préstamos</h2>
-    
+<div class="container c-bg c-bg__gray-400 pt-3">
+    <div class="row">
+        <div class="col">
+          <a class="c-btn c-btn-primary c-btn-block mb-3"
+            href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver</a>
+        </div>
+        <div class="col">
+          <a
+            class="c-btn c-btn-primary c-btn-block mb-3"
+            href="{{ url_for('routes.logout') }}">Salir</a>
+        </div>
+    </div>
+    <h2 class="text-center">Reporte de Préstamos</h2>
+
     <!-- Formulario para seleccionar fechas y vendedor -->
     <form id="reportForm" method="GET" action="/reports">
-        <div class="row">
-            <div class="col-md-4">
+        <div class="row g-2">
+            <div class="col-12 col-md-4">
                 <label for="start_date">Fecha de inicio:</label>
                 <input type="date" id="start_date" name="start_date" class="form-control" required>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <label for="end_date">Fecha final:</label>
                 <input type="date" id="end_date" name="end_date" class="form-control" required>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <label for="salesman_id">Vendedor:</label>
                 <select id="salesman_id" name="salesman_id" class="form-control">
                     <option value="">Todos</option>
@@ -25,57 +36,60 @@
                 </select>
             </div>
         </div>
-        <br>
-        <button type="submit" class="btn btn-primary">Generar Reporte</button>
-        <button type="button" id="downloadExcel" class="btn btn-success">Descargar Excel</button>
+        <div class="d-flex flex-column flex-md-row gap-2 mt-3">
+            <button type="submit" class="btn btn-primary w-100">Generar Reporte</button>
+            <button type="button" id="downloadExcel" class="btn btn-success w-100">Descargar Excel</button>
+        </div>
     </form>
 
     <br>
-    
-    <!-- Tabla de resultados -->
+
+    <!-- Tabla de resultados optimizada para mobile -->
     {% if report_data %}
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Empleado</th>
-                <th>Cliente</th>
-                <th>Teléfono</th>
-                <th>Dirección</th>
-                <th>Fecha Préstamo</th>
-                <th>Valor Préstamo</th>
-                <th>Intereses</th>
-                <th>Valor Cuota</th>
-                <th>Número Cuota</th>
-                <th>Fecha Cuota</th>
-                <th>Fecha Pago Cuota</th>
-                <th>Estado Prestamo</th>
-                <th>Tipo Pago</th>
-                <th>Valor Pago</th>
-                <th>Valor Mora</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in report_data %}
-            <tr>
-                <td>{{ item.nombre_empleado }} {{ item.apellido_empleado }}</td>
-                <td>{{ item.nombre_cliente }} {{ item.apellido_cliente }}</td>
-                <td>{{ item.telefono }}</td>
-                <td>{{ item.direccion }}</td>
-                <td>{{ item.fecha_prestamo }}</td>
-                <td>{{ item.valor_prestamo }}</td>
-                <td>{{ item.intereses }}</td>
-                <td>{{ item.valor_cuota }}</td>
-                <td>{{ item.numero_cuota }}</td>
-                <td>{{ item.fecha_cuota }}</td>
-                <td>{{ item.fecha_pago_cuota }}</td>
-                <td>{{ item.estado_prestamo }}</td>
-                <td>{{ item.tipo_pago.value }}</td>
-                <td>{{ item.valor_pago }}</td>
-                <td>{{ item.valor_mora }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm">
+            <thead class="d-none d-md-table-header-group">
+                <tr>
+                    <th>Empleado</th>
+                    <th>Cliente</th>
+                    <th>Teléfono</th>
+                    <th>Dirección</th>
+                    <th>Fecha Préstamo</th>
+                    <th>Valor Préstamo</th>
+                    <th>Intereses</th>
+                    <th>Valor Cuota</th>
+                    <th>Número Cuota</th>
+                    <th>Fecha Cuota</th>
+                    <th>Fecha Pago</th>
+                    <th>Estado</th>
+                    <th>Tipo Pago</th>
+                    <th>Valor Pago</th>
+                    <th>Valor Mora</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in report_data %}
+                <tr class="d-block d-md-table-row border p-2 mb-2">
+                    <td><strong>Empleado:</strong> {{ item.nombre_empleado }} {{ item.apellido_empleado }}</td>
+                    <td><strong>Cliente:</strong> {{ item.nombre_cliente }} {{ item.apellido_cliente }}</td>
+                    <td><strong>Teléfono:</strong> {{ item.telefono }}</td>
+                    <td><strong>Dirección:</strong> {{ item.direccion }}</td>
+                    <td><strong>Fecha Préstamo:</strong> {{ item.fecha_prestamo }}</td>
+                    <td><strong>Valor Préstamo:</strong> {{ item.valor_prestamo }}</td>
+                    <td><strong>Intereses:</strong> {{ item.intereses }}</td>
+                    <td><strong>Valor Cuota:</strong> {{ item.valor_cuota }}</td>
+                    <td><strong>Número Cuota:</strong> {{ item.numero_cuota }}</td>
+                    <td><strong>Fecha Cuota:</strong> {{ item.fecha_cuota }}</td>
+                    <td><strong>Fecha Pago:</strong> {{ item.fecha_pago_cuota }}</td>
+                    <td><strong>Estado:</strong> {{ item.estado_prestamo }}</td>
+                    <td><strong>Tipo Pago:</strong> {{ item.tipo_pago.value }}</td>
+                    <td><strong>Valor Pago:</strong> {{ item.valor_pago }}</td>
+                    <td><strong>Valor Mora:</strong> {{ item.valor_mora }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% endif %}
 </div>
 
@@ -84,24 +98,17 @@ document.getElementById("downloadExcel").addEventListener("click", function() {
     const startDate = document.getElementById("start_date").value;
     const endDate = document.getElementById("end_date").value;
     const salesmanId = document.getElementById("salesman_id").value;
-    
+
     if (!startDate || !endDate) {
         alert("Por favor seleccione un rango de fechas.");
         return;
     }
-    
-    const params = new URLSearchParams({
-        start_date: startDate,
-        end_date: endDate
-    });
 
-    if (salesmanId) {
-        params.append("salesman_id", salesmanId);
-    }
+    const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+    if (salesmanId) params.append("salesman_id", salesmanId);
 
     window.location.href = `/reports/download?${params.toString()}`;
 });
-
 </script>
 
 {% endblock %}
