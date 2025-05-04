@@ -4197,7 +4197,6 @@ def reports():
     user_id = session.get('user_id')
     print("user_id: ", user_id)
     try:
-
         # Buscar el manager_id asociado al user_id en la tabla Salesman
         salesman = Salesman.query.filter_by(employee_id=user_id).first()
         if not salesman:
@@ -4214,60 +4213,132 @@ def reports():
 
         # Si no se han seleccionado fechas, mostrar solo el formulario
         if not start_date or not end_date:
-            salesmen = db.session.query(Employee.id, User.first_name + ' ' + User.last_name).join(User, User.id == Employee.user_id).all()
-            return render_template("reports.html", salesmen=salesmen, report_data=None)
+            salesmen = db.session.query(Employee.id, User.first_name + ' ' + User.last_name).join(User, User.id == Employee.user_id).join(Salesman, Salesman.employee_id == Employee.id).filter(Salesman.manager_id == manager_id).all()
+            return render_template("reports.html", salesmen=salesmen, report_data=None, user_id=user_id)
         
-        # Validar fechas y rango de 30 días
-        start_date = datetime.strptime(start_date, "%Y-%m-%d")
-        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+        # Validar fechas
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
 
-
-        # if (end_date - start_date).days > 30:
-        #     return {"error": "El rango de fechas no puede superar los 30 días"}, 400
-        # Construir la consulta
-        query = db.session.query(
-            User.first_name.label("nombre_empleado"),
-            User.last_name.label("apellido_empleado"),
-            Client.first_name.label("nombre_cliente"),
-            Client.last_name.label("apellido_cliente"),
-            Client.cellphone.label("telefono"),
-            Client.address.label("direccion"),
-            Loan.creation_date.label("fecha_prestamo"),
-            Loan.amount.label("valor_prestamo"),
-            Loan.interest.label("intereses"),
-            Loan.payment.label("valor_cuota"),
-            Loan.status.label("estado_prestamo"),
-            LoanInstallment.installment_number.label("numero_cuota"),
-            LoanInstallment.due_date.label("fecha_cuota"),
-            LoanInstallment.payment_date.label("fecha_pago_cuota"),
-            LoanInstallment.status.label("tipo_pago"),
-            Payment.amount.label("valor_pago"),
-        ).join(Employee, Employee.id == Loan.employee_id) \
-        .join(User, User.id == Employee.user_id) \
-        .join(Client, Client.id == Loan.client_id) \
-        .join(LoanInstallment, LoanInstallment.loan_id == Loan.id) \
-        .join(Payment, Payment.installment_id == LoanInstallment.id) \
-        .filter(Loan.creation_date.between(start_date, end_date))
-        
+        # Obtener todos los vendedores asociados al coordinador
+        salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
         if salesman_id:
-            query = query.filter(Employee.id == salesman_id)
-            
-        
-        results = query.all()
-        print(query)
+            salesmen = [s for s in salesmen if s.employee_id == int(salesman_id)]
 
-        # Convertir los resultados en una lista de diccionarios
-        report_data = [dict(row._mapping) for row in results]
-               
-        
-        # Obtener lista de vendedores asociados al coordinador
+        report_data = []
+        current_date = start_date
+        while current_date <= end_date:
+            for salesman in salesmen:
+                # Obtener el empleado
+                employee = Employee.query.get(salesman.employee_id)
+                
+                # Obtener el valor inicial de la caja
+                employee_record = EmployeeRecord.query.filter(
+                    EmployeeRecord.employee_id == salesman.employee_id,
+                    func.date(EmployeeRecord.creation_date) == current_date
+                ).order_by(EmployeeRecord.id.desc()).first()
+                
+                initial_box_value = float(employee_record.closing_total) if employee_record else 0.0
+
+                # Obtener gastos del día
+                daily_expenses = float(Transaction.query.filter(
+                    Transaction.employee_id == salesman.employee_id,
+                    Transaction.transaction_types == TransactionType.GASTO,
+                    Transaction.approval_status == ApprovalStatus.APROBADA,
+                    func.date(Transaction.creation_date) == current_date
+                ).with_entities(func.sum(Transaction.amount)).scalar() or 0)
+
+                # Obtener ingresos del día
+                daily_incomes = float(Transaction.query.filter(
+                    Transaction.employee_id == salesman.employee_id,
+                    Transaction.transaction_types == TransactionType.INGRESO,
+                    Transaction.approval_status == ApprovalStatus.APROBADA,
+                    func.date(Transaction.creation_date) == current_date
+                ).with_entities(func.sum(Transaction.amount)).scalar() or 0)
+
+                # Obtener retiros del día
+                daily_withdrawals = float(Transaction.query.filter(
+                    Transaction.employee_id == salesman.employee_id,
+                    Transaction.transaction_types == TransactionType.RETIRO,
+                    Transaction.approval_status == ApprovalStatus.APROBADA,
+                    func.date(Transaction.creation_date) == current_date
+                ).with_entities(func.sum(Transaction.amount)).scalar() or 0)
+
+                # Obtener ventas del día (préstamos nuevos)
+                daily_sales = float(Loan.query.filter(
+                    Loan.client.has(employee_id=salesman.employee_id),
+                    Loan.is_renewal == False,
+                    func.date(Loan.creation_date) == current_date
+                ).with_entities(func.sum(Loan.amount)).scalar() or 0)
+
+                # Obtener renovaciones del día
+                daily_renewals = float(Loan.query.filter(
+                    Loan.client.has(employee_id=salesman.employee_id),
+                    Loan.is_renewal == True,
+                    func.date(Loan.creation_date) == current_date
+                ).with_entities(func.sum(Loan.amount)).scalar() or 0)
+
+                # Obtener número de no pagos del día
+                no_payments = db.session.query(func.count(LoanInstallment.id)).join(
+                    Loan, Loan.id == LoanInstallment.loan_id
+                ).join(
+                    Client, Client.id == Loan.client_id
+                ).filter(
+                    Client.employee_id == salesman.employee_id,
+                    LoanInstallment.status == InstallmentStatus.MORA,
+                    func.date(LoanInstallment.due_date) == current_date
+                ).scalar() or 0
+
+                # Obtener recaudo del día
+                daily_collections = float(Payment.query.join(
+                    LoanInstallment, LoanInstallment.id == Payment.installment_id
+                ).join(
+                    Loan, Loan.id == LoanInstallment.loan_id
+                ).join(
+                    Client, Client.id == Loan.client_id
+                ).filter(
+                    Client.employee_id == salesman.employee_id,
+                    func.date(Payment.payment_date) == current_date
+                ).with_entities(func.sum(Payment.amount)).scalar() or 0)
+
+                # Obtener saldo por cobrar
+                due_to_collect = float(db.session.query(func.sum(LoanInstallment.amount)).join(
+                    Loan, Loan.id == LoanInstallment.loan_id
+                ).join(
+                    Client, Client.id == Loan.client_id
+                ).filter(
+                    Client.employee_id == salesman.employee_id,
+                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA]),
+                    func.date(LoanInstallment.due_date) <= current_date
+                ).scalar() or 0)
+
+                # Calcular caja final
+                final_box_value = initial_box_value + daily_incomes - daily_expenses - daily_withdrawals - daily_sales - daily_renewals
+
+                report_data.append({
+                    'ruta': f"{employee.user.first_name} {employee.user.last_name}",
+                    'fecha': current_date.strftime('%Y-%m-%d'),
+                    'gasto': f"$ {daily_expenses:,.0f}",
+                    'ingreso': f"$ {daily_incomes:,.0f}",
+                    'retiro': f"$ {daily_withdrawals:,.0f}",
+                    'ventas': f"$ {daily_sales:,.0f}",
+                    'renovaciones': f"$ {daily_renewals:,.0f}",
+                    'no_pago': no_payments,
+                    'recaudo': f"$ {daily_collections:,.0f}",
+                    'debido_cobrar': f"$ {due_to_collect:,.0f}",
+                    'caja_inicial': f"$ {initial_box_value:,.0f}",
+                    'caja_final': f"$ {final_box_value:,.0f}"
+                })
+
+            current_date += timedelta(days=1)
+
+        # Obtener lista de vendedores para el selector
         salesmen = db.session.query(Employee.id, User.first_name + ' ' + User.last_name).join(User, User.id == Employee.user_id).join(Salesman, Salesman.employee_id == Employee.id).filter(Salesman.manager_id == manager_id).all()
-
-        print(salesmen)
 
         return render_template("reports.html", report_data=report_data, salesmen=salesmen, user_id=user_id)
 
     except Exception as e:
+        print("Error en reports:", str(e))
         return render_template("reports.html", user_id=user_id)
 
 
@@ -4283,39 +4354,132 @@ def download_report():
             return {"error": "Debe proporcionar un rango de fechas"}, 400
 
         # Convertir las fechas
-        start_date = datetime.strptime(start_date, "%Y-%m-%d")
-        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
 
-        # Construir la consulta
-        query = db.session.query(
-            User.first_name.label("nombre_empleado"),
-            User.last_name.label("apellido_empleado"),
-            Client.first_name.label("nombre_cliente"),
-            Client.last_name.label("apellido_cliente"),
-            Client.cellphone.label("telefono"),
-            Client.address.label("direccion"),
-            Loan.creation_date.label("fecha_prestamo"),
-            Loan.amount.label("valor_prestamo"),
-            Loan.interest.label("intereses"),
-            Loan.payment.label("valor_cuota"),
-            Loan.status.label("estado_prestamo"),
-            LoanInstallment.installment_number.label("numero_cuota"),
-            LoanInstallment.due_date.label("fecha_cuota"),
-            LoanInstallment.payment_date.label("fecha_pago_cuota"),
-            LoanInstallment.status.label("tipo_pago"),
-            Payment.amount.label("valor_pago"),
-        ).join(Employee, Employee.id == Loan.employee_id) \
-        .join(User, User.id == Employee.user_id) \
-        .join(Client, Client.id == Loan.client_id) \
-        .join(LoanInstallment, LoanInstallment.loan_id == Loan.id) \
-        .join(Payment, Payment.installment_id == LoanInstallment.id) \
-        .filter(Loan.creation_date.between(start_date, end_date))
+        # Obtener el user_id de la sesión
+        user_id = session.get('user_id')
+        if not user_id:
+            return {"error": "Usuario no autenticado"}, 401
 
+        # Buscar el manager_id asociado al user_id en la tabla Salesman
+        salesman = Salesman.query.filter_by(employee_id=user_id).first()
+        if not salesman:
+            return {"error": "No se encontró el vendedor asociado al usuario"}, 404
+
+        manager_id = salesman.manager_id
+
+        # Obtener todos los vendedores asociados al coordinador
+        salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
         if salesman_id:
-            query = query.filter(Employee.id == salesman_id)
+            salesmen = [s for s in salesmen if s.employee_id == int(salesman_id)]
 
-        results = query.all()
-        report_data = [dict(row._mapping) for row in results]
+        report_data = []
+        current_date = start_date
+        while current_date <= end_date:
+            for salesman in salesmen:
+                # Obtener el empleado
+                employee = Employee.query.get(salesman.employee_id)
+                
+                # Obtener el valor inicial de la caja
+                employee_record = EmployeeRecord.query.filter(
+                    EmployeeRecord.employee_id == salesman.employee_id,
+                    func.date(EmployeeRecord.creation_date) == current_date
+                ).order_by(EmployeeRecord.id.desc()).first()
+                
+                initial_box_value = float(employee_record.closing_total) if employee_record else 0.0
+
+                # Obtener gastos del día
+                daily_expenses = float(Transaction.query.filter(
+                    Transaction.employee_id == salesman.employee_id,
+                    Transaction.transaction_types == TransactionType.GASTO,
+                    Transaction.approval_status == ApprovalStatus.APROBADA,
+                    func.date(Transaction.creation_date) == current_date
+                ).with_entities(func.sum(Transaction.amount)).scalar() or 0)
+
+                # Obtener ingresos del día
+                daily_incomes = float(Transaction.query.filter(
+                    Transaction.employee_id == salesman.employee_id,
+                    Transaction.transaction_types == TransactionType.INGRESO,
+                    Transaction.approval_status == ApprovalStatus.APROBADA,
+                    func.date(Transaction.creation_date) == current_date
+                ).with_entities(func.sum(Transaction.amount)).scalar() or 0)
+
+                # Obtener retiros del día
+                daily_withdrawals = float(Transaction.query.filter(
+                    Transaction.employee_id == salesman.employee_id,
+                    Transaction.transaction_types == TransactionType.RETIRO,
+                    Transaction.approval_status == ApprovalStatus.APROBADA,
+                    func.date(Transaction.creation_date) == current_date
+                ).with_entities(func.sum(Transaction.amount)).scalar() or 0)
+
+                # Obtener ventas del día (préstamos nuevos)
+                daily_sales = float(Loan.query.filter(
+                    Loan.client.has(employee_id=salesman.employee_id),
+                    Loan.is_renewal == False,
+                    func.date(Loan.creation_date) == current_date
+                ).with_entities(func.sum(Loan.amount)).scalar() or 0)
+
+                # Obtener renovaciones del día
+                daily_renewals = float(Loan.query.filter(
+                    Loan.client.has(employee_id=salesman.employee_id),
+                    Loan.is_renewal == True,
+                    func.date(Loan.creation_date) == current_date
+                ).with_entities(func.sum(Loan.amount)).scalar() or 0)
+
+                # Obtener número de no pagos del día
+                no_payments = db.session.query(func.count(LoanInstallment.id)).join(
+                    Loan, Loan.id == LoanInstallment.loan_id
+                ).join(
+                    Client, Client.id == Loan.client_id
+                ).filter(
+                    Client.employee_id == salesman.employee_id,
+                    LoanInstallment.status == InstallmentStatus.MORA,
+                    func.date(LoanInstallment.due_date) == current_date
+                ).scalar() or 0
+
+                # Obtener recaudo del día
+                daily_collections = float(Payment.query.join(
+                    LoanInstallment, LoanInstallment.id == Payment.installment_id
+                ).join(
+                    Loan, Loan.id == LoanInstallment.loan_id
+                ).join(
+                    Client, Client.id == Loan.client_id
+                ).filter(
+                    Client.employee_id == salesman.employee_id,
+                    func.date(Payment.payment_date) == current_date
+                ).with_entities(func.sum(Payment.amount)).scalar() or 0)
+
+                # Obtener saldo por cobrar
+                due_to_collect = db.session.query(func.sum(LoanInstallment.amount)).join(
+                    Loan, Loan.id == LoanInstallment.loan_id
+                ).join(
+                    Client, Client.id == Loan.client_id
+                ).filter(
+                    Client.employee_id == salesman.employee_id,
+                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA]),
+                    func.date(LoanInstallment.due_date) <= current_date
+                ).scalar() or 0
+
+                # Calcular caja final
+                final_box_value = initial_box_value + daily_incomes - daily_expenses - daily_withdrawals - daily_sales - daily_renewals
+
+                report_data.append({
+                    'Ruta': f"{employee.user.first_name} {employee.user.last_name}",
+                    'Fecha': current_date.strftime('%Y-%m-%d'),
+                    'Gasto': daily_expenses,
+                    'Ingreso': daily_incomes,
+                    'Retiro': daily_withdrawals,
+                    'Ventas': daily_sales,
+                    'Renovaciones': daily_renewals,
+                    '# No pago': no_payments,
+                    'Recaudo': daily_collections,
+                    'Debido Cobrar': due_to_collect,
+                    'Caja Inicial': initial_box_value,
+                    'Caja Final': final_box_value
+                })
+
+            current_date += timedelta(days=1)
 
         if not report_data:
             return {"error": "No hay datos para exportar"}, 404
@@ -4327,6 +4491,18 @@ def download_report():
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             df.to_excel(writer, index=False, sheet_name="Reporte")
+            
+            # Obtener el libro y la hoja de trabajo
+            workbook = writer.book
+            worksheet = writer.sheets['Reporte']
+            
+            # Formato para números con separador de miles y símbolo de moneda
+            money_format = workbook.add_format({'num_format': '$#,##0'})
+            
+            # Aplicar el formato a las columnas monetarias
+            for col in ['Gasto', 'Ingreso', 'Retiro', 'Ventas', 'Renovaciones', 'Recaudo', 'Debido Cobrar', 'Caja Inicial', 'Caja Final']:
+                col_idx = df.columns.get_loc(col)
+                worksheet.set_column(col_idx, col_idx, None, money_format)
         
         output.seek(0)
 

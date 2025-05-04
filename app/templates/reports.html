@@ -44,47 +44,40 @@
 
     <br>
 
-    <!-- Tabla de resultados optimizada para mobile -->
     {% if report_data %}
     <div class="table-responsive">
-        <table class="table table-striped table-sm">
-            <thead class="d-none d-md-table-header-group">
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    <th>Empleado</th>
-                    <th>Cliente</th>
-                    <th>Teléfono</th>
-                    <th>Dirección</th>
-                    <th>Fecha Préstamo</th>
-                    <th>Valor Préstamo</th>
-                    <th>Intereses</th>
-                    <th>Valor Cuota</th>
-                    <th>Número Cuota</th>
-                    <th>Fecha Cuota</th>
-                    <th>Fecha Pago</th>
-                    <th>Estado</th>
-                    <th>Tipo Pago</th>
-                    <th>Valor Pago</th>
-                    <th>Valor Mora</th>
+                    <th>Ruta</th>
+                    <th>Fecha</th>
+                    <th>Gasto</th>
+                    <th>Ingreso</th>
+                    <th>Retiro</th>
+                    <th>Ventas</th>
+                    <th>Renovaciones</th>
+                    <th># No pago</th>
+                    <th>Recaudo</th>
+                    <th>Debido Cobrar</th>
+                    <th>Caja Inicial</th>
+                    <th>Caja Final</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in report_data %}
-                <tr class="d-block d-md-table-row border p-2 mb-2">
-                    <td><strong>Empleado:</strong> {{ item.nombre_empleado }} {{ item.apellido_empleado }}</td>
-                    <td><strong>Cliente:</strong> {{ item.nombre_cliente }} {{ item.apellido_cliente }}</td>
-                    <td><strong>Teléfono:</strong> {{ item.telefono }}</td>
-                    <td><strong>Dirección:</strong> {{ item.direccion }}</td>
-                    <td><strong>Fecha Préstamo:</strong> {{ item.fecha_prestamo }}</td>
-                    <td><strong>Valor Préstamo:</strong> {{ item.valor_prestamo }}</td>
-                    <td><strong>Intereses:</strong> {{ item.intereses }}</td>
-                    <td><strong>Valor Cuota:</strong> {{ item.valor_cuota }}</td>
-                    <td><strong>Número Cuota:</strong> {{ item.numero_cuota }}</td>
-                    <td><strong>Fecha Cuota:</strong> {{ item.fecha_cuota }}</td>
-                    <td><strong>Fecha Pago:</strong> {{ item.fecha_pago_cuota }}</td>
-                    <td><strong>Estado:</strong> {{ item.estado_prestamo }}</td>
-                    <td><strong>Tipo Pago:</strong> {{ item.tipo_pago.value }}</td>
-                    <td><strong>Valor Pago:</strong> {{ item.valor_pago }}</td>
-                    <td><strong>Valor Mora:</strong> {{ item.valor_mora }}</td>
+                <tr>
+                    <td>{{ item.ruta }}</td>
+                    <td>{{ item.fecha }}</td>
+                    <td>{{ item.gasto }}</td>
+                    <td>{{ item.ingreso }}</td>
+                    <td>{{ item.retiro }}</td>
+                    <td>{{ item.ventas }}</td>
+                    <td>{{ item.renovaciones }}</td>
+                    <td>{{ item.no_pago }}</td>
+                    <td>{{ item.recaudo }}</td>
+                    <td>{{ item.debido_cobrar }}</td>
+                    <td>{{ item.caja_inicial }}</td>
+                    <td>{{ item.caja_final }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
