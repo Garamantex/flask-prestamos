@@ -1972,8 +1972,7 @@ def approval_expenses():
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
-upload_folder = os.path.join(os.path.abspath(
-    os.path.dirname(__file__)), 'static', 'images')
+upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'images')
 if not os.path.exists(upload_folder):
     os.makedirs(upload_folder)
 
@@ -2010,12 +2009,27 @@ def transactions():
             # Obtener el archivo de imagen
             attachment = request.files.get('photo')
 
-            if attachment:  # Verificar que se haya subido un archivo
-                filename = str(uuid.uuid4()) + \
-                    secure_filename(attachment.filename)
-                attachment.save(os.path.join(upload_folder, filename))
-            else:
-                filename = None  # O manejar el caso de que no haya archivo
+            filename = None  # Inicializar filename
+            if attachment and attachment.filename:  # Verificar que se haya subido un archivo válido
+                try:
+                    # Importar app para acceder a la configuración
+                    from flask import current_app
+                    upload_folder = current_app.config['UPLOAD_FOLDER']
+                    
+                    # Crear nombre único para el archivo
+                    filename = str(uuid.uuid4()) + '_' + secure_filename(attachment.filename)
+                    
+                    # Asegurar que la carpeta existe
+                    os.makedirs(upload_folder, exist_ok=True)
+                    
+                    # Guardar el archivo
+                    file_path = os.path.join(upload_folder, filename)
+                    attachment.save(file_path)
+                    
+                    print(f"Archivo guardado: {file_path}")
+                except Exception as e:
+                    print(f"Error al guardar archivo: {e}")
+                    filename = None
 
             current_date = datetime.now()
 
@@ -2047,6 +2061,7 @@ def transactions():
             return render_template('transactions.html', concepts=concepts, user_role=user_role, user_id=user_id)
     else:
         return "Acceso no autorizado."
+
 
 
 @routes.route('/modify-transaction/<int:transaction_id>', methods=['POST'])

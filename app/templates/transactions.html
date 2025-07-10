@@ -63,7 +63,8 @@
                             <label for="photo" style="color:#272727;" class="form-label">Subir foto:</label>
                             <input type="file" class="form-control" id="photo" accept="image/*" capture="user" name="photo">
                         </div>
-                        <button class="c-btn c-btn-primary mb-4" disabled type="submit">Enviar</button>
+                        
+                        <button class="c-btn c-btn-primary mb-4" type="submit">Enviar</button>
                 </form>
             </div>
         </div>
@@ -158,6 +159,7 @@
             submitButton.setAttribute('disabled', 'disabled');
         }
     }
+    
 
     function filterConceptOptions(transactionType) {
         console.log("Transaction Type:", transactionType);
@@ -173,5 +175,6 @@
         });
     }
 </script>
+
 
 {% endblock %}
