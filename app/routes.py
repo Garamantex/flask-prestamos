@@ -783,21 +783,21 @@ def confirm_payment():
             if remaining_payment <= 0:
                 break
             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
-                if installment.amount <= remaining_payment:
+                # Calcular cuánto falta para completar la cuota
+                missing = installment.amount
+                if remaining_payment >= missing:
+                    # Se completa la cuota
                     installment.status = InstallmentStatus.PAGADA
-                    installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
-                    remaining_payment -= installment.amount
-                    payment = Payment(amount=installment.amount, payment_date=datetime.now(),
-                                      installment_id=installment.id)
+                    installment.payment_date = datetime.now()
+                    payment = Payment(amount=missing, payment_date=datetime.now(), installment_id=installment.id)
+                    db.session.add(payment)
                     installment.amount = 0
+                    remaining_payment -= missing
                 else:
-                    # Si el pago es mayor que la cuota actual, se distribuye el excedente
-                    # en las siguientes cuotas hasta completar el pago
+                    # Solo se abona una parte
                     installment.status = InstallmentStatus.ABONADA
                     installment.amount -= remaining_payment
-                    # Crear el pago asociado a este abono parcial
-                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(),
-                                      installment_id=installment.id)
+                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(), installment_id=installment.id)
                     db.session.add(payment)
                     remaining_payment = 0
                 # Crear el pago asociado a esta cuota
@@ -989,10 +989,14 @@ def payments_list(user_id):
                 ).order_by(LoanInstallment.due_date.asc()).first()
 
                 # Obtener la primera cuota de cada cliente y su valor
-                first_installment = LoanInstallment.query.filter(
-                    LoanInstallment.loan_id == loan.id,
-                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA])
-                ).order_by(LoanInstallment.due_date.asc()).first()
+                # Excluir préstamos creados el mismo día
+                if loan.creation_date.date() != datetime.now().date():
+                    first_installment = LoanInstallment.query.filter(
+                        LoanInstallment.loan_id == loan.id,
+                        LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA])
+                    ).order_by(LoanInstallment.due_date.asc()).first()
+                else:
+                    first_installment = None
 
                 print("First Installment: ", first_installment)
 
@@ -1065,7 +1069,7 @@ def payments_list(user_id):
                     'Last Loan Modification Date': last_loan_modification_date.modification_date.isoformat() if last_loan_modification_date else None,
                     'Previous Installment Paid Amount': previous_installment_paid_amount,
                     'Current Date': current_date,
-                    'First Installment Value': first_installment.fixed_amount if first_installment else 0,
+                    'First Installment Value': first_installment.fixed_amount if first_installment and first_installment is not None else 0,
                     'First Modification Date': client.first_modification_date.isoformat() if client.first_modification_date else None,
                 }
 
@@ -1082,18 +1086,26 @@ def payments_list(user_id):
 
                 print("First Installment: ", first_installment_paid)
 
-                total_installment_value_paid = sum(
-                    payment.amount for payment in first_installment_paid.payments)
+                # Verificar que first_installment_paid no sea None antes de acceder a sus pagos
+                if first_installment_paid is not None:
+                    total_installment_value_paid = sum(
+                        payment.amount for payment in first_installment_paid.payments)
 
-                print("Total Installment Value Paid: ",
-                      total_installment_value_paid)
+                    print("Total Installment Value Paid: ",
+                          total_installment_value_paid)
 
-                # Agrega la información del cliente y su crédito a la lista de información de clientes
-                client_information_paid = {
-                    'Total Installment Value Paid': total_installment_value_paid,
-                }
+                    # Agrega la información del cliente y su crédito a la lista de información de clientes
+                    client_information_paid = {
+                        'Total Installment Value Paid': total_installment_value_paid,
+                    }
 
-                clients_information_paid.append(client_information_paid)
+                    clients_information_paid.append(client_information_paid)
+                else:
+                    # Si no hay cuotas, agregar un valor por defecto
+                    client_information_paid = {
+                        'Total Installment Value Paid': 0,
+                    }
+                    clients_information_paid.append(client_information_paid)
 
     # Obtén el término de búsqueda del formulario
     search_term = request.args.get('search', '')
@@ -1195,8 +1207,16 @@ def get_loan_details(loan_id):
     valor_total = loan.amount + (loan.amount * loan.interest / 100)
 
     # SE DEBE MODIFICAR EL CALCULO DE LA SUMA DEL SALDO PENDIENTE
-    saldo_pendiente = valor_total - sum(
-        installment.fixed_amount for installment in installments if installment.status == InstallmentStatus.PAGADA)
+    # Calcular la suma de todos los pagos realizados para este préstamo
+    total_pagos_realizados = db.session.query(func.sum(Payment.amount)).join(
+        LoanInstallment, Payment.installment_id == LoanInstallment.id
+    ).filter(
+        LoanInstallment.loan_id == loan_id
+    ).scalar() or 0
+    
+    saldo_pendiente = valor_total - total_pagos_realizados
+
+        
 
     # Formatear los valores sin decimales
     valor_total = int(valor_total)
@@ -3234,21 +3254,21 @@ def edit_payment(loan_id):
             if remaining_payment <= 0:
                 break
             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
-                if installment.amount <= remaining_payment:
+                # Calcular cuánto falta para completar la cuota
+                missing = installment.amount
+                if remaining_payment >= missing:
+                    # Se completa la cuota
                     installment.status = InstallmentStatus.PAGADA
-                    installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
-                    remaining_payment -= installment.amount
-                    payment = Payment(amount=installment.amount, payment_date=datetime.now(),
-                                      installment_id=installment.id)
+                    installment.payment_date = datetime.now()
+                    payment = Payment(amount=missing, payment_date=datetime.now(), installment_id=installment.id)
+                    db.session.add(payment)
                     installment.amount = 0
+                    remaining_payment -= missing
                 else:
-                    # Si el pago es mayor que la cuota actual, se distribuye el excedente
-                    # en las siguientes cuotas hasta completar el pago
+                    # Solo se abona una parte
                     installment.status = InstallmentStatus.ABONADA
                     installment.amount -= remaining_payment
-                    # Crear el pago asociado a este abono parcial
-                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(),
-                                      installment_id=installment.id)
+                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(), installment_id=installment.id)
                     db.session.add(payment)
                     remaining_payment = 0
                 # Crear el pago asociado a esta cuota
