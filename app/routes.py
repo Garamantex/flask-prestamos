@@ -403,7 +403,7 @@ def create_client(user_id):
         employee = Employee.query.filter_by(user_id=user_id).first()
         role = session.get('role')
 
-        print(employee.box_value)
+                    # print(employee.box_value)
 
         if not employee or not (role == Role.COORDINADOR.value or role == Role.VENDEDOR.value):
             return redirect(url_for('routes.menu_salesman'))
@@ -496,7 +496,7 @@ def create_client(user_id):
     except Exception as e:
         # Manejo de excepciones: mostrar un mensaje de error y registrar la excepción
         error_message = str(e)
-        print(error_message)
+        # print(error_message)
         return render_template('error.html', error_message=error_message), 500
 
 
@@ -551,10 +551,10 @@ def edit_client(client_id):
 @routes.route('/client-list/<int:user_id>', methods=['GET', 'POST'])
 def client_list(user_id):
     user_id = user_id
-    print(user_id)
+            # print(user_id)
     user = User.query.get(user_id)
     role = user.role.value
-    print(role)
+            # print(role)
     if user and (user.role.value == Role.COORDINADOR.value or user.role.value == Role.VENDEDOR.value):
         employee = Employee.query.filter_by(user_id=user_id).first()
 
@@ -691,7 +691,7 @@ def credit_detail(id):
     loans = Loan.query.all()  # Obtener todos los créditos
     loan_detail = get_loan_details(id)
 
-    print(loan_detail)
+            # print(loan_detail)
 
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
                            loan_detail=loan_detail, payments=payments, user_id=session['user_id'])
@@ -904,8 +904,12 @@ def payments_list(user_id):
     # La cantidad de clientes con pagos hoy es el tamaño del set
     all_loans_paid_count = len(clients_with_payments_today)
 
-    active_loans_count = Loan.query.filter_by(
-        employee_id=employee.id, status=True).count()
+    # Contar préstamos activos (status=True) más los inactivos modificados hoy
+    active_loans_count = db.session.query(Loan).filter(
+        Loan.employee_id == employee.id,
+        (Loan.status == True) | 
+        ((Loan.status == False) & (func.date(Loan.modification_date) == datetime.now().date()))
+    ).count()
 
     if active_loans_count == all_loans_paid_count:
         all_loans_paid_today = True
@@ -998,7 +1002,7 @@ def payments_list(user_id):
                 else:
                     first_installment = None
 
-                print("First Installment: ", first_installment)
+                # print("First Installment: ", first_installment)
 
                 # Encuentra la fecha de modificación más reciente del préstamo
                 last_loan_modification_date = Loan.query.filter_by(client_id=client.id).order_by(
@@ -1084,15 +1088,15 @@ def payments_list(user_id):
                     LoanInstallment.loan_id == loan.id
                 ).order_by(LoanInstallment.due_date.asc()).first()
 
-                print("First Installment: ", first_installment_paid)
+                # print("First Installment: ", first_installment_paid)
 
                 # Verificar que first_installment_paid no sea None antes de acceder a sus pagos
                 if first_installment_paid is not None:
                     total_installment_value_paid = sum(
                         payment.amount for payment in first_installment_paid.payments)
 
-                    print("Total Installment Value Paid: ",
-                          total_installment_value_paid)
+                    # print("Total Installment Value Paid: ",
+                    #       total_installment_value_paid)
 
                     # Agrega la información del cliente y su crédito a la lista de información de clientes
                     client_information_paid = {
@@ -1127,7 +1131,7 @@ def payments_list(user_id):
         client_info_paid['Total Installment Value Paid'] for client_info_paid in clients_information_paid
     )
 
-    print("Valor total de las cuotas pagadas: ", paid_total_installment_value)
+            # print("Valor total de las cuotas pagadas: ", paid_total_installment_value)
 
     porcentaje_cobro = int(total_collections_today / total_installment_value *
                            100) if total_installment_value != 0 else 0
@@ -1374,7 +1378,7 @@ def box():
             employee_userid = User.query.get(employee.user_id)
             role_employee = employee_userid.role.value
 
-            print(role_employee)
+            # print(role_employee)
 
             # Obtener el valor inicial de la caja del vendedor
             employee_records = EmployeeRecord.query.filter_by(
@@ -1679,7 +1683,7 @@ def box():
                         float(total_expenses),
         }
 
-        print("Gastos: ", expense_details)
+        # print("Gastos: ", expense_details)
 
         # print(salesmen_stats)
 
@@ -2016,7 +2020,7 @@ def transactions():
             # Manejar la creación de la transacción
             transaction_type = request.form.get('transaction_type')
 
-            print(transaction_type)
+            # print(transaction_type)
 
             if transaction_type != 'GASTO':
                 approval_status = "APROBADA"
@@ -2046,9 +2050,9 @@ def transactions():
                     file_path = os.path.join(upload_folder, filename)
                     attachment.save(file_path)
                     
-                    print(f"Archivo guardado: {file_path}")
+                    # print(f"Archivo guardado: {file_path}")
                 except Exception as e:
-                    print(f"Error al guardar archivo: {e}")
+                    # print(f"Error al guardar archivo: {e}")
                     filename = None
 
             current_date = datetime.now()
@@ -2086,7 +2090,7 @@ def transactions():
 
 @routes.route('/modify-transaction/<int:transaction_id>', methods=['POST'])
 def modify_transaction(transaction_id):
-    print(transaction_id)
+            # print(transaction_id)
 
     try:
         with db.session.no_autoflush:
@@ -2120,7 +2124,7 @@ def modify_transaction(transaction_id):
                     return redirect('/approval-expenses')
 
             employee_id = transaction.employee_id
-            print(employee_id)
+            # print(employee_id)
             employee = Employee.query.get(employee_id)
             if not employee:
                 return jsonify({'message': 'Empleado no encontrado'}), 404
@@ -2128,7 +2132,7 @@ def modify_transaction(transaction_id):
             user_id = employee.user_id
             user_role = User.query.get(user_id).role
 
-            print(user_role.value)
+            # print(user_role.value)
 
             TransactionType = transaction.transaction_types
 
@@ -2881,16 +2885,16 @@ def add_employee_record(employee_id):
             # Agregar la instancia a la sesión de la base de datos y guardar los cambios
             db.session.add(employee_record)
             db.session.commit()
-            print("Caja Cerrada y Guarda Correctamente")
+            # print("Caja Cerrada y Guarda Correctamente")
 
         else:
             if employee_status == 1 and all_loans_paid_today == False:
-                print("Empleado NO completo el camello")
+                # print("Empleado NO completo el camello")
                 message = "desactivada"
                 success = False
                 employee.status = 0
             else:
-                print("Caja Abierta")
+                # print("Caja Abierta")
                 employee.status = 1
 
             # Guardar los cambios en la base de datos
@@ -3141,16 +3145,16 @@ def add_daily_collected(employee_id):
             # Agregar la instancia a la sesión de la base de datos y guardar los cambios
             db.session.add(employee_record)
             db.session.commit()
-            print("Caja Cerrada y Guarda Correctamente")
+            # print("Caja Cerrada y Guarda Correctamente")
 
         else:
             if employee_status == 1 and all_loans_paid_today == False:
-                print("Empleado NO completo el camello")
+                # print("Empleado NO completo el camello")
                 message = "desactivada"
                 success = False
                 employee.status = 0
             else:
-                print("Caja Abierta")
+                # print("Caja Abierta")
                 employee.status = 1
 
             # Guardar los cambios en la base de datos
@@ -3653,7 +3657,15 @@ def add_manager_record():
         manager_array = Employee.query.filter_by(user_id=user_id).first()
         manager_id = manager_array.id
         
-        print("Manager ID: ", manager_id);
+        # print("Manager ID: ", manager_id);
+
+        # Verificar si ya existe un registro para este empleado en la fecha actual
+        existing_record = EmployeeRecord.query.filter_by(employee_id=manager_id) \
+            .filter(func.date(EmployeeRecord.creation_date) == current_date).first()
+        
+        if existing_record:
+            print(f"Ya existe un registro para el coordinador {manager_id} en la fecha {current_date}. Omitiendo...")
+            continue
 
         # Inicializar las variables
         initial_state = 0.0
@@ -3681,7 +3693,7 @@ def add_manager_record():
         # Usar el valor de la caja del manager como el estado inicial
         initial_state = manager_box_value
         
-        print("Caja Inicial: ", initial_state)
+        # print("Caja Inicial: ", initial_state)
 
         # Obtener Gastos del Coordinador
         transaction_expenses_today = Transaction.query.filter_by(employee_id=manager_id, transaction_types=TransactionType.GASTO,
@@ -3782,7 +3794,7 @@ def add_manager_record():
         # Guardar los cambios en la base de datos
         db.session.add(employee_record)
         db.session.commit()
-        print("Caja COORDINADORES Cerrada y Guarda Correctamente")
+        # print("Caja COORDINADORES Cerrada y Guarda Correctamente")
 
     # GUARDAR CAJAS DE LOS VENDEDORES
     for user in users_salesman:
@@ -3791,6 +3803,14 @@ def add_manager_record():
         employee = Employee.query.filter_by(user_id=user_id).first()
         employee_status = employee.status
         employee_id = employee.id
+
+        # Verificar si ya existe un registro para este empleado en la fecha actual
+        existing_record = EmployeeRecord.query.filter_by(employee_id=employee_id) \
+            .filter(func.date(EmployeeRecord.creation_date) == current_date).first()
+        
+        if existing_record:
+            print(f"Ya existe un registro para el vendedor {employee_id} en la fecha {current_date}. Omitiendo...")
+            continue
 
         # Inicializar las variables
         initial_state = 0
@@ -3971,7 +3991,7 @@ def add_manager_record():
         db.session.add(employee)
         db.session.add(employee_record)
         db.session.commit()
-        print(f"Caja VENDEDOR {employee_id} Cerrada y Guarda Correctamente.")
+        # print(f"Caja VENDEDOR {employee_id} Cerrada y Guarda Correctamente.")
 
     return render_template('add-manager-record.html')
 
@@ -4025,7 +4045,7 @@ def history_box_detail(employee_id):
     except ValueError:
         return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
 
-    print("Employee ID: ", employee_id)
+            # print("Employee ID: ", employee_id)
     
     # Obtener el rol y el user_id del empleado
     employee = Employee.query.get(employee_id)
@@ -4035,8 +4055,8 @@ def history_box_detail(employee_id):
     role = employee.user.role.name
     user_id = employee.user_id
     
-    print("Role: ", role)
-    print("User ID: ", user_id)
+            # print("Role: ", role)
+            # print("User ID: ", user_id)
     
     # Verificar si el employee_id existe en la base de datos
     employee = Employee.query.get(employee_id)
@@ -4230,7 +4250,7 @@ def history_box_detail(employee_id):
 def reports():
     # Obtener el user_id del usuario desde la sesión
     user_id = session.get('user_id')
-    print("user_id: ", user_id)
+            # print("user_id: ", user_id)
     try:
         # Buscar el manager_id asociado al user_id en la tabla Salesman
         salesman = Salesman.query.filter_by(employee_id=user_id).first()
@@ -4239,7 +4259,7 @@ def reports():
 
         manager_id = salesman.manager_id
         
-        print("manager_id: ", manager_id)
+        # print("manager_id: ", manager_id)
         
         # Obtener parámetros de la solicitud
         start_date = request.args.get('start_date')
@@ -4373,7 +4393,7 @@ def reports():
         return render_template("reports.html", report_data=report_data, salesmen=salesmen, user_id=user_id)
 
     except Exception as e:
-        print("Error en reports:", str(e))
+        # print("Error en reports:", str(e))
         return render_template("reports.html", user_id=user_id)
 
 
