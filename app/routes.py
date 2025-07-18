@@ -1415,6 +1415,10 @@ def box():
 
             for client in employee.clients:
                 for loan in client.loans:
+                    # Excluir préstamos creados hoy mismo
+                    if loan.creation_date.date() == datetime.now().date():
+                        continue
+                    
                     if loan.status:
                         # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
                         pending_installment = LoanInstallment.query.filter(
