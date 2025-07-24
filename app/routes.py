@@ -963,6 +963,8 @@ def payments_list(user_id):
                 paid_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
                                                                     status=InstallmentStatus.PAGADA).count()
 
+                print(paid_installments)
+
                 # Calcula el número de cuotas vencidas
                 overdue_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
                                                                        status=InstallmentStatus.MORA).count()
@@ -991,6 +993,8 @@ def payments_list(user_id):
                     LoanInstallment.status.in_(
                         [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
                 ).order_by(LoanInstallment.due_date.asc()).first()
+
+
 
                 # Obtener la primera cuota de cada cliente y su valor
                 # Excluir préstamos creados el mismo día
@@ -1063,7 +1067,7 @@ def payments_list(user_id):
                     'Next Installment Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
                     'Next Installment Date front': last_pending_installment.due_date.strftime(
                         '%Y-%m-%d') if last_pending_installment else '0',
-                    'Cuota Number': last_pending_installment.installment_number if last_pending_installment else 0,
+                    'Cuota Number': paid_installments,
                     # Agrega el número de la cuota actual
                     'Due Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
                     # Agrega la fecha de vencimiento de la cuota
@@ -2058,6 +2062,18 @@ def transactions():
                 except Exception as e:
                     # print(f"Error al guardar archivo: {e}")
                     filename = None
+            else:
+                # Si no se subió archivo, usar imagen fallback
+                from flask import current_app
+                upload_folder = current_app.config['UPLOAD_FOLDER']
+                fallback_path = os.path.join('app', 'static', 'images', 'black_bg.png')
+                fallback_filename = 'black_bg.png'
+                fallback_dest = os.path.join(upload_folder, fallback_filename)
+                os.makedirs(upload_folder, exist_ok=True)
+                if not os.path.exists(fallback_dest):
+                    import shutil
+                    shutil.copyfile(fallback_path, fallback_dest)
+                filename = fallback_filename
 
             current_date = datetime.now()
 
