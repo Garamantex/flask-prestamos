@@ -963,6 +963,8 @@ def payments_list(user_id):
                 paid_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
                                                                     status=InstallmentStatus.PAGADA).count()
 
+                print(paid_installments)
+
                 # Calcula el número de cuotas vencidas
                 overdue_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
                                                                        status=InstallmentStatus.MORA).count()
@@ -991,6 +993,8 @@ def payments_list(user_id):
                     LoanInstallment.status.in_(
                         [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
                 ).order_by(LoanInstallment.due_date.asc()).first()
+
+
 
                 # Obtener la primera cuota de cada cliente y su valor
                 # Excluir préstamos creados el mismo día
@@ -1063,7 +1067,7 @@ def payments_list(user_id):
                     'Next Installment Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
                     'Next Installment Date front': last_pending_installment.due_date.strftime(
                         '%Y-%m-%d') if last_pending_installment else '0',
-                    'Cuota Number': last_pending_installment.installment_number if last_pending_installment else 0,
+                    'Cuota Number': paid_installments,
                     # Agrega el número de la cuota actual
                     'Due Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
                     # Agrega la fecha de vencimiento de la cuota
@@ -2058,6 +2062,18 @@ def transactions():
                 except Exception as e:
                     # print(f"Error al guardar archivo: {e}")
                     filename = None
+            else:
+                # Si no se subió archivo, usar imagen fallback
+                from flask import current_app
+                upload_folder = current_app.config['UPLOAD_FOLDER']
+                fallback_path = os.path.join('app', 'static', 'images', 'black_bg.png')
+                fallback_filename = 'black_bg.png'
+                fallback_dest = os.path.join(upload_folder, fallback_filename)
+                os.makedirs(upload_folder, exist_ok=True)
+                if not os.path.exists(fallback_dest):
+                    import shutil
+                    shutil.copyfile(fallback_path, fallback_dest)
+                filename = fallback_filename
 
             current_date = datetime.now()
 
@@ -2186,77 +2202,68 @@ def wallet():
     # Initialize variables
     total_cash = 0
     total_active_sellers = 0
-    sellers_detail = []
-
     user_id = session.get('user_id')
 
-    # Get all coordinators
-    coordinators = Manager.query.all()
+    # Obtener el administrador principal (usuario logueado)
+    main_admin = Manager.query.filter_by(employee_id=user_id).first()
+    subadmins = Manager.query.filter(Manager.employee_id != user_id).all()
 
-    for coordinator in coordinators:
-        # Get sellers associated with this coordinator
-        sellers = Salesman.query.filter_by(manager_id=coordinator.id).all()
-        total_max_cash = 0
-        total_active_loans = 0
-        total_overdue_installments = 0
-        total_pending_installments = 0
-        day_collection = 0
-        debt_balance = 0
-
+    def get_boxes_for_manager(manager):
+        sellers = Salesman.query.filter_by(manager_id=manager.id).all()
+        boxes = []
         for seller in sellers:
-            # Calculate the total number of sellers with active loans
-            if len(seller.employee.clients) > 0:
-                total_active_sellers += 1
-
-            # Calculate the total of maximum_cash for sellers
-            total_max_cash += float(seller.employee.maximum_cash)
-
-            # Calculate the detail for each seller
             seller_info = {
-                'Employee ID': seller.employee.id,  # Add the Employee ID
+                'Employee ID': seller.employee.id,
                 'First Name': seller.employee.user.first_name,
                 'Last Name': seller.employee.user.last_name,
-                'Number of Active Loans': 0,  # Initialize to 0
+                'Number of Active Loans': 0,
                 'Total Amount of Overdue Loans': 0,
                 'Total Amount of Pending Installments': 0,
             }
-
-            # Get clients associated with this seller
             clients = seller.employee.clients
-
             for client in clients:
-                active_loans = Loan.query.filter_by(
-                    client_id=client.id, status=True).count()
-                # print(active_loans)
+                active_loans = Loan.query.filter_by(client_id=client.id, status=True).count()
                 seller_info['Number of Active Loans'] += active_loans
-
                 for loan in client.loans:
                     for installment in loan.installments:
                         if installment.status == InstallmentStatus.MORA:
-                            seller_info['Total Amount of Overdue Loans'] += float(
-                                loan.amount)
+                            seller_info['Total Amount of Overdue Loans'] += float(loan.amount)
                         elif installment.status == InstallmentStatus.PENDIENTE:
-                            seller_info['Total Amount of Pending Installments'] += float(
-                                installment.amount)
+                            seller_info['Total Amount of Pending Installments'] += float(installment.amount)
+            boxes.append(seller_info)
+        return boxes
 
-            sellers_detail.append(seller_info)
+    # Cajas del admin principal
+    main_admin_boxes = get_boxes_for_manager(main_admin) if main_admin else []
+    # Cajas de subadmins
+    subadmins_list = []
+    for subadmin in subadmins:
+        subadmins_list.append({
+            'name': f"{subadmin.employee.user.first_name} {subadmin.employee.user.last_name}",
+            'boxes': get_boxes_for_manager(subadmin)
+        })
 
-        # Calculate the total cash associated with sellers of the coordinator
-        total_cash += total_max_cash
+    # Solo incluir main_admin si no es None
+    managers_to_sum = [main_admin] if main_admin else []
+    managers_to_sum += subadmins
 
-    # Calculate the percentage of the day's collection based on Installments PAGADA
-    # This is calculated by summing the Installments PAGADA and dividing it by the debt balance
-    paid_installments = LoanInstallment.query.filter_by(
-        status=InstallmentStatus.PAGADA).count()
-    debt_balance = total_cash  # Assuming the debt balance is equal to the total cash
-    if debt_balance > 0:
-        day_collection = (paid_installments / debt_balance) * 100
+    # Totales generales (puedes ajustar según lo que quieras mostrar)
+    total_cash = sum([sum([b['Total Amount of Pending Installments'] for b in get_boxes_for_manager(m)]) for m in managers_to_sum])
+    total_active_sellers = sum([len(get_boxes_for_manager(m)) for m in managers_to_sum])
 
-    # Create the final dictionary with the requested data
+    # Porcentaje de recaudación del día (puedes ajustar la lógica si es necesario)
+    paid_installments = LoanInstallment.query.filter_by(status=InstallmentStatus.PAGADA).count()
+    debt_balance = total_cash
+    day_collection = (paid_installments / debt_balance) * 100 if debt_balance > 0 else 0
+
     wallet_data = {
+        'main_admin': {
+            'name': f"{main_admin.employee.user.first_name} {main_admin.employee.user.last_name}" if main_admin else 'Sin administrador',
+            'boxes': main_admin_boxes
+        },
+        'subadmins': subadmins_list,
         'Total Cash Value': str(total_cash),
         'Total Sellers with Active Loans': total_active_sellers,
-        'Sellers Detail': sellers_detail,
         'Percentage of Day Collection': f'{day_collection:.2f}%',
         'Debt Balance': str(debt_balance)
     }
@@ -2266,6 +2273,7 @@ def wallet():
 
 @routes.route('/wallet-detail/<int:employee_id>', methods=['GET'])
 def wallet_detail(employee_id):
+    show_all = request.args.get('show_all', '0') == '1'
     # Obtener el empleado
     employee = Employee.query.filter_by(id=employee_id).first()
     if not employee:
@@ -2276,34 +2284,31 @@ def wallet_detail(employee_id):
     total_overdue_amount = 0
     loans_detail = []
 
-    # Obtener todos los préstamos
-    loans = Loan.query.all()
+    # Obtener préstamos según el toggle
+    if show_all:
+        loans = Loan.query.all()
+    else:
+        loans = Loan.query.filter_by(status=True).all()
 
     for loan in loans:
         # Obtener el vendedor asociado al préstamo
         seller = Salesman.query.filter_by(employee_id=loan.employee_id).first()
-
         # Obtener el cliente asociado al préstamo
         client = Client.query.filter_by(id=loan.client_id).first()
-
         # Calcular el valor total del préstamo (suma de cuotas en PENDIENTE o MORA)
         total_loan_amount = 0
         total_overdue_amount_loan = 0
         total_overdue_installments_loan = 0
         total_paid_installments_loan = 0
-
         # Obtener el total de cuotas del préstamo
         total_installments_loan = len(loan.installments)
-
         for installment in loan.installments:
             total_loan_amount += float(installment.amount)
-
             if installment.status == InstallmentStatus.MORA:
                 total_overdue_amount_loan += float(installment.amount)
                 total_overdue_installments_loan += 1
             elif installment.status == InstallmentStatus.PAGADA:
                 total_paid_installments_loan += 1
-
         # Detalle de cada préstamo
         loan_info = {
             'Seller First Name': seller.employee.user.first_name,
@@ -2317,20 +2322,17 @@ def wallet_detail(employee_id):
             'Paid Installments Count': total_paid_installments_loan,
             'Total Installments': total_installments_loan
         }
-
         loans_detail.append(loan_info)
-
         # Incrementar el contador de préstamos y el valor total de préstamos pendientes o en mora
         total_loans += 1
         total_overdue_amount += total_overdue_amount_loan
-
     # Crear un diccionario con los datos solicitados
     wallet_detail_data = {
         'Total Loans': total_loans,
         'Total Overdue Amount': str(total_overdue_amount),
         'Loans Detail': loans_detail,
     }
-    return render_template('wallet-detail.html', wallet_detail_data=wallet_detail_data)
+    return render_template('wallet-detail.html', wallet_detail_data=wallet_detail_data, user_id=employee_id, show_all=show_all)
 
 
 @routes.route('/list-expenses')
@@ -3251,7 +3253,7 @@ def edit_payment(loan_id):
         # Actualizar el estado del préstamo y el campo up_to_date
         loan.status = False  # 0 indica que el préstamo está pagado en su totalidad
         loan.up_to_date = True
-        loan.modification_date = datetime.now()  # El préstamo está al día
+        # loan.modification_date = datetime.now()  # El préstamo está al día
         db.session.commit()
         return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
         
@@ -3282,9 +3284,9 @@ def edit_payment(loan_id):
                 # Crear el pago asociado a esta cuota
                 db.session.add(payment)
         # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
-        loan.modification_date = datetime.now()
-        if client.first_modification_date != datetime.now().date():
-            client.first_modification_date = datetime.now()
+        # loan.modification_date = datetime.now()
+        # if client.first_modification_date != datetime.now().date():
+            # client.first_modification_date = datetime.now()
         client.debtor = False
         db.session.commit()
 
