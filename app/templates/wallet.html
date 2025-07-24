@@ -2,53 +2,122 @@
 
 {% block content %}
 <div class="c-form">
-    <div class="container pt-5">
-        <div class="row">
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver</a>
+    <div class="container pt-4 pb-2">
+        <div class="row mb-2">
+            <div class="col-6 pr-1">
+                <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver</a>
             </div>
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
-            </div>
-        </div>
-        <div class="row mt-4">
-            <div class="col">
-                <h2 class="c-cajas__item__title c-headings c-headings__h2">Total Créditos</h2>
-                <h4 class="c-cajas__item__title c-headings c-headings__h4">Valor Total cajas: $5000</h4>
-                <h4 class="c-cajas__item__title c-headings c-headings__h4"># Total cajas: 2</h4>
+            <div class="col-6 pl-1">
+                <a class="c-btn c-btn-primary c-btn-block mb-2" href="/">Salir</a>
             </div>
         </div>
-
-        {% for seller_info in wallet_data['Sellers Detail'] %}
-        <div class="row mt-4">
-            <div class="col">
-                <div class="c-card">
-                    <div class="card-header mb-4">
-                        <h4>Vendedor: {{ seller_info['First Name'] }} {{ seller_info['Last Name'] }}</h4>
-                        <hr>
+        <div class="row mb-2">
+            <div class="col-12">
+                <h2 class="c-cajas__item__title c-headings c-headings__h2 text-center mb-2">Cartera {{ wallet_data['main_admin']['name'] }}</h2>
+                <div class="c-card mb-3 p-3" style="background: #e5e5e5;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><b>Créditos</b></span>
+                        <span><b>#</b> {{ wallet_data['Total Sellers with Active Loans'] }}</span>
+                        <span><b>$</b> {{ wallet_data['Total Cash Value']|moneda_cl }}</span>
                     </div>
-                    
-                        <div class="c-card__box-mannager pt-4">
-                            <div class="c-card__internal">
-                                <h5>Debió Cobrar</h5>
-                                <p># de Créditos: {{ seller_info['Number of Active Loans'] }}</p>
-                                <p>Valor de los Créditos: ${{ seller_info['Total Amount of Pending Installments'] }}</p>
-                                <p>% Recaudado: {{ seller_info['Percentage of Day Collection'] }}</p>
-                            </div>
-                            <div class="c-card__internal">
-                                <h5>Cartera</h5>
-                                <p>Valor Créditos Vencidos: ${{ seller_info['Total Amount of Overdue Loans'] }}</p>
-                                <!-- Agrega otros campos de la cartera si es necesario -->
-                            </div>
-                            <div style="width: 100%; " class="pt-4">
-                                <a href="/wallet-detail/{{ seller_info['Employee ID'] }}" class="c-btn c-btn-primary btn-pagar">Ir al Detalle</a>
-                            </div>
-                        </div>
-                    
                 </div>
             </div>
         </div>
-        {% endfor %}
+
+        <!-- Cajas del administrador principal 
+        <div class="row mb-2">
+            <div class="col-12">
+                <h4 class="c-headings c-headings__h4 mb-2">Cajas del Administrador Principal</h4>
+                {% if wallet_data['main_admin']['boxes'] %}
+                    {% for box in wallet_data['main_admin']['boxes'] %}
+                    <div class="c-card mb-3 p-3" style="padding: 1rem;">
+                        <div class="card-header mb-2 p-0"><b>Vendedor:</b> {{ box['First Name'] }} {{ box['Last Name'] }}</div>
+                        <div class="c-card__box-mannager pt-2 d-flex flex-column flex-md-row justify-content-between" style="gap: 1rem;">
+                            <div class="c-card__internal flex-fill">
+                                <h5>Debido Cobrar</h5>
+                                <p>Cantidad: {{ box['Number of Active Loans'] }}</p>
+                                <p>Valor: ${{ box['Total Amount of Pending Installments'] }}</p>
+                                <p>Porcentaje: 0 %</p>
+                            </div>
+                            <div class="c-card__internal flex-fill">
+                                <h5>Cartera</h5>
+                                <p>Vencido: ${{ box['Total Amount of Overdue Loans'] }}</p>
+                                <p>Valor: ${{ box['Total Amount of Pending Installments'] }}</p>
+                                <p>Saldo: ${{ box['Total Amount of Pending Installments'] }}</p>
+                            </div>
+                            <div class="d-flex align-items-center flex-fill justify-content-end">
+                                <a href="/wallet-detail/{{ box['Employee ID'] }}" class="c-btn c-btn-primary btn-pagar w-100">Ir al Detalle</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">No hay cajas para el administrador principal.</div>
+                {% endif %}
+            </div>
+        </div> -->
+
+        <!-- Subadministradores y sus cajas en accordions -->
+        <div class="row mb-2">
+            <div class="col-12">
+                <h4 class="c-headings c-headings__h4 mb-2">Cajas</h4>
+                <div id="accordionSubadmins">
+                    {% for subadmin in wallet_data['subadmins'] %}
+                    <div class="card mb-2" style="border-radius: 0.5rem; overflow: hidden;">
+                        <div class="card-header p-0" id="heading{{ loop.index }}">
+                            <h5 class="mb-0 d-flex align-items-center" style="padding: 1rem;">
+                                <button class="btn btn-link w-100 text-left" type="button" data-toggle="collapse" data-target="#collapse{{ loop.index }}" aria-expanded="false" aria-controls="collapse{{ loop.index }}" style="font-size: 1.1rem;">
+                                    <span><b>Administrador:</b> {{ subadmin['name'] }}</span>
+                                    <span class="float-right ml-2"><i class="fa fa-medal" style="color: #e57373;"></i></span>
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapse{{ loop.index }}" class="collapse" aria-labelledby="heading{{ loop.index }}" data-parent="#accordionSubadmins">
+                            <div class="card-body p-2" style="background: #f9f9f9;">
+                                {% if subadmin['boxes'] %}
+                                    {% for box in subadmin['boxes'] %}
+                                    <div class="c-card mb-3 p-3" style="padding: 1rem;">
+                                        <div class="card-header mb-2 p-0"><b>Vendedor:</b> {{ box['First Name'] }} {{ box['Last Name'] }}</div>
+                                        <div class="row">
+                                            <div class="c-card__internal col-12 col-md-6 mb-2 mb-md-0">
+                                                <h5>Debido Cobrar</h5>
+                                                <p>Cantidad: {{ box['Number of Active Loans'] }}</p>
+                                                <p>Valor: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
+                                                <p>Porcentaje: 0 %</p>
+                                            </div>
+                                            <div class="c-card__internal col-12 col-md-6">
+                                                <h5>Cartera</h5>
+                                                <p>Vencido: {{ box['Total Amount of Overdue Loans']|moneda_cl }}</p>
+                                                <p>Valor: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
+                                                <p>Saldo: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-12">
+                                                <a href="/wallet-detail/{{ box['Employee ID'] }}" class="c-btn c-btn-primary btn-pagar w-100">Ir al Detalle</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="alert alert-info">No hay cajas para este subadministrador.</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+// Asegura que solo un accordion esté abierto a la vez en mobile
+$(document).ready(function(){
+    $('#accordionSubadmins .collapse').on('show.bs.collapse', function () {
+        $('#accordionSubadmins .collapse').not(this).collapse('hide');
+    });
+});
+</script>
 {% endblock %}

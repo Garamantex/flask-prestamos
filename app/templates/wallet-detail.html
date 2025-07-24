@@ -2,72 +2,72 @@
 
 {% block content %}
 <div class="c-form">
-    <div class="container pt-5">
-        <div class="row">
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_manager') }}">Volver al menú</a>
+    <div class="container pt-3 pb-2">
+        <div class="row mb-2">
+            <div class="col-6 pr-1">
+                <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver</a>
             </div>
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
-            </div>
-        </div>
-        <div class="row mt-4">
-            <div class="col">
-                <h2 class="c-cajas__item__title c-headings c-headings__h2">Créditos Activos</h2>
+            <div class="col-6 pl-1">
+                <a class="c-btn c-btn-primary c-btn-block mb-2" href="/">Salir</a>
             </div>
         </div>
-
-        <div class="row mt-4">
-            <div class="col">
-                <div class="c-card">
-                    <div class="card-body">
+        <div class="row mb-2">
+            <div class="col-12">
+                <div class="c-card mb-2 p-3" style="background: #e5e5e5;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <span><b>Créditos</b></span>
+                        <span><b>#</b> {{ wallet_detail_data['Total Loans'] }}</span>
+                        <span><b>$</b> {{ '{:,.0f}'.format(wallet_detail_data['Total Overdue Amount']|float|int) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-12 text-center">
+                <form method="get" style="display:inline;">
+                    <input type="hidden" name="show_all" value="{{ 1 if show_all else 0 }}">
+                    <label style="display: inline-flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" name="show_all_toggle" onchange="this.form.show_all.value=this.checked?1:0; this.form.submit();" {% if show_all %}checked{% endif %} style="display:none;">
+                        <span style="width: 40px; height: 22px; background: #ccc; border-radius: 22px; position: relative; display: inline-block; margin-right: 10px; vertical-align: middle;">
+                            <span style="position: absolute; left: {% if show_all %}20px{% else %}2px{% endif %}; top: 2px; width: 18px; height: 18px; background: #0A1C47; border-radius: 50%; transition: left 0.2s;"></span>
+                        </span>
+                        <span style="font-size: 1rem; font-weight: 600;">{{ 'Todos los préstamos' if show_all else 'Solo activos' }}</span>
+                    </label>
+                </form>
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-12">
+                <div class="c-overflow" style="max-height: 65vh; overflow-y: auto;">
+                    {% for loan_info in wallet_detail_data['Loans Detail'] %}
+                    <div class="c-card mb-3 p-2" style="background: #fff;">
+                        <!-- Fila 1: Vendedor y Cliente -->
+                        <div class="row mb-1">
+                            <div class="col-6" style="font-size: 0.95rem; font-weight: 600;">
+                                <span style="color: #0A1C47;">#{{ loop.index }}</span>
+                                <span> Vendedor: <b>{{ loan_info['Seller First Name'] }} {{ loan_info['Seller Last Name'] }}</b></span>
+                            </div>
+                            <div class="col-6 text-right" style="font-size: 0.95rem;">
+                                Cliente: <b>{{ loan_info['Client First Name'] }} {{ loan_info['Client Last Name'] }}</b>
+                            </div>
+                        </div>
+                        <hr style="margin: 1rem 0;" />
+                        <!-- Fila 2: Saldos y Cuotas -->
                         <div class="row">
-                            <div class="col">
-                                <h5>Total Créditos:</h5>
-                                <p>{{ wallet_detail_data['Total Loans'] }}</p>
+                            <div class="col-6" style="font-size: 0.95rem;">
+                                <div>Saldo Inicial: <b>$ {{ '{:,.0f}'.format(loan_info['Loan Amount']|float|int) }}</b></div>
+                                <div>Saldo Vencido: <b>$ {{ '{:,.0f}'.format(loan_info['Total Overdue Amount']|float|int) }}</b></div>
                             </div>
-                            <div class="col">
-                                <h5>Valor Total de Créditos:</h5>
-                                <p>${{ wallet_detail_data['Total Overdue Amount'] }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {% for loan_info in wallet_detail_data['Loans Detail'] %}
-        <div class="row mt-4">
-            <div class="col">
-                <div class="c-card">
-                    <div class="card-header">
-                        <h4>Crédito #{{ loop.index }}</h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="c-card__box-mannager">
-                            <div class="c-card__internal">
-                                <p>{{ loan_info['Seller First Name'] }} {{ loan_info['Seller Last Name'] }}</p>
-                                <p>Cliente: {{ loan_info['Client First Name'] }} {{ loan_info['Client Last Name'] }}</p>
-                            </div>
-                            <div class="c-card__internal">
-                                <p>Saldo Inicial: $ {{ '{:,.0f}'.format(loan_info['Loan Amount']  | float | int) }}</p>
-                                <p>Saldo Vencido: $ {{ '{:,.0f}'.format(loan_info['Total Overdue Amount'] | float | int) }}</p>
-                            </div>
-                            <div class="c-card__internal">
-                                <h5>Cuotas</h5>
-                                <p>Cuotas Vencidas: {{ loan_info['Overdue Installments Count'] }}</p>
-                                <p>Total Cuotas Pagas: {{ loan_info['Paid Installments Count'] }}/{{ loan_info['Total Installments'] }}</p>
-                            </div>
-                            <div class="c-card__internal">
-                                <!-- Agrega las fechas relevantes aquí -->
-                                <!-- <a href="{{ url_for('routes.credit_detail', id=loan_info['Loan ID']) }}" class="btn btn-primary">Ver Detalle</a> -->
+                            <div class="col-6" style="font-size: 0.95rem;">
+                                <div>Cuotas Vencidas: <b>{{ loan_info['Overdue Installments Count'] }}</b></div>
+                                <div>Cuotas Pagas: <b>{{ loan_info['Paid Installments Count'] }}/{{ loan_info['Total Installments'] }}</b></div>
                             </div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
-        {% endfor %}
     </div>
 </div>
 {% endblock %}
