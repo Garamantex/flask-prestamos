@@ -84,9 +84,12 @@
               style="display: flex; justify-content: center; flex-wrap: wrap;"
               class="mb-4">
               <h4 class="c-cajas__item__title c-headings__h4 mb-4">
-                <i
-                  class="bi {{ '' if salesman['role_employee'] == 'VENDEDOR' else 'bi-person-badge-fill' }}"
-                  style="margin-right: 10px;"></i>
+                <a href="{{ '/box-detail-admin/' + salesman['employee_id']|string if salesman['role_employee'] != 'VENDEDOR' else '/box' }}" style="text-decoration: none;">
+                  <i
+                    class="bi {{ '' if salesman['role_employee'] == 'VENDEDOR' else 'bi-person-badge-fill' }}"
+                    style="margin-right: 10px; font-size: 26px;"></i>
+                </a>
+               
                 {{ salesman['salesman_name'] }}
               </h4>
               <div class style="display: flex; flex-wrap: wrap">
