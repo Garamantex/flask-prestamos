@@ -3705,9 +3705,6 @@ def edit_payment(loan_id):
 
 
 
-
-
-
 @routes.route('/history-box', methods=['POST', 'GET'])
 def history_box():
 
@@ -4059,6 +4056,9 @@ def history_box():
                            search_term=search_term, filter_date=filter_date, manager_id=manager_id, coordinator_name=coordinator_name, user_id=user_id, expense_details=expense_details, total_expenses=total_expenses)
 
 
+
+
+
 @routes.route('/add-manager-record')
 def add_manager_record():
     users_manager = User.query.filter_by(role=Role.COORDINADOR).all()
@@ -4262,19 +4262,30 @@ def add_manager_record():
             .filter(func.date(Payment.payment_date) == current_date) \
             .scalar() or 0
 
-        # Calcular el debido cobrar edl siguiente dia, aplica si la cuota esta PAGADA, ABONADA o PENDIENTE
+        # Inicializar variables para el nuevo cálculo
+        total_pending_installments_loan_close_amount = 0
+        
+        # Calcular el debido cobrar del siguiente dia y préstamos cerrados
         for client in employee.clients:
             for loan in client.loans:
-                # Encuentra todas las cuotas con fecha de vencimiento igual a mañana y estado pendiente o pagada
-                installments_tomorrow = LoanInstallment.query.filter(
-                    LoanInstallment.loan_id == loan.id,
-                    LoanInstallment.due_date == tomorrow,
-                    LoanInstallment.status.in_(
-                        [InstallmentStatus.PENDIENTE, InstallmentStatus.PAGADA, InstallmentStatus.ABONADA])
-                ).all()
+                # Excluir préstamos creados hoy mismo
+                if loan.creation_date.date() == datetime.now().date():
+                    continue
+                
+                if loan.status:
+                    # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
+                    pending_installment = LoanInstallment.query.filter(
+                        LoanInstallment.loan_id == loan.id
+                    ).order_by(LoanInstallment.due_date.asc()).first()
+                    if pending_installment:
+                        total_pending_installments_amount += pending_installment.fixed_amount
+                elif loan.status == False and loan.up_to_date and loan.modification_date.date() == datetime.now().date():
+                    pending_installment_paid = LoanInstallment.query.filter(
+                        LoanInstallment.loan_id == loan.id
+                    ).order_by(LoanInstallment.due_date.asc()).first()
+                    total_pending_installments_loan_close_amount += pending_installment_paid.fixed_amount
 
-                for installment in installments_tomorrow:
-                    total_pending_installments_amount += installment.fixed_amount
+        print(total_pending_installments_loan_close_amount+total_pending_installments_amount)
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
         partial_installments_query = db.session.query(LoanInstallment.id) \
@@ -4395,7 +4406,8 @@ def add_manager_record():
             sales=new_clients_loan_amount,
             renewals=total_renewal_loans_amount,
             due_to_collect_tomorrow=total_pending_installments_amount,
-            total_collected=total_collected
+            total_collected=total_collected,
+            due_to_charge=total_pending_installments_loan_close_amount+total_pending_installments_amount
         )
         employee.status = 0
         # Agregar la instancia a la sesión de la base de datos y guardar los cambios
