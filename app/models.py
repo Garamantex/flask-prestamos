@@ -392,12 +392,12 @@ class Transaction(db.Model):
         return json.dumps(self.to_json(), indent=4)
 
 
+
 class EmployeeRecord(db.Model):
     """Modelo para registrar la información de caja y préstamos de un empleado"""
 
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey(
-        'employee.id'), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
     initial_state = db.Column(db.Float, nullable=False)
     loans_to_collect = db.Column(db.Integer, nullable=False)
     paid_installments = db.Column(db.Integer, nullable=False)
@@ -411,6 +411,7 @@ class EmployeeRecord(db.Model):
     withdrawals = db.Column(db.Float, nullable=False)
     expenses = db.Column(db.Float, nullable=False)
     closing_total = db.Column(db.Float, nullable=False)
+    due_to_charge = db.Column(db.Float, nullable=False, default=0.0)  # Nuevo campo
     creation_date = db.Column(db.DateTime, default=datetime.datetime.now)
 
     # Relación con el modelo Employee
@@ -425,8 +426,8 @@ class EmployeeRecord(db.Model):
             'loans_to_collect': self.loans_to_collect,
             'paid_installments': self.paid_installments,
             'partial_installments': self.partial_installments,
-            'overdue_installments': self.overdue_installments,
             'due_to_collect_tomorrow': self.due_to_collect_tomorrow,
+            'overdue_installments': self.overdue_installments,
             'total_collected': self.total_collected,
             'sales': self.sales,
             'renewals': self.renewals,
@@ -434,6 +435,7 @@ class EmployeeRecord(db.Model):
             'withdrawals': self.withdrawals,
             'expenses': self.expenses,
             'closing_total': self.closing_total,
+            'due_to_charge': self.due_to_charge,
             'creation_date': self.creation_date.isoformat()
         }
 
