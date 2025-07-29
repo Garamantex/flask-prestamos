@@ -691,10 +691,26 @@ def credit_detail(id):
     loans = Loan.query.all()  # Obtener todos los créditos
     loan_detail = get_loan_details(id)
 
+    # Agrupar pagos por fecha y calcular el total pagado en cada fecha
+    payments_by_date = {}
+    for payment in payments:
+        # Solo incluir pagos mayores a 0
+        if float(payment.amount) > 0:
+            payment_date = payment.payment_date.date()
+            if payment_date not in payments_by_date:
+                payments_by_date[payment_date] = {
+                    'date': payment_date,
+                    'total_amount': 0
+                }
+            payments_by_date[payment_date]['total_amount'] += float(payment.amount)
+
+    # Ordenar por fecha (más reciente primero)
+    payments_by_date = dict(sorted(payments_by_date.items(), reverse=True))
+
             # print(loan_detail)
 
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
-                           loan_detail=loan_detail, payments=payments, user_id=session['user_id'])
+                           loan_detail=loan_detail, payments=payments, payments_by_date=payments_by_date, user_id=session['user_id'])
 
 
 @routes.route('/modify-installments/<int:loan_id>', methods=['POST'])
@@ -746,28 +762,44 @@ def confirm_payment():
     loan_id = request.form.get('loan_id')
     custom_payment = float(request.form.get('customPayment'))
 
+    # Validar que el pago sea mayor a 0
+    if custom_payment <= 0:
+        return jsonify({"error": "El monto del pago debe ser mayor a 0."}), 400
+
     # Obtener los datos del préstamo y el cliente
     loan = Loan.query.get(loan_id)
+    if not loan:
+        return jsonify({"error": "Préstamo no encontrado."}), 404
+        
     employee = Employee.query.get(loan.employee_id)
     employee.box_value += Decimal(custom_payment)
 
     client = loan.client
 
-    # Calcular la suma de installmentValue y overdueAmount
+    # Calcular la suma de los montos pendientes de las cuotas
+    # installment.amount ya representa el monto pendiente (después de pagos parciales)
     total_amount_due = sum(installment.amount for installment in loan.installments
                            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA,
                                                      InstallmentStatus.ABONADA])
+
+    # Validar que haya montos pendientes para pagar
+    if total_amount_due <= 0:
+        return jsonify({"error": "No hay montos pendientes para pagar."}), 400
 
     if custom_payment >= total_amount_due:
         # Marcar todas las cuotas como "PAGADA" y actualizar la fecha de pago
         for installment in loan.installments:
             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
+                # Verificar que la cuota tenga monto pendiente
+                if installment.amount <= 0:
+                    continue
+                    
                 installment.status = InstallmentStatus.PAGADA
                 installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
                 # Crear el pago asociado a esta cuota
                 payment = Payment(amount=installment.amount, payment_date=datetime.now(
                 ), installment_id=installment.id)
-                # Establecer el valor de la cuota en 0
+                # Establecer el valor de la cuota en 0 (ya está pagada)
                 installment.amount = 0
                 db.session.add(payment)
         # Actualizar el estado del préstamo y el campo up_to_date
@@ -783,7 +815,12 @@ def confirm_payment():
             if remaining_payment <= 0:
                 break
             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
+                # Verificar que la cuota tenga monto pendiente
+                if installment.amount <= 0:
+                    continue
+                    
                 # Calcular cuánto falta para completar la cuota
+                # installment.amount ya representa el monto pendiente (después de pagos parciales)
                 missing = installment.amount
                 if remaining_payment >= missing:
                     # Se completa la cuota
@@ -800,8 +837,6 @@ def confirm_payment():
                     payment = Payment(amount=remaining_payment, payment_date=datetime.now(), installment_id=installment.id)
                     db.session.add(payment)
                     remaining_payment = 0
-                # Crear el pago asociado a esta cuota
-                db.session.add(payment)
         # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
         loan.modification_date = datetime.now()
         if client.first_modification_date != datetime.now().date():
@@ -963,7 +998,25 @@ def payments_list(user_id):
                 paid_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
                                                                     status=InstallmentStatus.PAGADA).count()
 
-                print(paid_installments)
+                # Calcula el total pagado en el préstamo
+                total_paid_amount = db.session.query(func.sum(Payment.amount)).join(
+                    LoanInstallment, Payment.installment_id == LoanInstallment.id
+                ).filter(
+                    LoanInstallment.loan_id == loan.id
+                ).scalar() or 0
+
+                # Obtiene el valor de la cuota fija (asumiendo que todas las cuotas tienen el mismo valor)
+                installment_value = db.session.query(LoanInstallment.fixed_amount).filter_by(
+                    loan_id=loan.id
+                ).first()
+
+                # Calcula el número de cuota incluyendo decimales
+                if installment_value and installment_value[0] > 0:
+                    cuota_number_with_decimal = float(total_paid_amount) / float(installment_value[0])
+                else:
+                    cuota_number_with_decimal = paid_installments
+
+                print(f"Cuotas pagadas: {paid_installments}, Total pagado: {total_paid_amount}, Cuota con decimal: {cuota_number_with_decimal}")
 
                 # Calcula el número de cuotas vencidas
                 overdue_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
@@ -1067,7 +1120,7 @@ def payments_list(user_id):
                     'Next Installment Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
                     'Next Installment Date front': last_pending_installment.due_date.strftime(
                         '%Y-%m-%d') if last_pending_installment else '0',
-                    'Cuota Number': paid_installments,
+                    'Cuota Number': round(cuota_number_with_decimal, 2),
                     # Agrega el número de la cuota actual
                     'Due Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
                     # Agrega la fecha de vencimiento de la cuota

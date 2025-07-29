@@ -87,19 +87,28 @@
                 </div>
 
                 <table class="c-table">
+                    
                     <thead>
+                        <tr style="font-weight: bold; background-color: #f8f9fa;">
+                            <td class="c-table__box">TOTAL</td>
+                            <td class="c-table__box">{{ payments_by_date|length }} pagos</td>
+                            <td class="c-table__box">$ {{ '{:,.0f}'.format(payments_by_date.values() | sum(attribute='total_amount') | int) }}</td>
+                        </tr>
                         <tr>
+                            <th class="c-table__box">#</th>
                             <th class="c-table__box">Fecha de Pago</th>
-                            <th class="c-table__box">Monto</th>
+                            <th class="c-table__box">Total Pagado</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for payment in payments %}
-                        <tr id="payment_{{ payment.id }}">
-                            <td class="c-table__box">{{ payment.payment_date.strftime('%d/%m/%Y') }}</td>
-                            <td class="c-table__box">$ {{ '{:,.0f}'.format(payment.amount | float | int) }}</td>
+                        {% for date, payment_info in payments_by_date.items() %}
+                        <tr>
+                            <td class="c-table__box">{{ loop.index }}</td>
+                            <td class="c-table__box">{{ payment_info.date.strftime('%d/%m/%Y') }}</td>
+                            <td class="c-table__box">$ {{ '{:,.0f}'.format(payment_info.total_amount | int) }}</td>
                         </tr>
                         {% endfor %}
+                        
                     </tbody>
                 </table>
             </div>
