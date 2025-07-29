@@ -57,10 +57,61 @@
             </div>
         </div> -->
 
-        <!-- Subadministradores y sus cajas en accordions -->
+        <!-- Accordion para el Administrador Principal -->
         <div class="row mb-2">
             <div class="col-12">
                 <h4 class="c-headings c-headings__h4 mb-2">Cajas</h4>
+                <div id="accordionMainAdmin">
+                    <div class="card mb-2" style="border-radius: 0.5rem; overflow: hidden;">
+                        <div class="card-header p-0" id="headingMainAdmin">
+                            <h5 class="mb-0 d-flex align-items-center" style="padding: 1rem;">
+                                <button class="btn btn-link w-100 text-left" type="button" data-toggle="collapse" data-target="#collapseMainAdmin" aria-expanded="true" aria-controls="collapseMainAdmin" style="font-size: 1.1rem;">
+                                    <span><b>Administrador:</b> {{ wallet_data['main_admin']['name'] }}</span>
+                                    <span class="float-right ml-2"><i class="fa fa-medal" style="color: #e57373;"></i></span>
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="collapseMainAdmin" class="collapse show" aria-labelledby="headingMainAdmin" data-parent="#accordionMainAdmin">
+                            <div class="card-body p-2" style="background: #f9f9f9;">
+                                {% if wallet_data['main_admin']['boxes'] %}
+                                    {% for box in wallet_data['main_admin']['boxes'] %}
+                                    <div class="c-card mb-3 p-3" style="padding: 1rem;">
+                                        <div class="card-header mb-2 p-0"><b>Vendedor:</b> {{ box['First Name'] }} {{ box['Last Name'] }}</div>
+                                        <div class="row">
+                                            <div class="c-card__internal col-12 col-md-6 mb-2 mb-md-0">
+                                                <h5>Debido Cobrar</h5>
+                                                <p>Cantidad: {{ box['Number of Active Loans'] }}</p>
+                                                <p>Valor: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
+                                                <p>Porcentaje: 0 %</p>
+                                            </div>
+                                            <div class="c-card__internal col-12 col-md-6">
+                                                <h5>Cartera</h5>
+                                                <p>Vencido: {{ box['Total Amount of Overdue Loans']|moneda_cl }}</p>
+                                                <p>Valor: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
+                                                <p>Saldo: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-12">
+                                                <a href="/wallet-detail/{{ box['Employee ID'] }}" class="c-btn c-btn-primary btn-pagar w-100">Ir al Detalle</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="alert alert-info">No hay cajas para el administrador principal.</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subadministradores y sus cajas en accordions -->
+        <div class="row mb-2">
+            <div class="col-12">
+                <h4 class="c-headings c-headings__h4 mb-2">Cajas por Administrador</h4>
                 <div id="accordionSubadmins">
                     {% for subadmin in wallet_data['subadmins'] %}
                     <div class="card mb-2" style="border-radius: 0.5rem; overflow: hidden;">
@@ -115,8 +166,14 @@
 <script>
 // Asegura que solo un accordion esté abierto a la vez en mobile
 $(document).ready(function(){
+    // Para el accordion de subadministradores
     $('#accordionSubadmins .collapse').on('show.bs.collapse', function () {
         $('#accordionSubadmins .collapse').not(this).collapse('hide');
+    });
+    
+    // Para el accordion del administrador principal
+    $('#accordionMainAdmin .collapse').on('show.bs.collapse', function () {
+        $('#accordionMainAdmin .collapse').not(this).collapse('hide');
     });
 });
 </script>

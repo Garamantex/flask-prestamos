@@ -16,10 +16,18 @@ def create_app():
     # Inicializar la instancia de SQLAlchemy
     db.init_app(app)
 
-
     # Configurar la migración de la base de datos
     from flask_migrate import Migrate
     migrate = Migrate(app, db)
+
+    # Registrar el filtro moneda_cl
+    @app.template_filter('moneda_cl')
+    def moneda_cl(value):
+        try:
+            value = int(value)
+            return "${:,.0f}".format(value).replace(",", ".")
+        except (ValueError, TypeError):
+            return value
 
     # Importar y registrar las rutas
     from app.routes import routes
