@@ -134,9 +134,13 @@ def menu_salesman(user_id):
     # Recaudo realizado en el día (Ingresos del día)
     today_revenue = db.session.query(
         db.func.sum(Payment.amount)
+    ).join(
+        LoanInstallment, Payment.installment_id == LoanInstallment.id
+    ).join(
+        Loan, LoanInstallment.loan_id == Loan.id
     ).filter(
         Payment.payment_date == datetime.now(),
-        Payment.installment.has(Loan.employee_id == employee_id)
+        Loan.employee_id == employee_id
     ).scalar() or 0
 
     # Si no hay recaudo, establecerlo como 0
