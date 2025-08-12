@@ -69,21 +69,26 @@
         <ul class="c-cajas">
           {% for salesman in salesmen_stats %}
           <li class="c-cajas__item">
-            <div style="display: flex; justify-content: center; flex-wrap: wrap;" class="mb-4">
-              <h4 class="c-cajas__item__title c-headings__h4">
-                {{ salesman['salesman_name'] }}
-              </h4>
-              <div class="" style="display: flex; flex-wrap: wrap">
-                <a
-                href="{{ url_for('routes.history_box_detail', employee_id=salesman['employee_id'], filter_date=filter_date) }}"
-                class="c-btn c-btn-summit js-btn-ocultar"
-                style="width: 45%;"
-                type="submit"
-                >
-                <i class="bi bi-inboxes " title="Ver detalle"></i>
-                </a>
-              </div>
-            </div>
+                         <div style="display: flex; justify-content: center; flex-wrap: wrap;" class="mb-4">
+               <h4 class="c-cajas__item__title c-headings__h4 mb-4">
+                 <a href="{{ url_for('routes.history_box_detail_admin' if salesman['role_employee'] != 'VENDEDOR' else 'routes.history_box_detail', employee_id=salesman['employee_id'], filter_date=filter_date) }}" style="text-decoration: none;">
+                   <i
+                     class="bi {{ '' if salesman['role_employee'] == 'VENDEDOR' else 'bi-person-badge-fill' }}"
+                     style="margin-right: 10px; font-size: 26px;"></i>
+                 </a>
+                 {{ salesman['salesman_name'] }}
+               </h4>
+               <div class="" style="display: flex; flex-wrap: wrap">
+                 <a
+                 href="{{ url_for('routes.history_box_detail_admin' if salesman['role_employee'] != 'VENDEDOR' else 'routes.history_box_detail', employee_id=salesman['employee_id'], filter_date=filter_date) }}"
+                 class="c-btn c-btn-summit js-btn-ocultar"
+                 style="width: 45%;"
+                 type="submit"
+                 >
+                 <i class="bi bi-inboxes " title="Ver detalle"></i>
+                 </a>
+               </div>
+             </div>
             <ul class="c-card__box-mannager">
               <li class="c-card__internal">
                 Valor Inicial: $ {{ '{:,.0f}'.format(salesman['initial_box_value'])

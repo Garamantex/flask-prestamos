@@ -11,8 +11,11 @@
     </div>
 
     <h2 class="c-headings c-headings__h3 mt-4 text-center">
-      Detalle Caja: {{ salesman.employee.user.first_name
-      }} {{ salesman.employee.user.last_name }}
+      Detalle Caja: 
+      {% if user_role != 'VENDEDOR' %}
+        <i class="bi bi-person-badge-fill" style="margin-right: 10px; font-size: 26px;"></i>
+      {% endif %}
+      {{ salesman.employee.user.first_name }} {{ salesman.employee.user.last_name }}
     </h2>
     <hr class="mb-3">
     <table class="c-table">
