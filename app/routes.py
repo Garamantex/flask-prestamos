@@ -808,7 +808,6 @@ def confirm_payment():
     client = loan.client
 
     # Calcular la suma de los montos pendientes de las cuotas
-    # installment.amount ya representa el monto pendiente (después de pagos parciales)
     total_amount_due = sum(installment.amount for installment in loan.installments
                            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA,
                                                      InstallmentStatus.ABONADA])
@@ -826,48 +825,63 @@ def confirm_payment():
                     continue
                     
                 installment.status = InstallmentStatus.PAGADA
-                installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
+                installment.payment_date = datetime.now()
                 # Crear el pago asociado a esta cuota
-                payment = Payment(amount=installment.amount, payment_date=datetime.now(
-                ), installment_id=installment.id)
+                payment = Payment(amount=installment.amount, payment_date=datetime.now(),
+                                installment_id=installment.id)
                 # Establecer el valor de la cuota en 0 (ya está pagada)
                 installment.amount = 0
                 db.session.add(payment)
+        
         # Actualizar el estado del préstamo y el campo up_to_date
         loan.status = False  # 0 indica que el préstamo está pagado en su totalidad
         loan.up_to_date = True
-        loan.modification_date = datetime.now()  # El préstamo está al día
+        loan.modification_date = datetime.now()
         db.session.commit()
         return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
     else:
         # Lógica para manejar el pago parcial
-        remaining_payment = Decimal(custom_payment)  # Convertir a Decimal
-        for installment in loan.installments:
+        remaining_payment = Decimal(custom_payment)
+        
+        # Obtener las cuotas pendientes ordenadas por fecha de vencimiento (cronológicamente)
+        pending_installments = sorted(
+            [installment for installment in loan.installments 
+             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA] 
+             and installment.amount > 0],
+            key=lambda x: x.due_date if x.due_date else datetime.max
+        )
+        
+        for installment in pending_installments:
             if remaining_payment <= 0:
                 break
-            if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
-                # Verificar que la cuota tenga monto pendiente
-                if installment.amount <= 0:
-                    continue
-                    
-                # Calcular cuánto falta para completar la cuota
-                # installment.amount ya representa el monto pendiente (después de pagos parciales)
-                missing = installment.amount
-                if remaining_payment >= missing:
-                    # Se completa la cuota
-                    installment.status = InstallmentStatus.PAGADA
-                    installment.payment_date = datetime.now()
-                    payment = Payment(amount=missing, payment_date=datetime.now(), installment_id=installment.id)
-                    db.session.add(payment)
-                    installment.amount = 0
-                    remaining_payment -= missing
-                else:
-                    # Solo se abona una parte
-                    installment.status = InstallmentStatus.ABONADA
-                    installment.amount -= remaining_payment
-                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(), installment_id=installment.id)
-                    db.session.add(payment)
-                    remaining_payment = 0
+                
+            # El monto pendiente de esta cuota
+            installment_amount_due = installment.amount
+            
+            if remaining_payment >= installment_amount_due:
+                # El pago cubre completamente esta cuota
+                installment.status = InstallmentStatus.PAGADA
+                installment.payment_date = datetime.now()
+                installment.amount = 0
+                
+                # Crear el pago por el monto completo de la cuota
+                payment = Payment(amount=installment_amount_due, payment_date=datetime.now(), 
+                                installment_id=installment.id)
+                db.session.add(payment)
+                
+                remaining_payment -= installment_amount_due
+            else:
+                # El pago solo cubre parcialmente esta cuota
+                installment.status = InstallmentStatus.ABONADA
+                installment.amount -= remaining_payment
+                
+                # Crear el pago por el monto parcial
+                payment = Payment(amount=remaining_payment, payment_date=datetime.now(), 
+                                installment_id=installment.id)
+                db.session.add(payment)
+                
+                remaining_payment = 0
+        
         # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
         loan.modification_date = datetime.now()
         if client.first_modification_date != datetime.now().date():
@@ -876,6 +890,7 @@ def confirm_payment():
         db.session.commit()
 
         return jsonify({"message": "El pago se ha registrado correctamente."}), 200
+    
     return jsonify({"error": "El pago no pudo ser procesado."}), 400
 
 
@@ -1047,7 +1062,7 @@ def payments_list(user_id):
                 else:
                     cuota_number_with_decimal = paid_installments
 
-                print(f"Cuotas pagadas: {paid_installments}, Total pagado: {total_paid_amount}, Cuota con decimal: {cuota_number_with_decimal}")
+                # print(f"Cuotas pagadas: {paid_installments}, Total pagado: {total_paid_amount}, Cuota con decimal: {cuota_number_with_decimal}")
 
                 # Calcula el número de cuotas vencidas
                 overdue_installments = LoanInstallment.query.filter_by(loan_id=loan.id,

@@ -11,43 +11,117 @@
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="/">Salir</a>
             </div>
         </div>
-        <div class="row">
+        
+        <!-- Resumen de morosos -->
+        <div class="row mb-3">
             <div class="col">
                 <div class="c-morosos">
-                    <p class="c-morosos__item">Número de morosos: <span id="totalMorosos">{{ debtors_info|length }}</span></p>
-                    <p class="c-morosos__item">Total mora: $<span id="totalMora">{{ '{:,.0f}'.format(total_mora) }}</span></p>
+                    <div class="c-morosos__summary">
+                        <div class="c-morosos__item">
+                            <span class="c-morosos__label">Número de morosos:</span>
+                            <span class="c-morosos__value" id="totalMorosos">{{ debtors_info|length }}</span>
+                        </div>
+                        <div class="c-morosos__item">
+                            <span class="c-morosos__label">Total mora:</span>
+                            <span class="c-morosos__value" id="totalMora">${{ '{:,.0f}'.format(total_mora) }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-lg-12 mt-4">
-                <form method="GET" action="{{ url_for('routes.debtor_manager') }}" style="display: flex; flex-direction: column;">
-                    <div class="form-group">
-                        <input type="text" class="form-control" id="search" name="search" placeholder="Nombre del empleado o cliente">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Buscar</button>
-                </form>
+        
+        <!-- Formulario de búsqueda -->
+        <div class="row mb-3">
+            <div class="col-lg-12">
+                <div class="search-form">
+                    <form method="GET" action="{{ url_for('routes.debtor_manager') }}">
+                        <div class="form-group">
+                            <input type="text" class="form-control" id="search" name="search" placeholder="Nombre del empleado o cliente">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Buscar</button>
+                    </form>
+                </div>
             </div>
         </div>
+        
+        <!-- Lista de morosos -->
         <div class="row">
-            <div class="col-lg-12 mt-4">
-                <ul class="request-list" id="morosos-container">
+            <div class="col-lg-12">
+                <div class="debtors-container" id="morosos-container">
                     {% for debtor_info in debtors_info %}
-                        <li class="request-item">
-                            <p>Nombre del vendedor: <span>{{ debtor_info.salesman_name }}</span></p>
-                            <p>Nombre del cliente: <span>{{ debtor_info.client_name }}</span></p>
-                            <p>Valor préstamo con intereses: <span>$ {{ '{:,.0f}'.format(debtor_info.total_loan_amount) }}</span></p>
-                            <p>Saldo: <span>$ {{ '{:,.0f}'.format(debtor_info.balance) }}</span></p>
-                            <p>Valor vencido: <span>$ {{ '{:,.0f}'.format(debtor_info.total_due) }}</span></p>
-                            <p>Cantidad cuotas vencidas: <span>{{ debtor_info.overdue_installments }}</span></p>
-                            <p>Cantidad cuotas totales: <span>{{ debtor_info.total_installments }}</span></p>
-                            <p>Fecha de última cuota: <span>{{ debtor_info.last_installment_date }}</span></p>
-                            <p>Fecha último pago registrado: <span>{{ debtor_info.last_payment_date }}</span></p>
-                        </li>
+                        <div class="debtor-card">
+                            <div class="debtor-card__header">
+                                <h6 class="debtor-card__title">Información del Préstamo</h6>
+                            </div>
+                            <div class="debtor-card__body">
+                                <div class="debtor-card__section">
+                                    <h6 class="debtor-card__section-title">Datos del Vendedor y Cliente</h6>
+                                    <div class="debtor-card__row">
+                                        <div class="debtor-card__field">
+                                            <span class="debtor-card__label">Vendedor:</span>
+                                            <span class="debtor-card__value">{{ debtor_info.salesman_name }}</span>
+                                        </div>
+                                        <div class="debtor-card__field">
+                                            <span class="debtor-card__label">Cliente:</span>
+                                            <span class="debtor-card__value">{{ debtor_info.client_name }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="debtor-card__section">
+                                    <h6 class="debtor-card__section-title">Información Financiera</h6>
+                                    <div class="debtor-card__row">
+                                        <div class="debtor-card__field">
+                                            <span class="debtor-card__label">Préstamo con intereses:</span>
+                                            <span class="debtor-card__value amount">${{ '{:,.0f}'.format(debtor_info.total_loan_amount) }}</span>
+                                        </div>
+                                        <div class="debtor-card__field">
+                                            <span class="debtor-card__label">Saldo actual:</span>
+                                            <span class="debtor-card__value balance">${{ '{:,.0f}'.format(debtor_info.balance) }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="debtor-card__row">
+                                        <div class="debtor-card__field">
+                                            <span class="debtor-card__label">Valor vencido:</span>
+                                            <span class="debtor-card__value overdue">${{ '{:,.0f}'.format(debtor_info.total_due) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="debtor-card__section">
+                                    <h6 class="debtor-card__section-title">Estado de Cuotas</h6>
+                                    <div class="debtor-card__row">
+                                        <div class="debtor-card__field">
+                                            <span class="debtor-card__label">Cuotas vencidas:</span>
+                                            <span class="debtor-card__value overdue-count">{{ debtor_info.overdue_installments }}</span>
+                                        </div>
+                                        <div class="debtor-card__field">
+                                            <span class="debtor-card__label">Total de cuotas:</span>
+                                            <span class="debtor-card__value">{{ debtor_info.total_installments }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="debtor-card__section">
+                                    <h6 class="debtor-card__section-title">Fechas Importantes</h6>
+                                    <div class="debtor-card__row">
+                                        <div class="debtor-card__field">
+                                            <span class="debtor-card__label">Última cuota:</span>
+                                            <span class="debtor-card__value">{{ debtor_info.last_installment_date }}</span>
+                                        </div>
+                                        <div class="debtor-card__field">
+                                            <span class="debtor-card__label">Último pago:</span>
+                                            <span class="debtor-card__value">{{ debtor_info.last_payment_date }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     {% endfor %}
-                </ul>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
 {% endblock %}

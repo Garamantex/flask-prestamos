@@ -18,7 +18,7 @@
                 <div class="row">
                     <div class="col-8 col-md-7">
                         <div class="c-users">
-                            <p class="c-users__title">Créditos del Día</p>
+                            <p class="c-users__title" style="font-size: 1.2rem;">Créditos del Día</p>
                         </div>
                     </div>
                     <div class="col-4 col-md-5">
@@ -30,25 +30,30 @@
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-4">
-                        <i class="bi bi-person-check-fill d-inline-block"
-                            title="Clientes ACTIVOS"></i>
-                        <p class="d-inline-block px-2"
-                            title="Clientes ACTIVOS">{{ all_loans_paid_count }}
-                            / {{ active_loans_count}}</p>
+                <div class="row ">
+                    
+                    <div class="col-5">
+                        <div class="d-flex justify-content-center">
+                            <i class="bi bi-person-check-fill d-inline-block"
+                                title="Clientes ACTIVOS"></i>
+                            <p class="d-inline-block px-2"
+                                title="Clientes ACTIVOS">{{ all_loans_paid_count }}
+                                / {{ active_loans_count}}</p>
+                        </div>
                     </div>
-                    <div class="col-8">
-                        <i class="bi bi-cash-coin d-inline-block"></i>
-                        <p class="d-inline-block px-2">
-                            $ {{ '{:,.0f}'.format(total_collections_today |
-                            float | int) }}
-                            /
-                            $ {{ '{:,.0f}'.format(total_installment_value |
-                            float | int) }}
-
-                            ({{ porcentaje_cobro}}%)
-                        </p>
+                    <div class="col-7">
+                        <div class="d-flex justify-content-center">
+                            <i class="bi bi-cash-coin d-inline-block"></i>
+                            <p class="d-inline-block px-2">
+                                $ {{ '{:,.0f}'.format(total_collections_today |
+                                float | int) }}
+                                /
+                                $ {{ '{:,.0f}'.format(total_installment_value |
+                                float | int) }}
+    
+                                ({{ porcentaje_cobro}}%)
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -60,13 +65,13 @@
                     class="form-control" style="border-radius: 6px 0 0 6px ;"
                     placeholder="Buscar por cliente">
             </div>
-            <div class="col-12">
+            <!-- <div class="col-12">
                 <form action="/add-daily-collected/{{ employee_id }}"
                     method="POST">
                     <button class="c-btn c-btn-primary mb-3"
                         type="submit">Cerrar Caja</button>
                 </form>
-            </div>
+            </div> -->
         </div>
         <div class="row">
             <div class="col">
