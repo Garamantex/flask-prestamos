@@ -432,8 +432,6 @@ def create_client(user_id):
         employee = Employee.query.filter_by(user_id=user_id).first()
         role = session.get('role')
 
-                    # print(employee.box_value)
-
         if not employee or not (role == Role.COORDINADOR.value or role == Role.VENDEDOR.value):
             return redirect(url_for('routes.menu_salesman'))
 
@@ -525,7 +523,6 @@ def create_client(user_id):
     except Exception as e:
         # Manejo de excepciones: mostrar un mensaje de error y registrar la excepción
         error_message = str(e)
-        # print(error_message)
         return render_template('error.html', error_message=error_message), 500
 
 
@@ -580,10 +577,8 @@ def edit_client(client_id):
 @routes.route('/client-list/<int:user_id>', methods=['GET', 'POST'])
 def client_list(user_id):
     user_id = user_id
-            # print(user_id)
     user = User.query.get(user_id)
     role = user.role.value
-            # print(role)
     if user and (user.role.value == Role.COORDINADOR.value or user.role.value == Role.VENDEDOR.value):
         employee = Employee.query.filter_by(user_id=user_id).first()
 
@@ -737,8 +732,6 @@ def credit_detail(id):
 
     # Ordenar por fecha y hora (más reciente primero)
     payments_by_datetime = dict(sorted(payments_by_datetime.items(), reverse=True))
-
-            # print(loan_detail)
 
     return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
                            loan_detail=loan_detail, payments=payments, payments_by_datetime=payments_by_datetime, user_id=session['user_id'])
@@ -1019,8 +1012,6 @@ def payments_list(user_id):
     if active_loans_count == all_loans_paid_count:
         all_loans_paid_today = True
 
-    # print("Creditos Activos: ", active_loans_count)
-    # print("Creditos Pagados Hoy: ", all_loans_paid_count)
 
     # Calcula el total de cobros para el día con estado "PAGADA"
     total_collections_today = db.session.query(
@@ -1034,7 +1025,6 @@ def payments_list(user_id):
         func.date(Payment.payment_date) == datetime.now().date()
     ).scalar() or 0
 
-    # print("Total Collections Today: ", total_collections_today)
 
     status_box = ""
 
@@ -1049,9 +1039,6 @@ def payments_list(user_id):
     else:
         status_box = "Activa"
 
-    # print("Estado Empleado: ", employee_status)
-    # print("Creditos Pagados: ", all_loans_paid_today)
-    # print("Status Box: ", status_box)
 
     # Inicializa la lista para almacenar la información de los clientes
     clients_information = []
@@ -1086,7 +1073,6 @@ def payments_list(user_id):
                 else:
                     cuota_number_with_decimal = paid_installments
 
-                # print(f"Cuotas pagadas: {paid_installments}, Total pagado: {total_paid_amount}, Cuota con decimal: {cuota_number_with_decimal}")
 
                 # Calcula el número de cuotas vencidas
                 overdue_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
@@ -1128,8 +1114,6 @@ def payments_list(user_id):
                     ).order_by(LoanInstallment.due_date.asc()).first()
                 else:
                     first_installment = None
-
-                # print("First Installment: ", first_installment)
 
                 # Encuentra la fecha de modificación más reciente del préstamo
                 last_loan_modification_date = Loan.query.filter_by(client_id=client.id).order_by(
@@ -1206,7 +1190,6 @@ def payments_list(user_id):
 
                 clients_information.append(client_info)
 
-                # print(clients_information)
 
             elif loan.status == False and loan.up_to_date and loan.modification_date.date() == datetime.now().date():
 
@@ -1215,15 +1198,12 @@ def payments_list(user_id):
                     LoanInstallment.loan_id == loan.id
                 ).order_by(LoanInstallment.due_date.asc()).first()
 
-                # print("First Installment: ", first_installment_paid)
 
                 # Verificar que first_installment_paid no sea None antes de acceder a sus pagos
                 if first_installment_paid is not None:
                     total_installment_value_paid = sum(
                         payment.amount for payment in first_installment_paid.payments)
 
-                    # print("Total Installment Value Paid: ",
-                    #       total_installment_value_paid)
 
                     # Agrega la información del cliente y su crédito a la lista de información de clientes
                     client_information_paid = {
@@ -1258,12 +1238,10 @@ def payments_list(user_id):
         client_info_paid['Total Installment Value Paid'] for client_info_paid in clients_information_paid
     )
 
-            # print("Valor total de las cuotas pagadas: ", paid_total_installment_value)
 
     porcentaje_cobro = int(total_collections_today / total_installment_value *
                            100) if total_installment_value != 0 else 0
 
-    # print("clientes ordenados: ", filtered_clients_information)
 
     # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
     return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box, employee_id=employee_id, user_id=user_id, active_loans_count=active_loans_count, all_loans_paid_count=all_loans_paid_count, total_installment_value=total_installment_value + paid_total_installment_value, total_collections_today=total_collections_today, porcentaje_cobro=porcentaje_cobro)
@@ -1502,10 +1480,14 @@ def box():
             employee = Employee.query.get(salesman.employee_id)
             employee_id = employee.id
 
+
             employee_userid = User.query.get(employee.user_id)
+
+
+
+
             role_employee = employee_userid.role.value
 
-            # print(role_employee)
 
             # Obtener el valor inicial de la caja del vendedor
             employee_records = EmployeeRecord.query.filter_by(
@@ -1829,9 +1811,6 @@ def box():
                         float(total_expenses),
         }
 
-        # print("Gastos: ", expense_details)
-
-        # print(salesmen_stats)
 
         # Renderizar la plantilla con las variables
         return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats,
@@ -2026,7 +2005,7 @@ def box_detail_admin(employee_id):
                     hour=0, minute=0, second=0, microsecond=0)
             ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
-            print(total_renewal_loans_amount)
+
 
             # Calcula Valor de los gastos diarios
             daily_expenses_amount = Transaction.query.filter(
@@ -2549,8 +2528,6 @@ def transactions():
             # Manejar la creación de la transacción
             transaction_type = request.form.get('transaction_type')
 
-            # print(transaction_type)
-
             if transaction_type != 'GASTO':
                 approval_status = "APROBADA"
             else:
@@ -2579,9 +2556,9 @@ def transactions():
                     file_path = os.path.join(upload_folder, filename)
                     attachment.save(file_path)
                     
-                    # print(f"Archivo guardado: {file_path}")
+                    
                 except Exception as e:
-                    # print(f"Error al guardar archivo: {e}")
+                
                     filename = None
             else:
                 # Si no se subió archivo, usar imagen fallback
@@ -2631,7 +2608,6 @@ def transactions():
 
 @routes.route('/modify-transaction/<int:transaction_id>', methods=['POST'])
 def modify_transaction(transaction_id):
-            # print(transaction_id)
 
     try:
         with db.session.no_autoflush:
@@ -2665,7 +2641,7 @@ def modify_transaction(transaction_id):
                     return redirect('/approval-expenses')
 
             employee_id = transaction.employee_id
-            # print(employee_id)
+            
             employee = Employee.query.get(employee_id)
             if not employee:
                 return jsonify({'message': 'Empleado no encontrado'}), 404
@@ -2673,7 +2649,7 @@ def modify_transaction(transaction_id):
             user_id = employee.user_id
             user_role = User.query.get(user_id).role
 
-            # print(user_role.value)
+            
 
             TransactionType = transaction.transaction_types
 
@@ -2770,7 +2746,7 @@ def wallet():
                     boxes.append(seller_info)
                 return boxes
             except Exception as e:
-                print(f"Error en get_boxes_for_manager: {str(e)}")
+        
                 return []
 
         def get_all_sellers_boxes():
@@ -2807,7 +2783,7 @@ def wallet():
                     boxes.append(seller_info)
                 return boxes
             except Exception as e:
-                print(f"Error en get_all_sellers_boxes: {str(e)}")
+        
                 return []
 
         def get_only_sellers_boxes():
@@ -2851,7 +2827,7 @@ def wallet():
                             boxes.append(seller_info)
                 return boxes
             except Exception as e:
-                print(f"Error en get_only_sellers_boxes: {str(e)}")
+        
                 return []
 
         # Obtener todas las cajas de todos los vendedores
@@ -2884,7 +2860,7 @@ def wallet():
             debt_balance = total_cash
             day_collection = (paid_installments / debt_balance) * 100 if debt_balance > 0 else 0
         except Exception as e:
-            print(f"Error calculando porcentaje de recaudación: {str(e)}")
+    
             day_collection = 0
 
         # Construir el nombre del administrador principal de forma segura
@@ -2909,7 +2885,7 @@ def wallet():
 
         return render_template('wallet.html', wallet_data=wallet_data, user_id=user_id)
     except Exception as e:
-        print(f"Error en wallet route: {str(e)}")
+
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
@@ -3015,7 +2991,7 @@ def list_expenses():
                 'attachment': transaccion.attachment,
                 'status': transaccion.approval_status.value
             }
-            # print(detalle_transaccion['status'])
+            
 
             # Agregar los detalles a la lista
             detalles_transacciones.append(detalle_transaccion)
@@ -3192,7 +3168,7 @@ def box_detail():
     # Convert payment summary dictionary to a list of payment details
     payment_details = list(payment_summary.values())
 
-    print(payment_details)
+
 
     loan_id = payment_details[0].get('loan_id') if payment_details else None
     installment_id = payment_details[0].get(
@@ -3222,8 +3198,6 @@ def box_detail():
     total_final = total_movimientos + total_ingresos - total_egresos
 
     
-
-    # print(clients_in_arrears)
     # Renderizar la plantilla HTML con los datos recopilados
     return render_template('box-detail.html',
                            salesman=employee.salesman,
@@ -3266,7 +3240,7 @@ def debtor_manager():
             for debtor in debtors:
                 # Calcular la información requerida para cada cliente moroso
                 loan = Loan.query.filter_by(client_id=debtor.id).first()
-                # print(loan)
+                
                 if loan:
                     total_loan_amount = loan.amount + \
                         (loan.amount * loan.interest / 100)
@@ -3274,13 +3248,11 @@ def debtor_manager():
                     # Obtener todas las cuotas de préstamo asociadas a este préstamo
                     loan_installments = LoanInstallment.query.filter_by(
                         loan_id=loan.id).all()
-                    # print(loan_installments)
+                    
                     # Calcular la mora
                     total_due = sum(installment.amount for installment in loan_installments if
                                     installment.status == InstallmentStatus.MORA)
-                    # print("Total due for client:", total_due)
-                    # print("Installments statuses:", [installment.status for installment in loan_installments])
-                    # print("Installments amounts:", [installment.amount for installment in loan_installments])
+                    
 
                     total_mora += total_due
 
@@ -3313,7 +3285,7 @@ def debtor_manager():
 
                         debtors_info.append(debtor_info)
 
-    # print(debtors_info)
+
     return render_template('debtor-manager.html', debtors_info=debtors_info, total_mora=total_mora, user_id=user_id)
 
 
@@ -3409,8 +3381,7 @@ def add_employee_record(employee_id):
             Transaction.approval_status == ApprovalStatus.PENDIENTE
         ).with_entities(Transaction.id).all()
 
-        # print(pending_transaction_ids)
-        # print(pending_transactions)
+        
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
         partial_installments_query = db.session.query(LoanInstallment.id) \
@@ -3441,7 +3412,7 @@ def add_employee_record(employee_id):
                 if all_loans_paid_today:
                     break
 
-        # print("Prestamos: ", all_loans_paid_today)
+        
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo en mora del empleado
         overdue_installments_query = db.session.query(LoanInstallment.id) \
@@ -3458,7 +3429,7 @@ def add_employee_record(employee_id):
             .filter(func.date(Payment.payment_date) == fecha_actual) \
             .scalar() or 0
 
-        # print("Total de cuotas en mora:", overdue_installments_total)
+        
 
         # Calcular el total recaudado en la fecha actual
         total_collected = db.session.query(
@@ -3490,8 +3461,7 @@ def add_employee_record(employee_id):
             # Loan.creation_date < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
-        # print("new_clients_loan_amount", new_clients_loan_amount)
-        # print("total_renewal_loans_amount", total_renewal_loans_amount)
+        
 
         # Calcula Valor de los gastos diarios
         daily_expenses_amount = Transaction.query.filter(
@@ -3517,9 +3487,6 @@ def add_employee_record(employee_id):
             func.date(Transaction.creation_date) == datetime.now().date()
         ).with_entities(func.sum(Transaction.amount)).scalar() or 0
 
-        # print("daily_collection", daily_incomings)
-        # print("daily_withdrawals", daily_withdrawals)
-        # print("daily_expenses_amount", daily_expenses_amount)
 
         # Crear una instancia de EmployeeRecord
         message = "Caja Activada"
@@ -3557,16 +3524,15 @@ def add_employee_record(employee_id):
             # Agregar la instancia a la sesión de la base de datos y guardar los cambios
             db.session.add(employee_record)
             db.session.commit()
-            # print("Caja Cerrada y Guarda Correctamente")
 
         else:
             if employee_status == 1 and all_loans_paid_today == False:
-                # print("Empleado NO completo el camello")
+                
                 message = "desactivada"
                 success = False
                 employee.status = 0
             else:
-                # print("Caja Abierta")
+                
                 employee.status = 1
 
             # Guardar los cambios en la base de datos
@@ -3713,7 +3679,7 @@ def add_daily_collected(employee_id):
                 if all_loans_paid_today:
                     break
 
-        # print("Prestamos: ", all_loans_paid_today)
+        
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo en mora del empleado
         overdue_installments_query = db.session.query(LoanInstallment.id) \
@@ -3730,7 +3696,6 @@ def add_daily_collected(employee_id):
             .filter(func.date(Payment.payment_date) == fecha_actual) \
             .scalar() or 0
 
-        # print("Total de cuotas en mora:", overdue_installments_total)
 
         # Calcular el total recaudado en la fecha actual
         total_collected = db.session.query(
@@ -3819,16 +3784,14 @@ def add_daily_collected(employee_id):
             # Agregar la instancia a la sesión de la base de datos y guardar los cambios
             db.session.add(employee_record)
             db.session.commit()
-            # print("Caja Cerrada y Guarda Correctamente")
+
 
         else:
             if employee_status == 1 and all_loans_paid_today == False:
-                # print("Empleado NO completo el camello")
                 message = "desactivada"
                 success = False
                 employee.status = 0
             else:
-                # print("Caja Abierta")
                 employee.status = 1
 
             # Guardar los cambios en la base de datos
@@ -4362,10 +4325,6 @@ def history_box():
     # Obtener el término de búsqueda
     search_term = request.args.get('salesman_name')
 
-    # print("Fecha: ", filter_date)
-    # print("Sales MAN: ", salesmen_stats)
-    # print("Coordinador: ", coordinator_box)
-
     # Inicializar search_term como cadena vacía si es None
     search_term = search_term if search_term else ""
 
@@ -4394,14 +4353,13 @@ def add_manager_record():
         manager_array = Employee.query.filter_by(user_id=user_id).first()
         manager_id = manager_array.id
         
-        # print("Manager ID: ", manager_id);
 
         # Verificar si ya existe un registro para este empleado en la fecha actual
         existing_record = EmployeeRecord.query.filter_by(employee_id=manager_id) \
             .filter(func.date(EmployeeRecord.creation_date) == current_date).first()
         
         if existing_record:
-            print(f"Ya existe un registro para el coordinador {manager_id} en la fecha {current_date}. Omitiendo...")
+    
             continue
 
         # Inicializar las variables
@@ -4430,7 +4388,6 @@ def add_manager_record():
         # Usar el valor de la caja del manager como el estado inicial
         initial_state = manager_box_value
         
-        # print("Caja Inicial: ", initial_state)
 
         # Obtener Gastos del Coordinador
         transaction_expenses_today = Transaction.query.filter_by(employee_id=manager_id, transaction_types=TransactionType.GASTO,
@@ -4449,7 +4406,6 @@ def add_manager_record():
         # Obtener todos los vendedores asociados al coordinador
         salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
 
-        # print("Vendedores: ", salesmen)
 
         for salesman in salesmen:
             employee_id = salesman.employee_id
@@ -4531,7 +4487,6 @@ def add_manager_record():
         # Guardar los cambios en la base de datos
         db.session.add(employee_record)
         db.session.commit()
-        # print("Caja COORDINADORES Cerrada y Guarda Correctamente")
 
     # GUARDAR CAJAS DE LOS VENDEDORES
     for user in users_salesman:
@@ -4546,7 +4501,7 @@ def add_manager_record():
             .filter(func.date(EmployeeRecord.creation_date) == current_date).first()
         
         if existing_record:
-            print(f"Ya existe un registro para el vendedor {employee_id} en la fecha {current_date}. Omitiendo...")
+    
             continue
 
         # Inicializar las variables
@@ -4608,7 +4563,7 @@ def add_manager_record():
                     ).order_by(LoanInstallment.due_date.asc()).first()
                     total_pending_installments_loan_close_amount += pending_installment_paid.fixed_amount
 
-        print(total_pending_installments_loan_close_amount+total_pending_installments_amount)
+
 
         # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
         partial_installments_query = db.session.query(LoanInstallment.id) \
@@ -4742,7 +4697,6 @@ def add_manager_record():
         db.session.add(employee)
         db.session.add(employee_record)
         db.session.commit()
-        # print(f"Caja VENDEDOR {employee_id} Cerrada y Guarda Correctamente.")
 
     return render_template('add-manager-record.html')
 
@@ -4796,7 +4750,6 @@ def history_box_detail(employee_id):
     except ValueError:
         return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
 
-            # print("Employee ID: ", employee_id)
     
     # Obtener el rol y el user_id del empleado
     employee = Employee.query.get(employee_id)
@@ -4805,9 +4758,7 @@ def history_box_detail(employee_id):
 
     role = employee.user.role.name
     user_id = employee.user_id
-    
-            # print("Role: ", role)
-            # print("User ID: ", user_id)
+
     
     # Verificar si el employee_id existe en la base de datos
     employee = Employee.query.get(employee_id)
@@ -4942,7 +4893,7 @@ def history_box_detail(employee_id):
     # Convert payment summary dictionary to a list of payment details
     payment_details = list(payment_summary.values())
 
-    print(payment_details)
+
 
     loan_id = payment_details[0].get('loan_id') if payment_details else None
     installment_id = payment_details[0].get(
@@ -4973,7 +4924,6 @@ def history_box_detail(employee_id):
 
     
 
-    # print(clients_in_arrears)
     # Renderizar la plantilla HTML con los datos recopilados
     return render_template('history-box-detail.html',
                            salesman=employee.salesman,
@@ -5001,7 +4951,6 @@ def history_box_detail(employee_id):
 def reports():
     # Obtener el user_id del usuario desde la sesión
     user_id = session.get('user_id')
-            # print("user_id: ", user_id)
     try:
         # Buscar el manager_id asociado al user_id en la tabla Salesman
         salesman = Salesman.query.filter_by(employee_id=user_id).first()
@@ -5009,8 +4958,7 @@ def reports():
             return {"error": "No se encontró el vendedor asociado al usuario"}, 404
 
         manager_id = salesman.manager_id
-        
-        # print("manager_id: ", manager_id)
+
         
         # Obtener parámetros de la solicitud
         start_date = request.args.get('start_date')
@@ -5144,7 +5092,6 @@ def reports():
         return render_template("reports.html", report_data=report_data, salesmen=salesmen, user_id=user_id)
 
     except Exception as e:
-        # print("Error en reports:", str(e))
         return render_template("reports.html", user_id=user_id)
 
 
