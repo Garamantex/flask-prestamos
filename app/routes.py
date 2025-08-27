@@ -900,45 +900,69 @@ def mark_overdue():
         # Obtener el ID del préstamo de la solicitud POST
         loan_id = request.form['loan_id']
 
-
-        # Buscar la última cuota pendiente del préstamo específico
-        last_pending_installment = LoanInstallment.query.filter(
-            (LoanInstallment.loan_id == loan_id) & 
-            ((LoanInstallment.status == InstallmentStatus.PENDIENTE) | 
-             (~LoanInstallment.query.filter_by(loan_id=loan_id, status=InstallmentStatus.PENDIENTE).exists() & 
-              LoanInstallment.status.in_(
-                        [InstallmentStatus.ABONADA, InstallmentStatus.MORA])))
+        # Buscar la primera cuota pendiente del préstamo específico
+        # Si no hay cuotas pendientes, buscar la primera cuota en MORA
+        pending_installment = LoanInstallment.query.filter(
+            LoanInstallment.loan_id == loan_id,
+            LoanInstallment.status == InstallmentStatus.PENDIENTE
         ).order_by(LoanInstallment.due_date.asc()).first()
 
-        if last_pending_installment:
-            # Actualizar el estado de la última cuota pendiente a "MORA"
-            last_pending_installment.status = InstallmentStatus.MORA
-            # Actualizar la fecha de actualización
-            last_pending_installment.updated_at = datetime.now()
+        if pending_installment:
+            # Actualizar el estado de la cuota pendiente a "MORA"
+            pending_installment.status = InstallmentStatus.MORA
+            pending_installment.updated_at = datetime.now()
 
             # Obtener el cliente asociado a este préstamo
             client = Client.query.join(Loan).filter(Loan.id == loan_id).first()
             if client:
                 # Actualizar el campo debtor del cliente a True
                 client.debtor = True
-
-                # Guardar el cambio en el cliente
                 db.session.add(client)
 
-            # Crear un nuevo pago asociado a la cuota pendiente
-            payment = Payment(amount=0, payment_date=datetime.now(
-            ), installment_id=last_pending_installment.id)
-
-            # Agregar el pago a la sesión
+            # Crear un nuevo pago asociado a la cuota en MORA (monto 0)
+            payment = Payment(
+                amount=0, 
+                payment_date=datetime.now(), 
+                installment_id=pending_installment.id
+            )
             db.session.add(payment)
 
             # Guardar los cambios en la base de datos
-            client.first_modification_date = datetime.now()
+            if not client.first_modification_date:
+                client.first_modification_date = datetime.now()
             db.session.commit()
 
-            return 'La última cuota pendiente ha sido marcada como MORA y el cliente ha sido marcado como deudor exitosamente'
+            return 'La cuota pendiente ha sido marcada como MORA y el cliente ha sido marcado como deudor exitosamente'
         else:
-            return 'No se encontraron cuotas pendientes para marcar como MORA'
+            # Si no hay cuotas pendientes, verificar si ya hay cuotas en MORA
+            overdue_installments = LoanInstallment.query.filter(
+                LoanInstallment.loan_id == loan_id,
+                LoanInstallment.status == InstallmentStatus.MORA
+            ).all()
+            
+            if overdue_installments:
+                # Obtener el cliente asociado a este préstamo
+                client = Client.query.join(Loan).filter(Loan.id == loan_id).first()
+                if client:
+                    # Actualizar el campo debtor del cliente a True
+                    client.debtor = True
+                    db.session.add(client)
+
+                # Crear un nuevo pago asociado a la primera cuota en MORA (monto 0)
+                first_overdue_installment = overdue_installments[0]
+                payment = Payment(
+                    amount=0, 
+                    payment_date=datetime.now(), 
+                    installment_id=first_overdue_installment.id
+                )
+                db.session.add(payment)
+
+                # Guardar los cambios en la base de datos
+                if not client.first_modification_date:
+                    client.first_modification_date = datetime.now()
+                db.session.commit()
+            else:
+                return 'No se encontraron cuotas pendientes para marcar como MORA'
     else:
         return 'Método no permitido'
 
@@ -2226,7 +2250,8 @@ def box_detail_admin(employee_id):
         # Renderizar la plantilla con las variables
         return render_template('box.html', coordinator_box=sub_admin_box, salesmen_stats=salesmen_stats,
                                search_term=search_term, all_boxes_closed=all_boxes_closed,
-                               coordinator_name=sub_admin_name, user_id=user_id, expense_details=expense_details, total_expenses=total_expenses)
+                               coordinator_name=sub_admin_name, user_id=user_id, expense_details=expense_details, 
+                               total_expenses=total_expenses, filter_date=filter_date, manager_id=manager_id)
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
@@ -3097,21 +3122,36 @@ def box_detail():
         {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
          'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in withdrawals]
 
-    # Calcular clientes con cuotas en mora y cuya fecha de vencimiento sea la de hoy
+    # Calcular clientes con cuotas en mora gestionadas hoy (con pago de $0)
     clients_in_arrears = []
     for loan in loans:
         for installment in loan.installments:
-            payment = Payment.query.filter_by(
-                installment_id=installment.id).first()
-            if installment.status == InstallmentStatus.MORA and payment.payment_date.date() == today:
-                client_arrears = {
-                    'client_name': loan.client.first_name + ' ' + loan.client.last_name,
-                    'arrears_count': sum(1 for inst in loan.installments if inst.is_in_arrears()),
-                    'overdue_balance': sum(inst.amount for inst in loan.installments if inst.is_in_arrears()),
-                    'total_loan_amount': loan.amount,
-                    'loan_id': loan.id
-                }
-                clients_in_arrears.append(client_arrears)
+            if installment.status == InstallmentStatus.MORA:
+                # Buscar si hay un pago de $0 registrado hoy para esta cuota
+                payment_today = Payment.query.filter(
+                    Payment.installment_id == installment.id,
+                    Payment.amount == 0,
+                    func.date(Payment.payment_date) == today
+                ).first()
+                
+                if payment_today:  # Solo incluir si fue gestionada hoy
+                    # Buscar si ya agregamos este cliente para evitar duplicados
+                    existing_client = next((client for client in clients_in_arrears if client['loan_id'] == loan.id), None)
+                    
+                    if existing_client:
+                        # Actualizar el cliente existente
+                        existing_client['arrears_count'] += 1
+                        existing_client['overdue_balance'] += installment.amount
+                    else:
+                        # Crear nuevo cliente
+                        client_arrears = {
+                            'client_name': loan.client.first_name + ' ' + loan.client.last_name,
+                            'arrears_count': 1,
+                            'overdue_balance': installment.amount,
+                            'total_loan_amount': loan.amount,
+                            'loan_id': loan.id
+                        }
+                        clients_in_arrears.append(client_arrears)
 
     # Obtener todos los pagos realizados hoy
     payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id,
