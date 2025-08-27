@@ -2230,7 +2230,7 @@ def box_detail_admin(employee_id):
         return render_template('box.html', coordinator_box=sub_admin_box, salesmen_stats=salesmen_stats,
                                search_term=search_term, all_boxes_closed=all_boxes_closed,
                                coordinator_name=sub_admin_name, user_id=user_id, expense_details=expense_details, 
-                               total_expenses=total_expenses, filter_date=filter_date, manager_id=manager_id)
+                               total_expenses=total_expenses, manager_id=manager_id)
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
