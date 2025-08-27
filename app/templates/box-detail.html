@@ -249,31 +249,7 @@
               </td>
               {% endif %}
             </tr>
-            <!-- Modal para editar el pago -->
-              <div class="modal fade" id="editPaymentModal" tabindex="-1" role="dialog" aria-labelledby="editPaymentModalLabel" aria-hidden="true" style="color: black">
-                <div class="modal-dialog" role="document">
-                  <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="editPaymentModalLabel">Editar Pago</h5>
-                      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                      </button>
-                    </div>
-                    <form id="editPaymentForm" method="POST" action="" onsubmit="submitForm(event)">
-                      <div class="modal-body">
-                          <!-- Campos para editar el pago -->
-                          <div class="form-group">
-                              <label for="customPayment">Nuevo Valor del Pago</label>
-                              <input type="text" class="form-control" id="customPayment" name="customPayment" style="border: 1px solid #575a5e;">
-                          </div>
-                      </div>
-                      <div class="modal-footer">
-                          <button type="submit" class="c-btn c-btn-primary">Guardar Cambios</button>
-                      </div>
-                  </form>
-                  </div>
-                </div>
-              </div>
+
             {% endfor %}
           </tbody>
         </table>
@@ -281,26 +257,70 @@
     </div>
   </div>
 </div>
+
+<!-- Modal para editar el pago -->
+<div class="modal fade" id="editPaymentModal" tabindex="-1" role="dialog" aria-labelledby="editPaymentModalLabel" aria-hidden="true" style="color: black">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editPaymentModalLabel">Editar Pago</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form id="editPaymentForm" method="POST" action="" onsubmit="submitForm(event)">
+        <div class="modal-body">
+          <!-- Campos para editar el pago -->
+          <div class="form-group">
+            <label for="customPayment">Nuevo Valor del Pago</label>
+            <input type="text" class="form-control" id="customPayment" name="customPayment" style="border: 1px solid #575a5e;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="c-btn c-btn-primary">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 </div>
 
 
 <script>
     const paymentButtons = document.querySelectorAll('.js-btn-editar-pago');
     let loanId;
+    let installmentId;
 
     paymentButtons.forEach(button => {
       button.addEventListener('click', () => {
         loanId = button.getAttribute('data-id');
+        installmentId = button.getAttribute('data-installment-id');
+        
+        // Limpiar el formulario antes de abrir el modal
+        document.getElementById('editPaymentForm').reset();
+        
+        // Abrir el modal usando Bootstrap
+        $('#editPaymentModal').modal('show');
       });
     });
-
-    console.log(loanId);
 
     function submitForm(event) {
       event.preventDefault();
       
+      if (!loanId) {
+        console.error('No se ha seleccionado un préstamo');
+        return;
+      }
+      
       // Obtener los datos del formulario
       var formData = new FormData(document.getElementById('editPaymentForm'));
+      
+      // Agregar el ID del préstamo al formulario
+      formData.append('loan_id', loanId);
+      if (installmentId) {
+        formData.append('installment_id', installmentId);
+      }
 
       // Realizar la solicitud HTTP
       fetch('/payments/edit/' + loanId, {
@@ -309,19 +329,28 @@
       })
       .then(response => {
           if (response.ok) {
+              // Cerrar el modal
+              $('#editPaymentModal').modal('hide');
               // Recargar la página
               window.location.reload();
           } else {
               // Manejar errores
               console.error('Hubo un problema al guardar los cambios');
+              alert('Error al guardar los cambios. Por favor, inténtalo de nuevo.');
           }
       })
       .catch(error => {
           console.error('Error de red:', error);
+          alert('Error de conexión. Por favor, inténtalo de nuevo.');
       });
     }
 
-
+    // Cerrar el modal cuando se haga clic en el botón de cerrar
+    document.querySelectorAll('[data-dismiss="modal"]').forEach(button => {
+      button.addEventListener('click', () => {
+        $('#editPaymentModal').modal('hide');
+      });
+    });
 </script>
 
 {% endblock %}

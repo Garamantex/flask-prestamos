@@ -3103,7 +3103,7 @@ def box_detail():
         for installment in loan.installments:
             payment = Payment.query.filter_by(
                 installment_id=installment.id).first()
-            if installment.is_in_arrears() and payment and payment.payment_date.date() == today:
+            if installment.status == InstallmentStatus.MORA and payment.payment_date.date() == today:
                 client_arrears = {
                     'client_name': loan.client.first_name + ' ' + loan.client.last_name,
                     'arrears_count': sum(1 for inst in loan.installments if inst.is_in_arrears()),
@@ -3817,7 +3817,6 @@ def edit_payment(loan_id):
     # Aumentar el valor en caja del empleado
     employee.box_value += Decimal(custom_payment)
 
-
     # Buscar el préstamo asociado
     loan = Loan.query.get(loan_id)
     if not loan:
@@ -3835,7 +3834,6 @@ def edit_payment(loan_id):
         LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA])
     ).all()
 
-
     for installment in installments_paid_today:
         if installment.status == InstallmentStatus.PAGADA:
             # ✅ Restaurar el monto original en cuotas pagadas completamente
@@ -3844,12 +3842,10 @@ def edit_payment(loan_id):
             # ✅ Restaurar el monto original en cuotas abonadas
             installment.amount = installment.fixed_amount
             
-
         installment.status = InstallmentStatus.PENDIENTE  # Volver a estado pendiente
         installment.payment_date = None  # Eliminar la fecha de pago
 
     db.session.commit()
-
 
     # 🔥 **Eliminar pagos hechos hoy**
     Payment.query.filter(
@@ -3860,68 +3856,115 @@ def edit_payment(loan_id):
 
     db.session.commit()
 
-    # 🔢 **Calcular el total adeudado (incluyendo cuotas abonadas)**
-    total_amount_due = sum(installment.amount for installment in loan.installments
-                           if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA,
-                                                     InstallmentStatus.ABONADA])
+    # 🔢 **Calcular el total adeudado considerando pagos previos**
+    total_amount_due = 0
+    
+    for installment in loan.installments:
+        if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
+            # Calcular cuánto se debe realmente de esta cuota
+            # Sumar todos los pagos previos (excluyendo los del día actual que ya fueron eliminados)
+            total_paid_for_installment = db.session.query(func.sum(Payment.amount)).filter(
+                Payment.installment_id == installment.id,
+                func.date(Payment.payment_date) != current_date
+            ).scalar() or Decimal('0')
+            
+            # El monto adeudado es el monto fijo menos lo ya pagado
+            amount_due_for_installment = installment.fixed_amount - total_paid_for_installment
+            
+            # Si la cuota ya está completamente pagada, no se incluye en el total
+            if amount_due_for_installment > 0:
+                total_amount_due += amount_due_for_installment
+                # Actualizar el monto pendiente de la cuota
+                installment.amount = amount_due_for_installment
+            else:
+                # La cuota ya está pagada completamente
+                installment.status = InstallmentStatus.PAGADA
+                installment.amount = Decimal('0')
+                installment.payment_date = datetime.now().date()
 
-    # Cuando el valor de pago es mayor al total de las cuotas sumadas en estados diferente de pagada
+    db.session.commit()
+
+    # Cuando el valor de pago es mayor o igual al total de las cuotas pendientes
     if custom_payment >= total_amount_due:
-        # Marcar todas las cuotas como "PAGADA" y actualizar la fecha de pago
+        # Marcar todas las cuotas pendientes como "PAGADA" y actualizar la fecha de pago
         for installment in loan.installments:
             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
-                installment.status = InstallmentStatus.PAGADA
-                installment.payment_date = datetime.now()  # Establecer la fecha de pago actual
-                # Crear el pago asociado a esta cuota
-                payment = Payment(amount=installment.amount, payment_date=datetime.now(
-                ), installment_id=installment.id)
-                # Establecer el valor de la cuota en 0
-                installment.amount = 0
-                db.session.add(payment)
+                # Calcular cuánto se debe realmente de esta cuota
+                total_paid_for_installment = db.session.query(func.sum(Payment.amount)).filter(
+                    Payment.installment_id == installment.id,
+                    func.date(Payment.payment_date) != current_date
+                ).scalar() or Decimal('0')
+                
+                amount_due_for_installment = installment.fixed_amount - total_paid_for_installment
+                
+                if amount_due_for_installment > 0:
+                    installment.status = InstallmentStatus.PAGADA
+                    installment.payment_date = datetime.now().date()
+                    installment.amount = Decimal('0')
+                    
+                    # Crear el pago asociado a esta cuota por el monto pendiente
+                    payment = Payment(
+                        amount=amount_due_for_installment, 
+                        payment_date=datetime.now(), 
+                        installment_id=installment.id
+                    )
+                    db.session.add(payment)
+        
         # Actualizar el estado del préstamo y el campo up_to_date
         loan.status = False  # 0 indica que el préstamo está pagado en su totalidad
         loan.up_to_date = True
-        # loan.modification_date = datetime.now()  # El préstamo está al día
         db.session.commit()
         return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
         
     else:
         # Lógica para manejar el pago parcial
-        remaining_payment = Decimal(custom_payment)  # Convertir a Decimal
+        remaining_payment = Decimal(custom_payment)
+        
         for installment in loan.installments:
             if remaining_payment <= 0:
                 break
+                
             if installment.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]:
-                # Calcular cuánto falta para completar la cuota
-                missing = installment.amount
-                if remaining_payment >= missing:
-                    # Se completa la cuota
-                    installment.status = InstallmentStatus.PAGADA
-                    installment.payment_date = datetime.now()
-                    payment = Payment(amount=missing, payment_date=datetime.now(), installment_id=installment.id)
-                    db.session.add(payment)
-                    installment.amount = 0
-                    remaining_payment -= missing
-                else:
-                    # Solo se abona una parte
-                    installment.status = InstallmentStatus.ABONADA
-                    installment.amount -= remaining_payment
-                    payment = Payment(amount=remaining_payment, payment_date=datetime.now(), installment_id=installment.id)
-                    db.session.add(payment)
-                    remaining_payment = 0
-                # Crear el pago asociado a esta cuota
-                db.session.add(payment)
-        # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
-        # loan.modification_date = datetime.now()
-        # if client.first_modification_date != datetime.now().date():
-            # client.first_modification_date = datetime.now()
+                # Calcular cuánto se debe realmente de esta cuota
+                total_paid_for_installment = db.session.query(func.sum(Payment.amount)).filter(
+                    Payment.installment_id == installment.id,
+                    func.date(Payment.payment_date) != current_date
+                ).scalar() or Decimal('0')
+                
+                amount_due_for_installment = installment.fixed_amount - total_paid_for_installment
+                
+                if amount_due_for_installment > 0:
+                    if remaining_payment >= amount_due_for_installment:
+                        # Se completa la cuota
+                        installment.status = InstallmentStatus.PAGADA
+                        installment.payment_date = datetime.now().date()
+                        installment.amount = Decimal('0')
+                        
+                        payment = Payment(
+                            amount=amount_due_for_installment, 
+                            payment_date=datetime.now(), 
+                            installment_id=installment.id
+                        )
+                        db.session.add(payment)
+                        remaining_payment -= amount_due_for_installment
+                    else:
+                        # Solo se abona una parte
+                        installment.status = InstallmentStatus.ABONADA
+                        installment.amount = amount_due_for_installment - remaining_payment
+                        
+                        payment = Payment(
+                            amount=remaining_payment, 
+                            payment_date=datetime.now(), 
+                            installment_id=installment.id
+                        )
+                        db.session.add(payment)
+                        remaining_payment = Decimal('0')
+        
         client.debtor = False
         db.session.commit()
 
     # Redirigir a la vista de detalles de caja del empleado
     return redirect(url_for('routes.box_detail', employee_id=employee_id))
-
-    return jsonify({"message": "✅ El pago se ha registrado correctamente."}), 200
 
 
 
@@ -4213,7 +4256,7 @@ def history_box():
         incomes = [trans for trans in transactions if
                    trans.transaction_types == TransactionType.INGRESO and trans.approval_status == ApprovalStatus.APROBADA and func.date(trans.creation_date.date()) == filter_date]
         withdrawals = [trans for trans in transactions if
-                       trans.transaction_types == TransactionType.RETIRO and trans.approval_status == ApprovalStatus.APROBADA and func.date(trans.creation_date.date()) == filter_date]
+                       trans.transaction_types == TransactionType.RETIRO and trans.approval_status == ApprovalStatus.APROBADA and trans.creation_date.date() == filter_date]
 
         # Recopilar detalles con formato de fecha y clases de Bootstrap
         expense_details = [
