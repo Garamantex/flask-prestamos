@@ -2480,6 +2480,8 @@ def approval_expenses():
             for transaccion, empleado_vendedor in query:
                 # Obtener el concepto de la transacción
                 concepto = Concept.query.get(transaccion.concept_id)
+                # Usar imagen por defecto si no hay adjunto
+                adjunto = transaccion.attachment if transaccion.attachment else 'black.png'
 
                 # Crear un diccionario con los detalles de la transacción pendiente, incluyendo el nombre del vendedor
                 detalle_transaccion = {
@@ -2488,7 +2490,7 @@ def approval_expenses():
                     'concepto': concepto.name,
                     'descripcion': transaccion.description,
                     'monto': transaccion.amount,
-                    'attachment': transaccion.attachment,
+                    'attachment': adjunto,
                     'vendedor': empleado_vendedor.user.first_name + ' ' + empleado_vendedor.user.last_name
                 }
 
