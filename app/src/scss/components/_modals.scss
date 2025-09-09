@@ -1,0 +1,232 @@
+// Estilos para modales de Bootstrap personalizados
+.modal {
+    // Overlay personalizado
+    &-backdrop {
+        background-color: rgba($neutral-900, 0.8) !important;
+        backdrop-filter: blur(2px);
+    }
+    
+    // Contenedor del modal
+    &-dialog {
+        margin: 1.75rem auto;
+        max-width: 500px;
+        
+        @media (max-width: 576px) {
+            margin: 0.5rem;
+            max-width: calc(100% - 1rem);
+        }
+    }
+    
+    // Contenido del modal
+    &-content {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba($neutral-900, 0.3);
+        background: $white-100;
+        overflow: hidden;
+    }
+    
+    // Header del modal
+    &-header {
+        background: linear-gradient(135deg, $primary 0%, $primary-light 100%);
+        color: $white-100;
+        border-bottom: none;
+        padding: 1.5rem;
+        
+        .modal-title {
+            font-weight: 600;
+            font-size: 1.25rem;
+            margin: 0;
+        }
+        
+        .close {
+            color: $white-100;
+            opacity: 0.8;
+            font-size: 1.5rem;
+            padding: 0;
+            margin: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            
+            &:hover {
+                opacity: 1;
+                background-color: rgba($white-100, 0.1);
+                transform: scale(1.1);
+            }
+            
+            &:focus {
+                outline: none;
+                box-shadow: 0 0 0 2px rgba($white-100, 0.3);
+            }
+            
+            span {
+                font-size: 1.2rem;
+                line-height: 1;
+            }
+        }
+    }
+    
+    // Body del modal
+    &-body {
+        padding: 2rem 1.5rem;
+        background: $white-100;
+        
+        p {
+            color: $neutral-700;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            
+            strong {
+                color: $primary;
+                font-weight: 600;
+            }
+        }
+        
+        // Estilos para formularios dentro del modal
+        .form-group {
+            margin-bottom: 1.5rem;
+            
+            label {
+                color: $neutral-700;
+                font-weight: 500;
+                margin-bottom: 0.5rem;
+                display: block;
+            }
+            
+            .form-control {
+                border: 2px solid $neutral-200;
+                border-radius: 8px;
+                padding: 0.75rem 1rem;
+                font-size: 1rem;
+                transition: all 0.2s ease;
+                
+                &:focus {
+                    border-color: $primary;
+                    box-shadow: 0 0 0 3px rgba($primary, 0.1);
+                    outline: none;
+                }
+                
+                &::placeholder {
+                    color: $neutral-400;
+                }
+            }
+        }
+        
+        // Estilos para campos ocultos
+        input[type="hidden"] {
+            display: none;
+        }
+    }
+    
+    // Footer del modal
+    &-footer {
+        background: $neutral-50;
+        border-top: 1px solid $neutral-200;
+        padding: 1.5rem;
+        justify-content: center;
+        
+        .btn {
+            min-width: 120px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            
+            &.btn-primary {
+                background: $primary;
+                border-color: $primary;
+                color: $white-100;
+                
+                &:hover {
+                    background: $primary-hover;
+                    border-color: $primary-hover;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba($primary, 0.3);
+                }
+                
+                &:focus {
+                    box-shadow: 0 0 0 3px rgba($primary, 0.2);
+                }
+                
+                &:active {
+                    transform: translateY(0);
+                    box-shadow: 0 2px 4px rgba($primary, 0.3);
+                }
+            }
+        }
+    }
+}
+
+// Estilos específicos para el modal de pagos
+#exampleModal {
+    .modal-body {
+        .row {
+            margin-bottom: 1rem;
+            
+            &:last-child {
+                margin-bottom: 0;
+            }
+        }
+        
+        // Estilos para los valores mostrados
+        #installmentValue,
+        #overdueAmount {
+            color: $primary;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        // Estilos para el input de monto
+        #customPayment {
+            font-size: 1.1rem;
+            font-weight: 500;
+            text-align: center;
+            
+            &:focus {
+                border-color: $primary;
+                box-shadow: 0 0 0 3px rgba($primary, 0.1);
+            }
+        }
+    }
+}
+
+// Animaciones para el modal
+.modal.fade .modal-dialog {
+    transition: transform 0.3s ease-out;
+    transform: translate(0, -50px);
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}
+
+// Responsive
+@media (max-width: 576px) {
+    .modal {
+        &-header {
+            padding: 1rem;
+            
+            .modal-title {
+                font-size: 1.1rem;
+            }
+        }
+        
+        &-body {
+            padding: 1.5rem 1rem;
+        }
+        
+        &-footer {
+            padding: 1rem;
+            
+            .btn {
+                min-width: 100px;
+                padding: 0.6rem 1.2rem;
+            }
+        }
+    }
+}

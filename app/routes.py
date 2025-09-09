@@ -2617,7 +2617,9 @@ def transactions():
                     
                     
                 except Exception as e:
-                
+                    print(f"Error al guardar archivo: {e}")
+                    print(f"Upload folder: {upload_folder}")
+                    print(f"Filename: {filename}")
                     filename = None
             else:
                 # Si no se subió archivo, usar imagen fallback
@@ -3028,34 +3030,43 @@ def list_expenses():
         if not empleado:
             return jsonify({'message': 'Empleado no encontrado'}), 404
 
-        # Obtener todas las transacciones asociadas a este empleado
-        transacciones = Transaction.query.filter(
+        # OPTIMIZACIÓN: Una sola consulta con JOIN para obtener transacciones y conceptos
+        # Agregar paginación para mejorar el rendimiento
+        page = request.args.get('page', 1, type=int)
+        per_page = 20  # Mostrar 20 transacciones por página
+        
+        transacciones_con_conceptos = db.session.query(Transaction, Concept).outerjoin(
+            Concept, Transaction.concept_id == Concept.id
+        ).filter(
             Transaction.employee_id == empleado.id
-        ).all()
+        ).order_by(Transaction.creation_date.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
 
         # Crear una lista para almacenar los detalles de las transacciones
         detalles_transacciones = []
 
-        for transaccion in transacciones:
-            # Obtener el concepto de la transacción
-            concepto = Concept.query.get(transaccion.concept_id)
-
+        for transaccion, concepto in transacciones_con_conceptos.items:
             # Crear un diccionario con los detalles de la transacción
             detalle_transaccion = {
                 'id': transaccion.id,
-                'tipo': transaccion.transaction_types.name,
-                'concepto': concepto.name,
-                'descripcion': transaccion.description,
+                'tipo': transaccion.transaction_types.name if transaccion.transaction_types else 'N/A',
+                'concepto': concepto.name if concepto else 'N/A',
+                'descripcion': transaccion.description or 'Sin descripción',
                 'monto': transaccion.amount,
-                'attachment': transaccion.attachment,
-                'status': transaccion.approval_status.value
+                'attachment': transaccion.attachment or None,
+                'status': transaccion.approval_status.value if transaccion.approval_status else 'N/A',
+                'fecha': transaccion.creation_date.strftime('%d/%m/%Y %H:%M') if transaccion.creation_date else 'N/A'
             }
-            
 
             # Agregar los detalles a la lista
             detalles_transacciones.append(detalle_transaccion)
 
-        return render_template('list-expenses.html', detalles_transacciones=detalles_transacciones, user_role=user_role, user_id=user_id)
+        return render_template('list-expenses.html', 
+                             detalles_transacciones=detalles_transacciones, 
+                             user_role=user_role, 
+                             user_id=user_id,
+                             pagination=transacciones_con_conceptos)
 
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500

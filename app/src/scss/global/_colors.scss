@@ -10,8 +10,38 @@ $white-100: #ffffff;
 /* Colors palette */
 
 $primary: #0A1C47 !default;
+$primary-light: #1a2c57 !default;
+$primary-dark: #05122f !default;
+$primary-hover: #0f2457 !default;
+
 $secondary: #007413 !default;
+$secondary-light: #00a018 !default;
+$secondary-dark: #005a0e !default;
+
 $success: #415a77 !default;
+$success-light: #5a7a97 !default;
+$success-dark: #2a3a57 !default;
+
 $info: #778da9 !default;
+$info-light: #8fa5c1 !default;
+$info-dark: #5f7591 !default;
+
 $warning: #c0c400 !default;
+$warning-light: #d4d400 !default;
+$warning-dark: #a0a000 !default;
+
 $danger: #c42021 !default;
+$danger-light: #d43031 !default;
+$danger-dark: #a01011 !default;
+
+/* Neutral colors for contrast */
+$neutral-50: #f8fafc;
+$neutral-100: #f1f5f9;
+$neutral-200: #e2e8f0;
+$neutral-300: #cbd5e1;
+$neutral-400: #94a3b8;
+$neutral-500: #64748b;
+$neutral-600: #475569;
+$neutral-700: #334155;
+$neutral-800: #1e293b;
+$neutral-900: #0f172a;

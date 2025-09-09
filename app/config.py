@@ -16,4 +16,5 @@ SQLALCHEMY_ENGINE_OPTIONS = {
 # Otras configuraciones
 DEBUG = True
 SECRET_KEY = 'Lieberm0rder'
-UPLOAD_FOLDER = '/static/images'
+import os
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'images')

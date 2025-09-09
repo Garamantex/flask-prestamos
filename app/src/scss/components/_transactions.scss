@@ -1,0 +1,102 @@
+// Estilos para las tarjetas de transacciones
+.request-list {
+    .request-item {
+        background: linear-gradient(135deg, $white-100 0%, $neutral-50 100%);
+        border: 2px solid $neutral-200 !important;
+        border-radius: 12px !important;
+        padding: 1.5rem !important;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba($neutral-900, 0.1);
+        
+        &:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba($primary, 0.15);
+            border-color: $primary !important;
+        }
+        
+        p {
+            margin-bottom: 0.75rem;
+            color: $neutral-700;
+            font-size: 14px;
+            line-height: 1.5;
+            
+            strong {
+                color: $primary;
+                font-weight: 600;
+            }
+            
+            span {
+                color: $neutral-600;
+                font-weight: 500;
+            }
+        }
+        
+        // Estilos específicos para diferentes estados
+        &[data-status="APROBADA"] {
+            border-left: 4px solid $success !important;
+            
+            p strong {
+                color: $success;
+            }
+        }
+        
+        &[data-status="PENDIENTE"] {
+            border-left: 4px solid $warning !important;
+            
+            p strong {
+                color: $warning;
+            }
+        }
+        
+        &[data-status="RECHAZADA"] {
+            border-left: 4px solid $danger !important;
+            
+            p strong {
+                color: $danger;
+            }
+        }
+    }
+}
+
+// Estilos para el modal de comprobantes
+.c-modal {
+    .img-attachment {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba($neutral-900, 0.2);
+    }
+    
+    p {
+        color: $neutral-600;
+        font-style: italic;
+        text-align: center;
+        padding: 2rem;
+        background: $neutral-100;
+        border-radius: 8px;
+        border: 2px dashed $neutral-300;
+    }
+}
+
+// Estilos para el título de la página
+.c-users__title {
+    color: $primary;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    position: relative;
+    
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, $primary, $primary-light);
+        border-radius: 2px;
+    }
+}
