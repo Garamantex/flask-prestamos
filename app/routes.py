@@ -784,8 +784,24 @@ def modify_installments(loan_id):
 
 @routes.route('/confirm_payment', methods=['POST'])
 def confirm_payment():
-    loan_id = request.form.get('loan_id')
-    custom_payment = float(request.form.get('customPayment'))
+    # Obtener y normalizar parámetros del formulario
+    loan_id_raw = request.form.get('loan_id') or request.form.get('loanId')
+    custom_payment_raw = (request.form.get('customPayment') or '').strip()
+
+    # Normalización de monto: soporta formato español (puntos miles, coma decimal)
+    # "10.000" -> 10000 ; "10,5" -> 10.5 ; "10,000" (EN) no esperado en es-ES
+    try:
+        if not loan_id_raw:
+            return jsonify({"error": "Falta el parámetro loan_id."}), 400
+        loan_id = int(loan_id_raw)
+
+        if not custom_payment_raw:
+            return jsonify({"error": "Falta el monto de pago."}), 400
+
+        normalized_amount = custom_payment_raw.replace('.', '').replace(',', '.')
+        custom_payment = float(normalized_amount)
+    except ValueError:
+        return jsonify({"error": "Formato de monto inválido."}), 400
 
     # Validar que el pago sea mayor a 0
     if custom_payment <= 0:
@@ -793,7 +809,6 @@ def confirm_payment():
 
     # Optimización: Eager loading con una sola consulta
     loan = Loan.query.options(
-        joinedload(Loan.employee),
         joinedload(Loan.client),
         joinedload(Loan.installments)
     ).get(loan_id)
@@ -820,7 +835,10 @@ def confirm_payment():
     total_amount_due = sum(installment.amount for installment in pending_installments)
 
     # Actualizar caja del empleado
-    loan.employee.box_value += Decimal(custom_payment)
+    employee = Employee.query.get(loan.employee_id)
+    if not employee:
+        return jsonify({"error": "Empleado asociado no encontrado."}), 404
+    employee.box_value += Decimal(custom_payment)
 
     # Optimización: Preparar lista para operaciones en lote
     payments_to_create = []
@@ -828,12 +846,14 @@ def confirm_payment():
     if custom_payment >= total_amount_due:
         # Pago completo - procesar todas las cuotas pendientes
         for installment in pending_installments:
+            # Guardar el monto pendiente antes de ponerlo en 0
+            installment_amount_due = installment.amount
             installment.status = InstallmentStatus.PAGADA
             installment.payment_date = current_datetime
             installment.amount = 0
-            
+
             payment = Payment(
-                amount=installment.amount, 
+                amount=installment_amount_due,
                 payment_date=current_datetime,
                 installment_id=installment.id
             )
