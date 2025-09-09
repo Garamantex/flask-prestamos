@@ -1,0 +1,124 @@
+// Ejemplos de uso del sistema de formularios unificado
+// Este archivo muestra cómo implementar diferentes tipos de formularios
+
+/* 
+=== EJEMPLOS DE USO ===
+
+1. FORMULARIO BÁSICO:
+<div class="c-form__container">
+    <h2 class="c-form__title">Título del Formulario</h2>
+    <form>
+        <div class="c-form__group">
+            <label for="campo" class="c-form__label c-form__label--required">Campo Requerido</label>
+            <input type="text" class="c-form__input" id="campo" placeholder="Placeholder" required>
+        </div>
+        <div class="c-form__actions">
+            <button type="submit" class="c-btn c-btn-primary">Enviar</button>
+        </div>
+    </form>
+</div>
+
+2. FORMULARIO CON SELECT:
+<div class="c-form__group">
+    <label for="select" class="c-form__label">Seleccionar Opción</label>
+    <select class="c-form__select" id="select">
+        <option value="">Seleccione una opción</option>
+        <option value="1">Opción 1</option>
+    </select>
+</div>
+
+3. FORMULARIO CON TEXTAREA:
+<div class="c-form__group">
+    <label for="textarea" class="c-form__label">Descripción</label>
+    <textarea class="c-form__textarea" id="textarea" placeholder="Escriba aquí..."></textarea>
+</div>
+
+4. FORMULARIO CON CHECKBOX:
+<div class="c-form__checkbox">
+    <input type="checkbox" id="checkbox" name="checkbox">
+    <label for="checkbox">Acepto los términos y condiciones</label>
+</div>
+
+5. FORMULARIO CON RADIO BUTTONS:
+<div class="c-form__radio-group">
+    <div class="c-form__radio">
+        <input type="radio" id="radio1" name="radio" value="1">
+        <label for="radio1">Opción 1</label>
+    </div>
+    <div class="c-form__radio">
+        <input type="radio" id="radio2" name="radio" value="2">
+        <label for="radio2">Opción 2</label>
+    </div>
+</div>
+
+6. FORMULARIO CON FIELDSET:
+<fieldset>
+    <legend>Información Personal</legend>
+    <div class="c-form__group">
+        <label for="nombre" class="c-form__label">Nombre</label>
+        <input type="text" class="c-form__input" id="nombre">
+    </div>
+</fieldset>
+
+7. FORMULARIO CON MENSAJES DE ERROR:
+<div class="c-form__group">
+    <label for="email" class="c-form__label">Email</label>
+    <input type="email" class="c-form__input is-invalid" id="email">
+    <span class="c-form__error">El email es requerido</span>
+</div>
+
+8. FORMULARIO COMPACTO:
+<div class="c-form__container c-form--compact">
+    <!-- Contenido del formulario -->
+</div>
+
+9. FORMULARIO INLINE:
+<div class="c-form__container c-form--inline">
+    <div class="c-form__group">
+        <label for="buscar" class="c-form__label">Buscar:</label>
+        <input type="text" class="c-form__input" id="buscar">
+    </div>
+</div>
+
+=== CLASES DISPONIBLES ===
+
+Contenedores:
+- .c-form__container - Contenedor principal del formulario
+- .c-form__group - Grupo de campo (label + input)
+- .c-form__actions - Contenedor de botones
+
+Labels:
+- .c-form__label - Label estándar
+- .c-form__label--required - Label con asterisco rojo
+- .c-form__label--white - Label blanco
+
+Inputs:
+- .c-form__input - Input de texto, email, tel, etc.
+- .c-form__select - Select dropdown
+- .c-form__textarea - Textarea
+
+Estados:
+- .is-valid - Campo válido (borde verde)
+- .is-invalid - Campo inválido (borde rojo)
+
+Mensajes:
+- .c-form__help - Mensaje de ayuda
+- .c-form__error - Mensaje de error
+
+Variantes:
+- .c-form--compact - Formulario compacto
+- .c-form--inline - Formulario inline
+
+=== RESPONSIVE ===
+El sistema es completamente responsive y se adapta automáticamente a:
+- Desktop (1200px+)
+- Tablet (768px - 1199px)  
+- Mobile (< 768px)
+
+=== ACCESIBILIDAD ===
+- Labels asociados correctamente
+- Estados de focus visibles
+- Contraste de colores adecuado
+- Navegación por teclado
+- ARIA labels cuando es necesario
+*/

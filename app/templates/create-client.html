@@ -14,40 +14,70 @@
         </div>
         <div class="row">
             <div class="col">
-                <div class="c-users">
-                    <p class="c-users__title">Formulario de creación de Cliente</p>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col">
-                <form action="{{ url_for('routes.create_client', user_id=user_id) }}" method="POST">
-                    <fieldset>
-                        <div class="mb-3">
-                            <label for="first_name" class="form-label">Nombre</label>
-                            <input type="text" class="c-form c-form__input" name="first_name" id="first_name" placeholder="Nombre">
+                <div class="c-form__container c-form--mobile">
+                    <h2 class="c-form__title">Crear Nuevo Cliente</h2>
+                    
+                    <form action="{{ url_for('routes.create_client', user_id=user_id) }}" method="POST">
+                        <div class="c-form__group">
+                            <label for="first_name" class="c-form__label c-form__label--required">Nombre</label>
+                            <input type="text" 
+                                   class="c-form__input" 
+                                   name="first_name" 
+                                   id="first_name" 
+                                   placeholder="Ingrese el nombre del cliente"
+                                   required>
                         </div>
-                        <div class="mb-3">
-                            <label for="last_name" class="form-label">Apellido</label>
-                            <input type="text" class="c-form c-form__input" name="last_name" id="last_name" placeholder="Apellido">
+                        
+                        <div class="c-form__group">
+                            <label for="last_name" class="c-form__label c-form__label--required">Apellido</label>
+                            <input type="text" 
+                                   class="c-form__input" 
+                                   name="last_name" 
+                                   id="last_name" 
+                                   placeholder="Ingrese el apellido del cliente"
+                                   required>
                         </div>
-                        <div class="mb-3">
-                            <label for="alias" class="form-label">Alias</label>
-                            <input type="text" class="c-form c-form__input" name="alias" id="alias" placeholder="Alias">
-                        <div class="mb-3">
-                            <label for="document" class="form-label">DNI</label>
-                            <input type="text" class="c-form c-form__input" name="document" id="document" placeholder="Documento">
+                        
+                        <div class="c-form__group">
+                            <label for="alias" class="c-form__label">Alias</label>
+                            <input type="text" 
+                                   class="c-form__input" 
+                                   name="alias" 
+                                   id="alias" 
+                                   placeholder="Alias o nombre comercial">
                         </div>
-                        <div class="mb-3">
-                            <label for="cellphone" class="form-label">Teléfono</label>
-                            <input type="text" class="c-form c-form__input" name="cellphone" id="cellphone" placeholder="Teléfono"> 
+                        
+                        <div class="c-form__group">
+                            <label for="document" class="c-form__label c-form__label--required">DNI</label>
+                            <input type="text" 
+                                   class="c-form__input" 
+                                   name="document" 
+                                   id="document" 
+                                   placeholder="Número de documento"
+                                   required>
                         </div>
-                        <div class="mb-3">
-                            <label for="address" class="form-label">Dirección</label>
-                            <input type="text" class="c-form c-form__input" name="address" id="address" placeholder="Dirección">
+                        
+                        <div class="c-form__group">
+                            <label for="cellphone" class="c-form__label c-form__label--required">Teléfono</label>
+                            <input type="tel" 
+                                   class="c-form__input" 
+                                   name="cellphone" 
+                                   id="cellphone" 
+                                   placeholder="Número de teléfono"
+                                   required>
                         </div>
-                        <div class="mb-3">
-                            <label for="neighborhood" class="form-label">Barrio</label>
+                        
+                        <div class="c-form__group">
+                            <label for="address" class="c-form__label">Dirección</label>
+                            <input type="text" 
+                                   class="c-form__input" 
+                                   name="address" 
+                                   id="address" 
+                                   placeholder="Dirección completa">
+                        </div>
+                        
+                        <div class="c-form__group">
+                            <label for="neighborhood" class="c-form__label">Barrio</label>
                             <input type="text" class="c-form c-form__input" name="neighborhood" id="neighborhood" placeholder="Barrio">
                         </div>
                     </fieldset>
