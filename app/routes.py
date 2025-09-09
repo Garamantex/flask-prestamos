@@ -911,7 +911,19 @@ def confirm_payment():
             loan.client.first_modification_date = current_datetime
         loan.client.debtor = False
 
-    # Optimización: Operaciones en lote
+    # Determinar si el préstamo debe marcarse como finalizado
+    remaining_outstanding = sum(
+        inst.amount for inst in loan.installments
+        if inst.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA]
+        and inst.amount > 0
+    )
+
+    if remaining_outstanding == 0:
+        loan.status = False
+        loan.up_to_date = True
+        loan.modification_date = current_datetime
+
+    # Operaciones en lote
     db.session.add_all(payments_to_create)
     db.session.commit()
 
@@ -920,75 +932,68 @@ def confirm_payment():
 
 @routes.route('/mark_overdue', methods=['POST'])
 def mark_overdue():
-    if request.method == 'POST':
-        # Obtener el ID del préstamo de la solicitud POST
-        loan_id = request.form['loan_id']
+    # Obtener el ID del préstamo de la solicitud POST
+    loan_id_raw = request.form.get('loan_id') or request.form.get('loanId')
+    try:
+        if not loan_id_raw:
+            return jsonify({"error": "Falta el parámetro loan_id."}), 400
+        loan_id = int(loan_id_raw)
+    except ValueError:
+        return jsonify({"error": "loan_id inválido."}), 400
 
-        # Buscar la primera cuota pendiente del préstamo específico
-        # Si no hay cuotas pendientes, buscar la primera cuota en MORA
-        pending_installment = LoanInstallment.query.filter(
-            LoanInstallment.loan_id == loan_id,
-            LoanInstallment.status == InstallmentStatus.PENDIENTE
-        ).order_by(LoanInstallment.due_date.asc()).first()
+    # Buscar la primera cuota pendiente del préstamo específico
+    pending_installment = LoanInstallment.query.filter(
+        LoanInstallment.loan_id == loan_id,
+        LoanInstallment.status == InstallmentStatus.PENDIENTE
+    ).order_by(LoanInstallment.due_date.asc()).first()
 
-        if pending_installment:
-            # Actualizar el estado de la cuota pendiente a "MORA"
-            pending_installment.status = InstallmentStatus.MORA
-            pending_installment.updated_at = datetime.now()
+    if pending_installment:
+        pending_installment.status = InstallmentStatus.MORA
+        pending_installment.updated_at = datetime.now()
 
-            # Obtener el cliente asociado a este préstamo
-            client = Client.query.join(Loan).filter(Loan.id == loan_id).first()
-            if client:
-                # Actualizar el campo debtor del cliente a True
-                client.debtor = True
-                db.session.add(client)
-
-            # Crear un nuevo pago asociado a la cuota en MORA (monto 0)
-            payment = Payment(
-                amount=0, 
-                payment_date=datetime.now(), 
-                installment_id=pending_installment.id
-            )
-            db.session.add(payment)
-
-            # Guardar los cambios en la base de datos
+        client = Client.query.join(Loan).filter(Loan.id == loan_id).first()
+        if client:
+            client.debtor = True
             if not client.first_modification_date:
                 client.first_modification_date = datetime.now()
-            db.session.commit()
+            db.session.add(client)
 
-            return 'La cuota pendiente ha sido marcada como MORA y el cliente ha sido marcado como deudor exitosamente'
-        else:
-            # Si no hay cuotas pendientes, verificar si ya hay cuotas en MORA
-            overdue_installments = LoanInstallment.query.filter(
-                LoanInstallment.loan_id == loan_id,
-                LoanInstallment.status == InstallmentStatus.MORA
-            ).all()
-            
-            if overdue_installments:
-                # Obtener el cliente asociado a este préstamo
-                client = Client.query.join(Loan).filter(Loan.id == loan_id).first()
-                if client:
-                    # Actualizar el campo debtor del cliente a True
-                    client.debtor = True
-                    db.session.add(client)
+        payment = Payment(
+            amount=0,
+            payment_date=datetime.now(),
+            installment_id=pending_installment.id
+        )
+        db.session.add(payment)
+        db.session.commit()
 
-                # Crear un nuevo pago asociado a la primera cuota en MORA (monto 0)
-                first_overdue_installment = overdue_installments[0]
-                payment = Payment(
-                    amount=0, 
-                    payment_date=datetime.now(), 
-                    installment_id=first_overdue_installment.id
-                )
-                db.session.add(payment)
+        return jsonify({"message": "Cuota marcada como MORA y cliente marcado deudor."}), 200
 
-                # Guardar los cambios en la base de datos
-                if not client.first_modification_date:
-                    client.first_modification_date = datetime.now()
-                db.session.commit()
-            else:
-                return 'No se encontraron cuotas pendientes para marcar como MORA'
-    else:
-        return 'Método no permitido'
+    # Si no hay cuotas pendientes, verificar si ya hay cuotas en MORA
+    overdue_installments = LoanInstallment.query.filter(
+        LoanInstallment.loan_id == loan_id,
+        LoanInstallment.status == InstallmentStatus.MORA
+    ).all()
+
+    if overdue_installments:
+        client = Client.query.join(Loan).filter(Loan.id == loan_id).first()
+        if client:
+            client.debtor = True
+            if not client.first_modification_date:
+                client.first_modification_date = datetime.now()
+            db.session.add(client)
+
+        first_overdue_installment = overdue_installments[0]
+        payment = Payment(
+            amount=0,
+            payment_date=datetime.now(),
+            installment_id=first_overdue_installment.id
+        )
+        db.session.add(payment)
+        db.session.commit()
+
+        return jsonify({"message": "Cliente marcado deudor, se registró pago 0 sobre cuota en MORA."}), 200
+
+    return jsonify({"error": "No se encontraron cuotas para marcar como MORA"}), 404
 
 
 @routes.route('/payment_list/<int:user_id>', methods=['GET'])
