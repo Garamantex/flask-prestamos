@@ -1,5 +1,5 @@
 # Importaciones del módulo estándar de Python
-from sqlalchemy import join
+from sqlalchemy import join, tuple_
 from sqlalchemy.orm import joinedload
 from flask import request, render_template, session, redirect, url_for
 from datetime import datetime, date, timedelta
@@ -1080,154 +1080,177 @@ def payments_list(user_id):
     clients_information = []
     clients_information_paid = []
 
-    # Obtiene los clientes del empleado con préstamos activos o en mora
-    for client in employee.clients:
+    # Precargar datos mínimos
+    client_ids = [c.id for c in employee.clients]
+    loans = Loan.query.filter(
+        Loan.client_id.in_(client_ids),
+        Loan.status == True
+    ).all()
 
-        for loan in client.loans:
-            total_installment_value_paid = 0  # Inicializar variable
+    if loans:
+        loan_ids = [l.id for l in loans]
 
-            if loan.status:
-                # Calcula el número de cuotas pagadas
-                paid_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
-                                                                    status=InstallmentStatus.PAGADA).count()
+        # Agregaciones por préstamo
+        paid_installments_by_loan = dict(db.session.query(
+            LoanInstallment.loan_id,
+            func.count(LoanInstallment.id)
+        ).filter(
+            LoanInstallment.loan_id.in_(loan_ids),
+            LoanInstallment.status == InstallmentStatus.PAGADA
+        ).group_by(LoanInstallment.loan_id).all())
 
-                # Calcula el total pagado en el préstamo
-                total_paid_amount = db.session.query(func.sum(Payment.amount)).join(
-                    LoanInstallment, Payment.installment_id == LoanInstallment.id
-                ).filter(
-                    LoanInstallment.loan_id == loan.id
-                ).scalar() or 0
+        total_paid_amount_by_loan = dict(db.session.query(
+            LoanInstallment.loan_id,
+            func.coalesce(func.sum(Payment.amount), 0)
+        ).join(Payment, Payment.installment_id == LoanInstallment.id)
+         .filter(LoanInstallment.loan_id.in_(loan_ids))
+         .group_by(LoanInstallment.loan_id).all())
 
-                # Obtiene el valor de la cuota fija (asumiendo que todas las cuotas tienen el mismo valor)
-                installment_value = db.session.query(LoanInstallment.fixed_amount).filter_by(
-                    loan_id=loan.id
-                ).first()
+        overdue_counts_by_loan = dict(db.session.query(
+            LoanInstallment.loan_id,
+            func.count(LoanInstallment.id)
+        ).filter(
+            LoanInstallment.loan_id.in_(loan_ids),
+            LoanInstallment.status == InstallmentStatus.MORA
+        ).group_by(LoanInstallment.loan_id).all())
 
-                # Calcula el número de cuota incluyendo decimales
-                if installment_value and installment_value[0] > 0:
-                    cuota_number_with_decimal = float(total_paid_amount) / float(installment_value[0])
-                else:
-                    cuota_number_with_decimal = paid_installments
+        overdue_amount_by_loan = dict(db.session.query(
+            LoanInstallment.loan_id,
+            func.coalesce(func.sum(LoanInstallment.amount), 0)
+        ).filter(
+            LoanInstallment.loan_id.in_(loan_ids),
+            LoanInstallment.status == InstallmentStatus.MORA
+        ).group_by(LoanInstallment.loan_id).all())
+
+        outstanding_amount_by_loan = dict(db.session.query(
+            LoanInstallment.loan_id,
+            func.coalesce(func.sum(LoanInstallment.amount), 0)
+        ).filter(
+            LoanInstallment.loan_id.in_(loan_ids),
+            LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA])
+        ).group_by(LoanInstallment.loan_id).all())
+
+        amount_paid_installments_by_loan = dict(db.session.query(
+            LoanInstallment.loan_id,
+            func.coalesce(func.sum(LoanInstallment.fixed_amount), 0)
+        ).filter(
+            LoanInstallment.loan_id.in_(loan_ids),
+            LoanInstallment.status.in_([InstallmentStatus.ABONADA, InstallmentStatus.PAGADA])
+        ).group_by(LoanInstallment.loan_id).all())
+
+        # Último pago por préstamo
+        last_payment_by_loan = {}
+        last_payment_rows = db.session.query(
+            LoanInstallment.loan_id,
+            func.max(Payment.payment_date)
+        ).join(Payment, Payment.installment_id == LoanInstallment.id) \
+         .filter(LoanInstallment.loan_id.in_(loan_ids)) \
+         .group_by(LoanInstallment.loan_id).all()
+        for loan_id, last_date in last_payment_rows:
+            last_payment_by_loan[loan_id] = last_date
+
+        # Próxima cuota pendiente por préstamo (MIN due_date)
+        next_installment_rows = db.session.query(
+            LoanInstallment.loan_id,
+            func.min(LoanInstallment.due_date)
+        ).filter(
+            LoanInstallment.loan_id.in_(loan_ids),
+            LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
+        ).group_by(LoanInstallment.loan_id).all()
+        next_due_by_loan = {loan_id: due for loan_id, due in next_installment_rows}
+
+        # Valor de cuota fija (tomar mínima por préstamo)
+        fixed_amount_rows = db.session.query(
+            LoanInstallment.loan_id,
+            func.min(LoanInstallment.fixed_amount)
+        ).filter(LoanInstallment.loan_id.in_(loan_ids)) \
+         .group_by(LoanInstallment.loan_id).all()
+        fixed_amount_by_loan = {loan_id: fa for loan_id, fa in fixed_amount_rows}
+
+        # Estado de cuota previa por préstamo (más reciente por due_date)
+        prev_installment_rows = db.session.query(
+            LoanInstallment.loan_id,
+            func.max(LoanInstallment.due_date)
+        ).filter(
+            LoanInstallment.loan_id.in_(loan_ids),
+            LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA])
+        ).group_by(LoanInstallment.loan_id).all()
+        prev_due_by_loan = {loan_id: due for loan_id, due in prev_installment_rows}
+
+        prev_status_by_loan = {}
+        if prev_due_by_loan:
+            prev_pairs = db.session.query(
+                LoanInstallment.loan_id,
+                LoanInstallment.status
+            ).filter(
+                tuple_(LoanInstallment.loan_id, LoanInstallment.due_date).in_(
+                    [(lid, due) for lid, due in prev_due_by_loan.items()]
+                )
+            ).all()
+            prev_status_by_loan = {lid: status for lid, status in prev_pairs}
+
+        # Construcción final sin N+1
+        client_by_id = {c.id: c for c in employee.clients}
+        for loan in loans:
+            client = client_by_id.get(loan.client_id)
+            if not client:
+                continue
+
+            installment_value = fixed_amount_by_loan.get(loan.id, 0) or 0
+            total_paid_amount = float(total_paid_amount_by_loan.get(loan.id, 0) or 0)
+            paid_installments = int(paid_installments_by_loan.get(loan.id, 0) or 0)
+            cuota_number_with_decimal = (total_paid_amount / float(installment_value)) if installment_value else paid_installments
+
+            overdue_installments = int(overdue_counts_by_loan.get(loan.id, 0) or 0)
+            total_overdue_amount = float(overdue_amount_by_loan.get(loan.id, 0) or 0)
+            total_outstanding_amount = float(outstanding_amount_by_loan.get(loan.id, 0) or 0)
+            total_amount_paid = float(amount_paid_installments_by_loan.get(loan.id, 0) or 0)
+
+            next_due = next_due_by_loan.get(loan.id)
+            last_payment_date = last_payment_by_loan.get(loan.id)
+            prev_status = prev_status_by_loan.get(loan.id)
+
+            approved = 'Aprobado' if loan.approved else 'Pendiente de Aprobación'
+
+            client_info = {
+                'First Name': client.first_name,
+                'Last Name': client.last_name,
+                'Alias Client': client.alias,
+                'Paid Installments': paid_installments,
+                'Overdue Installments': overdue_installments,
+                'Total Outstanding Amount': total_outstanding_amount,
+                'Total Amount Paid': total_amount_paid,
+                'Total Overdue Amount': total_overdue_amount,
+                'Last Payment Date': last_payment_date.isoformat() if last_payment_date else 0,
+                'Last Payment Date front': last_payment_date.strftime('%Y-%m-%d') if last_payment_date else '0',
+                'Loan ID': loan.id,
+                'Approved': approved,
+                'Installment Value': installment_value,
+                'Total Installments': loan.dues,
+                'Sales Date': loan.creation_date.isoformat(),
+                'Next Installment Date': next_due.isoformat() if next_due else 0,
+                'Next Installment Date front': next_due.strftime('%Y-%m-%d') if next_due else '0',
+                'Cuota Number': round(cuota_number_with_decimal, 2),
+                'Due Date': next_due.isoformat() if next_due else 0,
+                'Installment Status': 'MORA' if overdue_installments > 0 else ('PENDIENTE' if total_outstanding_amount > 0 else 'PAGADA'),
+                'Previous Installment Status': prev_status.value if prev_status else None,
+                'Last Loan Modification Date': loan.modification_date.isoformat() if loan.modification_date else None,
+                'Previous Installment Paid Amount': 0,
+                'Current Date': current_date,
+                'First Installment Value': installment_value if loan.creation_date.date() != datetime.now().date() else 0,
+                'First Modification Date': client.first_modification_date.isoformat() if client.first_modification_date else None,
+            }
+
+            clients_information.append(client_info)
 
 
-                # Calcula el número de cuotas vencidas
-                overdue_installments = LoanInstallment.query.filter_by(loan_id=loan.id,
-                                                                       status=InstallmentStatus.MORA).count()
-                total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
-                                                                                                    status=InstallmentStatus.MORA).scalar() or 0
-
-                # Calcula el monto total pendiente
-                total_outstanding_amount = db.session.query(func.sum(LoanInstallment.amount)).filter(
-                    LoanInstallment.loan_id == loan.id,
-                    LoanInstallment.status.in_(
-                        [InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA])
-                ).scalar() or 0
-
-                total_amount_paid = db.session.query(func.sum(LoanInstallment.fixed_amount)).filter(
-                    LoanInstallment.loan_id == loan.id,
-                    LoanInstallment.status.in_(
-                        [InstallmentStatus.ABONADA, InstallmentStatus.PAGADA])
-                ).scalar() or 0
-
-                total_overdue_amount = db.session.query(func.sum(LoanInstallment.amount)).filter_by(loan_id=loan.id,
-                                                                                                    status=InstallmentStatus.MORA).scalar() or 0
-
-                # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
-                last_pending_installment = LoanInstallment.query.filter(
-                    LoanInstallment.loan_id == loan.id,
-                    LoanInstallment.status.in_(
-                        [InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
-                ).order_by(LoanInstallment.due_date.asc()).first()
-
-
-
-                # Obtener la primera cuota de cada cliente y su valor
-                # Excluir préstamos creados el mismo día
-                if loan.creation_date.date() != datetime.now().date():
-                    first_installment = LoanInstallment.query.filter(
-                        LoanInstallment.loan_id == loan.id,
-                        LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA])
-                    ).order_by(LoanInstallment.due_date.asc()).first()
-                else:
-                    first_installment = None
-
-                # Encuentra la fecha de modificación más reciente del préstamo
-                last_loan_modification_date = Loan.query.filter_by(client_id=client.id).order_by(
-                    Loan.modification_date.desc()).first()
-
-                # Obtiene la fecha del último pago
-                # last_payment_date = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).order_by(LoanInstallment.payment_date.desc()).first()
-
-                # Encuentra la fecha del último pago
-                last_payment_date = Payment.query \
-                    .join(LoanInstallment) \
-                    .filter(LoanInstallment.loan_id == loan.id) \
-                    .filter(LoanInstallment.status.in_(
-                        [InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA])) \
-                    .order_by(Payment.payment_date.desc()) \
-                    .first()
-
-                # Encuentra la cuota anterior a la fecha actual
-                # previous_installment = LoanInstallment.query.filter_by(loan_id=loan.id, status=InstallmentStatus.PAGADA).order_by(LoanInstallment.payment_date.desc()).first()
-
-                # Encuentra la cuota anterior a la fecha actual
-                previous_installment = LoanInstallment.query \
-                    .filter(LoanInstallment.loan_id == loan.id) \
-                    .filter(LoanInstallment.status.in_(
-                        [InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA])) \
-                    .order_by(LoanInstallment.due_date.desc()) \
-                    .first()
-
-                # Agrega el estado de la cuota anterior al diccionario client_info
-                previous_installment_status = previous_installment.status.value if previous_installment else None
-
-                # Obtener el valor pagado de la cuota anterior si existe
-                previous_installment_paid_amount = 0
-                if previous_installment:
-                    previous_installment_paid_amount = sum(
-                        payment.amount for payment in previous_installment.payments)
-
-                approved = 'Aprobado' if loan.approved else 'Pendiente de Aprobación'
-
-                # Agrega la información del cliente y su crédito a la lista de información de clientes
-                client_info = {
-                    'First Name': client.first_name,
-                    'Last Name': client.last_name,
-                    'Alias Client': client.alias,
-                    'Paid Installments': paid_installments,
-                    'Overdue Installments': overdue_installments,
-                    'Total Outstanding Amount': total_outstanding_amount,
-                    'Total Amount Paid': total_amount_paid,
-                    'Total Overdue Amount': total_overdue_amount,
-                    'Last Payment Date': last_payment_date.payment_date.isoformat() if last_payment_date else 0,
-                    'Last Payment Date front': last_payment_date.payment_date.strftime(
-                        '%Y-%m-%d') if last_payment_date else '0',
-                    'Loan ID': loan.id,
-                    'Approved': approved,
-                    'Installment Value': last_pending_installment.amount if last_pending_installment else 0,
-                    'Total Installments': loan.dues,
-                    'Sales Date': loan.creation_date.isoformat(),
-                    'Next Installment Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
-                    'Next Installment Date front': last_pending_installment.due_date.strftime(
-                        '%Y-%m-%d') if last_pending_installment else '0',
-                    'Cuota Number': round(cuota_number_with_decimal, 2),
-                    # Agrega el número de la cuota actual
-                    'Due Date': last_pending_installment.due_date.isoformat() if last_pending_installment else 0,
-                    # Agrega la fecha de vencimiento de la cuota
-                    'Installment Status': last_pending_installment.status.value if last_pending_installment else None,
-                    # Agrega el estado de la cuota
-                    'Previous Installment Status': previous_installment_status,
-                    'Last Loan Modification Date': last_loan_modification_date.modification_date.isoformat() if last_loan_modification_date else None,
-                    'Previous Installment Paid Amount': previous_installment_paid_amount,
-                    'Current Date': current_date,
-                    'First Installment Value': first_installment.fixed_amount if first_installment and first_installment is not None else 0,
-                    'First Modification Date': client.first_modification_date.isoformat() if client.first_modification_date else None,
-                }
-
-                clients_information.append(client_info)
-
-
-            elif loan.status == False and loan.up_to_date and loan.modification_date.date() == datetime.now().date():
+        # Créditos cerrados hoy (sección "paid")
+        for loan in Loan.query.filter(
+            Loan.client_id.in_(client_ids),
+            Loan.status == False,
+            Loan.up_to_date == True,
+            func.date(Loan.modification_date) == datetime.now().date()
+        ).all():
 
                 # Obtener la primera cuota de cada cliente y su valor
                 first_installment_paid = LoanInstallment.query.filter(
