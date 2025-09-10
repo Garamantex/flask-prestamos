@@ -27,27 +27,39 @@
         </div>
         <div class="row my-3">
             <div id="select-container" class="col">
-                <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data">
-                    <fieldset>
-                        <legend style="color: #272727;">Tipo</legend>
-                        <div class="mb-3">
-                            <select id="transactionType" name="transaction_type" class="c-form c-form__dropdown" aria-label="Default select example">
-                                <option value="">Seleccione tipo de transacción</option>
-                                <option value="GASTO">Gasto</option>
-                                <option value="INGRESO">Ingreso</option>
-                                <option value="RETIRO">Retiro</option>
-                            </select>
-                        </div>
-                        <legend style="color: #272727;">Concepto</legend>
-                        <div class="mb-3">
-                            <select id="concept" name="concept_id" class="c-form c-form__dropdown" aria-label="Default select example">
-                                <option value="">Seleccione un concepto</option>
-                                {% for concept in concepts %}
-                                    <option value="{{ concept.id }}" data-transaction-type="{{ concept.transaction_types.value }}">{{ concept.name }}</option>
-                                {% endfor %}
-                            </select>                         
-                        </div>
-                    </fieldset>
+                <div class="c-form__container c-form--mobile">
+                    <h2 class="c-form__title">Registrar Transacción</h2>
+                    
+                    <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data">
+                        <fieldset>
+                            <legend>Tipo de Transacción</legend>
+                            
+                            <div class="c-form__group">
+                                <label for="transactionType" class="c-form__label c-form__label--required">Tipo</label>
+                                <select id="transactionType" 
+                                        name="transaction_type" 
+                                        class="c-form__select" 
+                                        required>
+                                    <option value="">Seleccione tipo de transacción</option>
+                                    <option value="GASTO">Gasto</option>
+                                    <option value="INGRESO">Ingreso</option>
+                                    <option value="RETIRO">Retiro</option>
+                                </select>
+                            </div>
+                            
+                            <div class="c-form__group">
+                                <label for="concept" class="c-form__label c-form__label--required">Concepto</label>
+                                <select id="concept" 
+                                        name="concept_id" 
+                                        class="c-form__select" 
+                                        required>
+                                    <option value="">Seleccione un concepto</option>
+                                    {% for concept in concepts %}
+                                        <option value="{{ concept.id }}" data-transaction-type="{{ concept.transaction_types.value }}">{{ concept.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </fieldset>
                     <fieldset>
                         <div class="mb-3">
                             <legend for="description" style="color: #272727;" class="form-label">Descripción</legend>

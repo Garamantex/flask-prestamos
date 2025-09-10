@@ -1,134 +1,464 @@
+// Sistema de formularios unificado y minimalista
 .c-form {
-    max-width: 420px;
-    margin: 20px auto;
-    padding:  10px 10px;
-    box-shadow: 2px 6px 20px rgba(0, 0, 0, .5);
-    background: #F5F5F5;
-    border-radius: 5;
-    color: #272727;
+    max-width: 100%;
+    margin: 1.5rem auto;
+    background: $white-100;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba($neutral-900, 0.1);
+    border: 1px solid $neutral-200;
+    
+    // Contenedor de formulario
+    &__container {
+        background: $white-100;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba($neutral-900, 0.08);
+    }
+    
+    // Título del formulario
+    &__title {
+        color: $primary;
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        position: relative;
+        
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, $primary, $primary-light);
+            border-radius: 2px;
+        }
+    }
+    
+    // Grupos de campos
+    &__group {
+        margin-bottom: 1.25rem;
+        
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+    
+    // Labels
     &__label {
         display: block;
-        color: #272727;
-        margin-top: 2rem;
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #272727;
+        color: $neutral-700;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        transition: color 0.2s ease;
+        
+        &--required::after {
+            content: ' *';
+            color: $danger;
+            font-weight: 700;
+        }
+        
         &--white {
             color: $white-100;
         }
     }
+    
+    // Inputs base
     &__input,
-    input {
-        display: block;
-        color: #272727;
-        margin: 15px 0;
-        font-size: 16px;
-        padding: 10px;
-        width: 100%;
-        border-radius: 10px;
-        border: 1px solid lightgrey;
-        border-top: none;
-        border-left: none;
-        border-right: none;
-        background: white;
-        color: black;
-        font-weight: 600;
-        outline: none;
-
-        &:active {
-            border-color: white;
-        }
-
-        &:focus {
-            border-color: white;
-        }
-    }
+    &__select,
     &__textarea {
         display: block;
-        margin-right: 1rem;
-        margin-bottom: 1rem;
-        border: none;
-        border-radius: 1rem;
-        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
         width: 100%;
-        box-sizing: border-box;
-        transition: all 0.2s ease-in-out;
-        appearance: none;
-        -webkit-appearance: none;
-        &:focus {
-            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
-            outline: none;
-        }
-    }
-    &__dropdown {
-        display: block;
-        color: #272727;
-        margin-right: 1rem;
-        margin-bottom: 1rem;
-        border: 1px solid white;
-        border-top: none;
-        border-left: none;
-        border-right: none;
-        padding: 10px;
-        width: 100%;
-        box-sizing: border-box;
-        transition: all 0.2s ease-in-out;
-        appearance: none;
-        -webkit-appearance: none;
-        &:focus {
-            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
-            outline: none;
-        }
-    }
-    &__dropdown-menu {
-        display: block;
-        margin-right: 1rem;
-        margin-bottom: 1rem;
-        border: none;
-        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
-        width: 100%;
-        box-sizing: border-box;
-        transition: all 0.2s ease-in-out;
-        appearance: none;
-        -webkit-appearance: none;
-        &:focus {
-            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
-            outline: none;
-        }
-    }
-    &__dropdown-item {
-        display: block;
-        margin-right: 1rem;
-        margin-bottom: 1rem;
-        border: none;
-        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
-        width: 100%;
-        box-sizing: border-box;
-        transition: all 0.2s ease-in-out;
-        appearance: none;
-        -webkit-appearance: none;
-        &:focus {
-            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
-            outline: none;
-        }
-    }
-    &__checkbox {
-        display: block;
-        margin-bottom: 1rem;
-        border: none;
-        box-shadow: inset 2px 2px 5px $gray-300, inset -5px -5px 10px $white-100;
-        width: 100%;
-        box-sizing: border-box;
-        transition: all 0.2s ease-in-out;
-        appearance: none;
-        -webkit-appearance: none;
-        &:focus {
-            box-shadow: inset 1px 1px 2px $gray-300, inset -1px -1px 2px $white-100;
-            outline: none;
-        }
-    }
-    &_date {
-        margin: 0px;
+        padding: 0.7rem 0.9rem;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: $neutral-700;
+        background: $white-100;
+        border: 2px solid $neutral-200;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        outline: none;
         
+        &::placeholder {
+            color: $neutral-400;
+            font-weight: 400;
+        }
+        
+        &:focus {
+            border-color: $primary;
+            box-shadow: 0 0 0 3px rgba($primary, 0.1);
+            background: $white-100;
+        }
+        
+        &:hover:not(:focus) {
+            border-color: $neutral-300;
+        }
+        
+        // Estados de validación
+        &.is-valid {
+            border-color: $success;
+            box-shadow: 0 0 0 3px rgba($success, 0.1);
+        }
+        
+        &.is-invalid {
+            border-color: $danger;
+            box-shadow: 0 0 0 3px rgba($danger, 0.1);
+        }
+        
+        &:disabled {
+            background: $neutral-100;
+            color: $neutral-500;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+    }
+    
+    // Inputs específicos
+    &__input {
+        &[type="number"] {
+            text-align: right;
+            
+            &::-webkit-outer-spin-button,
+            &::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+        }
+        
+        &[type="file"] {
+            padding: 0.5rem;
+            border: 2px dashed $neutral-300;
+            background: $neutral-50;
+            
+            &:hover {
+                border-color: $primary;
+                background: rgba($primary, 0.05);
+            }
+        }
+    }
+    
+    // Selects
+    &__select {
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+        appearance: none;
+        
+        option {
+            padding: 0.5rem;
+            color: $neutral-700;
+        }
+    }
+    
+    // Textarea
+    &__textarea {
+        min-height: 90px;
+        resize: vertical;
+        font-family: inherit;
+    }
+    
+    // Checkbox y radio
+    &__checkbox,
+    &__radio {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        cursor: pointer;
+        
+        input[type="checkbox"],
+        input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: $primary;
+            cursor: pointer;
+        }
+        
+        label {
+            margin: 0;
+            cursor: pointer;
+            color: $neutral-700;
+            font-weight: 500;
+        }
+    }
+    
+    // Grupos de radio/checkbox
+    &__radio-group,
+    &__checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        
+        &--inline {
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+    }
+    
+    // Mensajes de ayuda y error
+    &__help {
+        font-size: 0.8rem;
+        color: $neutral-500;
+        margin-top: 0.25rem;
+        display: block;
+    }
+    
+    &__error {
+        font-size: 0.8rem;
+        color: $danger;
+        margin-top: 0.25rem;
+        display: block;
+        font-weight: 500;
+    }
+    
+    // Fieldset y legend
+    fieldset {
+        border: 2px solid $neutral-200;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+        
+        legend {
+            color: $primary;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 0 0.5rem;
+            background: $white-100;
+        }
+    }
+    
+    // Botones de formulario
+    &__actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid $neutral-200;
+        
+        .c-btn {
+            min-width: 120px;
+        }
+    }
+    
+    // Layouts específicos
+    &--inline {
+        .c-form__group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            
+            .c-form__label {
+                margin-bottom: 0;
+                min-width: 120px;
+            }
+        }
+    }
+    
+    &--compact {
+        padding: 1.25rem;
+        
+        .c-form__group {
+            margin-bottom: 1rem;
+        }
+    }
+    
+    // Formulario ultra-compacto para mobile
+    &--mobile {
+        @media (max-width: 768px) {
+            margin: 0.25rem;
+            padding: 0.75rem;
+            
+            .c-form__title {
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .c-form__group {
+                margin-bottom: 0.75rem;
+            }
+            
+            .c-form__label {
+                font-size: 0.8rem;
+                margin-bottom: 0.3rem;
+            }
+            
+            .c-form__input,
+            .c-form__select,
+            .c-form__textarea {
+                padding: 0.5rem 0.7rem;
+                font-size: 0.9rem;
+                border-radius: 6px;
+            }
+            
+            .c-form__textarea {
+                min-height: 60px;
+            }
+            
+            fieldset {
+                padding: 0.75rem;
+                margin-bottom: 0.75rem;
+                
+                legend {
+                    font-size: 0.85rem;
+                }
+            }
+            
+            .c-form__actions {
+                margin-top: 1rem;
+                padding-top: 0.75rem;
+                gap: 0.5rem;
+                
+                .c-btn {
+                    padding: 0.6rem 0.8rem;
+                    font-size: 0.9rem;
+                }
+            }
+        }
+    }
+    
+    // Responsive - Mobile First
+    @media (max-width: 768px) {
+        margin: 0.5rem;
+        padding: 1rem;
+        max-width: none;
+        border-radius: 8px;
+        
+        // Título más compacto en mobile
+        &__title {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        // Grupos más compactos
+        &__group {
+            margin-bottom: 1rem;
+        }
+        
+        // Labels más pequeños
+        &__label {
+            font-size: 0.85rem;
+            margin-bottom: 0.4rem;
+        }
+        
+        // Inputs más compactos
+        &__input,
+        &__select,
+        &__textarea {
+            padding: 0.6rem 0.8rem;
+            font-size: 0.95rem;
+            border-radius: 6px;
+        }
+        
+        // Textarea más pequeña
+        &__textarea {
+            min-height: 80px;
+        }
+        
+        // Fieldset más compacto
+        fieldset {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            
+            legend {
+                font-size: 0.9rem;
+            }
+        }
+        
+        // Botones de formulario
+        &__actions {
+            flex-direction: column;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            gap: 0.75rem;
+            
+            .c-btn {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                font-size: 1rem;
+            }
+        }
+        
+        // Layout inline se convierte en vertical
+        &--inline {
+            .c-form__group {
+                flex-direction: column;
+                align-items: stretch;
+                
+                .c-form__label {
+                    min-width: auto;
+                    margin-bottom: 0.4rem;
+                }
+            }
+        }
+        
+        // Formulario compacto aún más compacto en mobile
+        &--compact {
+            padding: 0.75rem;
+            
+            .c-form__group {
+                margin-bottom: 0.75rem;
+            }
+            
+            .c-form__title {
+                font-size: 1.1rem;
+                margin-bottom: 1rem;
+            }
+        }
+    }
+    
+    // Mobile muy pequeño (menos de 480px)
+    @media (max-width: 480px) {
+        margin: 0.25rem;
+        padding: 0.75rem;
+        
+        &__title {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        
+        &__group {
+            margin-bottom: 0.75rem;
+        }
+        
+        &__label {
+            font-size: 0.8rem;
+            margin-bottom: 0.3rem;
+        }
+        
+        &__input,
+        &__select,
+        &__textarea {
+            padding: 0.5rem 0.7rem;
+            font-size: 0.9rem;
+        }
+        
+        &__textarea {
+            min-height: 70px;
+        }
+        
+        fieldset {
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        &__actions {
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            gap: 0.5rem;
+            
+            .c-btn {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.95rem;
+            }
+        }
     }
 }

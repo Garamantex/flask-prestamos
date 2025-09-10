@@ -28,25 +28,76 @@
             <div class="col">
                 <ul class="request-list c-overflow">
                     {% for detalle_transaccion in detalles_transacciones %}
-                    <li class="request-item mb-4" style="border: 1px solid white; padding: 1.5rem; border-radius: 10px;">
-                        <p>Tipo de transacción: <span>{{ detalle_transaccion['tipo'] }}</span></p>
-                        <p>Concepto: <span>{{ detalle_transaccion['concepto'] }}</span></p>
-                        <p>Descripción: <span>{{ detalle_transaccion['descripcion'] }}</span></p>
-                        <p>Valor: <span>$ {{ '{:,.0f}'.format(detalle_transaccion['monto']) }}</span></p>
-                        <!-- Agregar un identificador único al botón y la modal -->
-                        <p>Estado: <span>{{ detalle_transaccion['status'] }}</span></p>
+                    <li class="request-item mb-4" data-status="{{ detalle_transaccion['status'] }}">
+                        <p><strong>Fecha:</strong> <span>{{ detalle_transaccion['fecha'] }}</span></p>
+                        <p><strong>Tipo de transacción:</strong> <span>{{ detalle_transaccion['tipo'] }}</span></p>
+                        <p><strong>Concepto:</strong> <span>{{ detalle_transaccion['concepto'] }}</span></p>
+                        <p><strong>Descripción:</strong> <span>{{ detalle_transaccion['descripcion'] }}</span></p>
+                        <p><strong>Valor:</strong> <span>$ {{ '{:,.0f}'.format(detalle_transaccion['monto']) }}</span></p>
+                        <p><strong>Estado:</strong> <span>{{ detalle_transaccion['status'] }}</span></p>
                         <button class="c-btn c-btn-primary js-comprobante mt-3" data-target="modal{{ loop.index }}">Ver comprobante</button>
                     </li>
                     {% endfor %}
                 </ul>
                 {% for detalle_transaccion in detalles_transacciones %}
                     <div class="c-modal" id="modal{{ loop.index }}">
-                        <img class="img-attachment" src="{{ url_for('static', filename='images/' + detalle_transaccion['attachment']) }}" alt="Imagen de la transacción">
+                        {% if detalle_transaccion['attachment'] %}
+                            <img class="img-attachment" src="{{ url_for('static', filename='images/' + detalle_transaccion['attachment']) }}" alt="Imagen de la transacción">
+                        {% else %}
+                            <p>No hay comprobante disponible</p>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
-
         </div>
+        
+        <!-- Paginación -->
+        {% if pagination.pages > 1 %}
+        <div class="row mt-4">
+            <div class="col">
+                <div class="c-pagination">
+                    <nav aria-label="Navegación de páginas">
+                        <ul class="pagination">
+                            {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ pagination.prev_num }}">‹ Anterior</a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in pagination.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != pagination.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ pagination.next_num }}">Siguiente ›</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                <p class="pagination-info">
+                    Mostrando {{ pagination.per_page * (pagination.page - 1) + 1 }} a 
+                    {{ pagination.per_page * (pagination.page - 1) + pagination.items|length }} 
+                    de {{ pagination.total }} transacciones
+                </p>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 

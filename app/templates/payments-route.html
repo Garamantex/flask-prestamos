@@ -167,50 +167,58 @@
 </div>
 <!-- Modal -->
 
-<!-- Modal -->
+<!-- Modal de Pago -->
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog"
-    aria-labelledby="exampleModalLabel"
-    aria-hidden="true">
+    aria-labelledby="paymentModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Procesando
-                    PAGO</h5>
+                <h5 class="modal-title" id="paymentModalLabel">
+                    <i class="bi bi-cash-coin me-2"></i>Procesar Pago
+                </h5>
                 <button type="button" class="close" data-dismiss="modal"
-                    aria-label="Close">
+                    aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
                 <!-- Resumen del pago -->
-                <div class="row mb-1">
-                    <div class="col">
-                        <p><strong>Valor Cuota:</strong> $ <span
-                                id="installmentValue"></span></p>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <p><strong>Valor Cuota:</strong><br>
+                            <span class="text-primary" id="installmentValue">$0</span>
+                        </p>
+                    </div>
+                    <div class="col-6">
+                        <p><strong>Valor en Mora:</strong><br>
+                            <span class="text-primary" id="overdueAmount">$0</span>
+                        </p>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col">
-                        <p><strong>Valor en Mora:</strong> $ <span
-                                id="overdueAmount"></span></p>
-                    </div>
-                </div>
+                
                 <!-- Formulario de pago -->
-                <div class="form-group mb-4">
-                    <label for="paymentAmount"
-                        style="padding-bottom: 0.5rem;">Monto a pagar:</label>
-                    <input type="number" class="form-control" id="customPayment"
-                        name="customPayment">
+                <div class="form-group">
+                    <label for="customPayment">Monto a pagar:</label>
+                    <input type="number" 
+                           class="form-control" 
+                           id="customPayment"
+                           name="customPayment"
+                           placeholder="Ingrese el monto"
+                           min="0"
+                           step="100">
                 </div>
 
                 <!-- Campo oculto para almacenar el ID del préstamo -->
                 <input type="hidden" id="loanId" name="loanId" value>
-
-                <div class="modal-footer text-center">
-                    <button type="button" class="btn btn-primary"
-                        id="confirmPaymentBtn" data-dismiss="modal">Confirmar
-                        Pago</button>
-                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" 
+                        class="btn btn-primary"
+                        id="confirmPaymentBtn" 
+                        data-dismiss="modal">
+                    <i class="bi bi-check-circle me-2"></i>Confirmar Pago
+                </button>
             </div>
         </div>
     </div>
@@ -220,19 +228,4 @@
 <script>
 </script>
 
-<!-- Overlay -->
-<div class="modal-overlay"></div>
-<style>
-    .modal-overlay {
-        background-color: rgba(0, 0, 0, 0.7);
-        /* Color negro con transparencia del 70% */
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 999;
-        display: none;
-    }
-</style>
 {% endblock %}

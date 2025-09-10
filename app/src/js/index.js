@@ -324,7 +324,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     btnsMora.forEach(function (btn) {
-        btn.addEventListener('click', function () {
+        btn.addEventListener('click', function (event) {
+            event.preventDefault();
             var loanId = this.getAttribute('data-id');
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/mark_overdue', true);

@@ -3,27 +3,59 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid #272727;
-    background: #0A1C47;
+    border: 2px solid $primary;
+    background: $primary;
     font-size: 18px;
     text-align: center;
-    color: white;
+    color: $white-100;
     width: 100%;
-    padding: 10px 50px;
+    padding: 12px 50px;
     cursor: pointer;
-    transition: .4s;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
     
     &--closed {
-        background-color: #EF476F;
+        background-color: $danger;
+        border-color: $danger;
+        
+        &:hover {
+            background-color: $danger-light;
+            border-color: $danger-light;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba($danger, 0.3);
+        }
     }
 
     &--completed {
-        background-color: #8FC0A9;
+        background-color: $success;
+        border-color: $success;
+        
+        &:hover {
+            background-color: $success-light;
+            border-color: $success-light;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba($success, 0.3);
+        }
     }
 
     &:hover {
-        background: rgba(115, 115, 115, 0.8);
-        border-color: white;
+        background: $primary-hover;
+        border-color: $primary-hover;
+        color: $white-100;
+        transform: none; // Sin elevación por defecto
+        box-shadow: 0 2px 8px rgba($primary, 0.2); // Sombra más sutil
+    }
+    
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba($primary, 0.2);
+    }
+    
+    &:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba($primary, 0.3);
     }
     .icon {
         margin-right: 1rem/2;
@@ -68,6 +100,51 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+    }
+    
+    // Botón específico para ver comprobantes
+    &.js-comprobante {
+        width: auto;
+        padding: 8px 16px;
+        font-size: 14px;
+        margin-top: 0.5rem;
+        background: $info;
+        border-color: $info;
+        
+        &:hover {
+            background: $info-light;
+            border-color: $info-light;
+        }
+    }
+    
+    // Clase para botones con efecto de elevación (formularios, acciones importantes)
+    &--elevated {
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba($primary, 0.3);
+        }
+        
+        &:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba($primary, 0.3);
+        }
+    }
+    
+    // Clase para botones de menú (sin efectos)
+    &--menu {
+        &:hover {
+            background: $primary-light;
+            border-color: $primary-light;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.9;
+        }
+        
+        &:active {
+            transform: none;
+            box-shadow: none;
+            opacity: 0.8;
+        }
     }
 
 }
