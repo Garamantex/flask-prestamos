@@ -17,6 +17,9 @@ import holidays
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
+from flask_caching import Cache
+import hashlib
+import json
 
 # Importaciones de tu aplicación (módulos locales)
 from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Payment, Salesman, TransactionType, \
@@ -27,6 +30,184 @@ from .models import User, Client, Loan, Employee, LoanInstallment
 
 # Crea una instancia de Blueprint
 routes = Blueprint('routes', __name__)
+
+# ==================== CONFIGURACIÓN DE CACHÉ ====================
+
+# Configuración del caché
+cache_config = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_REDIS_HOST': 'localhost',
+    'CACHE_REDIS_PORT': 6379,
+    'CACHE_REDIS_DB': 0,
+    'CACHE_DEFAULT_TIMEOUT': 300,  # 5 minutos por defecto
+    'CACHE_KEY_PREFIX': 'flask_prestamos_',
+    'CACHE_REDIS_URL': 'redis://localhost:6379/0'
+}
+
+# Inicializar caché
+cache = Cache()
+
+def init_cache(app):
+    """Inicializa el caché con la aplicación Flask"""
+    cache.init_app(app, config=cache_config)
+    return cache
+
+# Función para obtener el caché inicializado
+def get_cache():
+    """Obtiene la instancia del caché inicializada"""
+    from flask import current_app
+    if current_app:
+        return current_app.extensions.get('cache', {}).get(cache)
+    return cache
+
+# Decorador de caché seguro
+def safe_cache(timeout=300):
+    """Decorador de caché que maneja la inicialización de forma segura"""
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            try:
+                # Intentar usar el caché si está disponible
+                current_cache = get_cache()
+                if hasattr(current_cache, 'app') and current_cache.app:
+                    return current_cache.memoize(timeout=timeout)(f)(*args, **kwargs)
+                else:
+                    # Si el caché no está inicializado, ejecutar la función directamente
+                    return f(*args, **kwargs)
+            except Exception:
+                # En caso de error, ejecutar la función directamente
+                return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+# ==================== FUNCIONES AUXILIARES DE CACHÉ ====================
+
+def generate_cache_key(prefix, *args, **kwargs):
+    """Genera una clave de caché única basada en argumentos"""
+    # Crear hash de los argumentos
+    key_data = {
+        'args': args,
+        'kwargs': sorted(kwargs.items()) if kwargs else {}
+    }
+    key_string = json.dumps(key_data, sort_keys=True, default=str)
+    key_hash = hashlib.md5(key_string.encode()).hexdigest()[:16]
+    return f"{prefix}_{key_hash}"
+
+def invalidate_coordinator_cache(coordinator_id):
+    """Invalida el caché de un coordinador específico"""
+    try:
+        current_cache = get_cache()
+        if hasattr(current_cache, 'app') and current_cache.app:
+            current_cache.delete_memoized(get_coordinator_data, coordinator_id)
+            current_cache.delete_memoized(get_all_salesmen_data_optimized, coordinator_id)
+            # Invalidar caché por patrón
+            current_cache.delete_memoized_pattern(f"coordinator_{coordinator_id}_*")
+    except Exception:
+        pass  # Si hay error, continuar sin invalidar
+
+def invalidate_salesman_cache(employee_id):
+    """Invalida el caché de un vendedor específico"""
+    try:
+        current_cache = get_cache()
+        if hasattr(current_cache, 'app') and current_cache.app:
+            current_cache.delete_memoized(get_salesman_customers_data, employee_id)
+            current_cache.delete_memoized(get_salesman_pending_installments, employee_id)
+            current_cache.delete_memoized(check_all_loans_paid_today, employee_id)
+            current_cache.delete_memoized(get_salesman_collected_clients, employee_id)
+            current_cache.delete_memoized(get_salesman_transaction_details, employee_id)
+    except Exception:
+        pass  # Si hay error, continuar sin invalidar
+
+# ==================== ENDPOINTS DE GESTIÓN DE CACHÉ ====================
+
+@routes.route('/cache/clear', methods=['POST'])
+def clear_cache():
+    """Endpoint para limpiar el caché (solo para administradores)"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'message': 'Usuario no autenticado'}), 401
+        
+        user = User.query.get(user_id)
+        if not user or user.role != Role.ADMINISTRADOR:
+            return jsonify({'message': 'Acceso denegado'}), 403
+        
+        # Limpiar todo el caché
+        try:
+            current_cache = get_cache()
+            if hasattr(current_cache, 'app') and current_cache.app:
+                current_cache.clear()
+                return jsonify({'message': 'Caché limpiado exitosamente'}), 200
+            else:
+                return jsonify({'message': 'Caché no inicializado'}), 400
+        except Exception as e:
+            return jsonify({'message': 'Error al limpiar caché', 'error': str(e)}), 500
+        
+    except Exception as e:
+        return jsonify({'message': 'Error al limpiar caché', 'error': str(e)}), 500
+
+@routes.route('/cache/clear/coordinator/<int:coordinator_id>', methods=['POST'])
+def clear_coordinator_cache(coordinator_id):
+    """Endpoint para limpiar caché de un coordinador específico"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'message': 'Usuario no autenticado'}), 401
+        
+        user = User.query.get(user_id)
+        if not user or user.role not in [Role.ADMINISTRADOR, Role.COORDINADOR]:
+            return jsonify({'message': 'Acceso denegado'}), 403
+        
+        # Limpiar caché del coordinador
+        invalidate_coordinator_cache(coordinator_id)
+        return jsonify({'message': f'Caché del coordinador {coordinator_id} limpiado exitosamente'}), 200
+        
+    except Exception as e:
+        return jsonify({'message': 'Error al limpiar caché del coordinador', 'error': str(e)}), 500
+
+@routes.route('/cache/clear/salesman/<int:employee_id>', methods=['POST'])
+def clear_salesman_cache(employee_id):
+    """Endpoint para limpiar caché de un vendedor específico"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'message': 'Usuario no autenticado'}), 401
+        
+        user = User.query.get(user_id)
+        if not user or user.role not in [Role.ADMINISTRADOR, Role.COORDINADOR]:
+            return jsonify({'message': 'Acceso denegado'}), 403
+        
+        # Limpiar caché del vendedor
+        invalidate_salesman_cache(employee_id)
+        return jsonify({'message': f'Caché del vendedor {employee_id} limpiado exitosamente'}), 200
+        
+    except Exception as e:
+        return jsonify({'message': 'Error al limpiar caché del vendedor', 'error': str(e)}), 500
+
+@routes.route('/cache/stats', methods=['GET'])
+def cache_stats():
+    """Endpoint para obtener estadísticas del caché"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'message': 'Usuario no autenticado'}), 401
+        
+        user = User.query.get(user_id)
+        if not user or user.role != Role.ADMINISTRADOR:
+            return jsonify({'message': 'Acceso denegado'}), 403
+        
+        # Obtener estadísticas del caché
+        stats = {
+            'cache_type': cache_config.get('CACHE_TYPE', 'unknown'),
+            'cache_timeout': cache_config.get('CACHE_DEFAULT_TIMEOUT', 300),
+            'cache_prefix': cache_config.get('CACHE_KEY_PREFIX', ''),
+            'redis_host': cache_config.get('CACHE_REDIS_HOST', 'localhost'),
+            'redis_port': cache_config.get('CACHE_REDIS_PORT', 6379)
+        }
+        
+        return jsonify(stats), 200
+        
+    except Exception as e:
+        return jsonify({'message': 'Error al obtener estadísticas del caché', 'error': str(e)}), 500
 
 # ruta para el logout de la aplicación web
 
@@ -1465,6 +1646,7 @@ def validate_coordinator_access():
     
     return user_id, user
 
+@safe_cache(timeout=600)  # 10 minutos de caché
 def get_coordinator_data(user_id):
     """Obtiene los datos del coordinador y sus vendedores asociados"""
     coordinator = Employee.query.filter_by(user_id=user_id).first()
@@ -1627,6 +1809,7 @@ def get_salesman_transaction_data(salesman_employee_id, current_date):
         'daily_collection_count': daily_collection_count
     }
 
+@safe_cache(timeout=900)  # 15 minutos de caché
 def get_salesman_customers_data(salesman_employee_id):
     """Obtiene datos de clientes del vendedor"""
     employee = Employee.query.get(salesman_employee_id)
@@ -1650,6 +1833,7 @@ def get_salesman_customers_data(salesman_employee_id):
     
     return total_customers, customers_in_arrears
 
+@safe_cache(timeout=300)  # 5 minutos de caché
 def get_salesman_pending_installments(salesman_employee_id, current_date):
     """Calcula cuotas pendientes del vendedor"""
     employee = Employee.query.get(salesman_employee_id)
@@ -1677,6 +1861,7 @@ def get_salesman_pending_installments(salesman_employee_id, current_date):
     
     return total_pending_installments_amount, total_pending_installments_loan_close_amount
 
+@safe_cache(timeout=300)  # 5 minutos de caché
 def check_all_loans_paid_today(salesman_employee_id, current_date):
     """Verifica si todos los préstamos fueron pagados hoy"""
     all_loans_paid = Loan.query.filter_by(employee_id=salesman_employee_id)
@@ -1703,6 +1888,7 @@ def calculate_box_value(initial_box_value, total_collections_today, daily_withdr
     else:
         return initial_box_value + float(total_collections_today) - float(daily_withdrawals) - float(daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount) - float(total_renewal_loans_amount)
 
+@safe_cache(timeout=180)  # 3 minutos de caché
 def get_salesman_transaction_details(salesman_employee_id, current_date):
     """Obtiene detalles de transacciones del vendedor"""
     transactions = Transaction.query.filter_by(
@@ -1729,6 +1915,7 @@ def get_salesman_transaction_details(salesman_employee_id, current_date):
     
     return expense_details, income_details, withdrawal_details
 
+@safe_cache(timeout=300)  # 5 minutos de caché
 def get_salesman_collected_clients(salesman_employee_id, current_date):
     """Obtiene el número de clientes recaudados hoy"""
     # Clientes recaudados cerrados
@@ -1770,6 +1957,7 @@ def get_salesman_collected_clients(salesman_employee_id, current_date):
     
     return total_clients_collected
 
+@safe_cache(timeout=300)  # 5 minutos de caché
 def get_coordinator_expenses(coordinator_id, current_date):
     """Obtiene gastos del coordinador para el día"""
     expenses = Transaction.query.filter(
@@ -1786,6 +1974,7 @@ def get_coordinator_expenses(coordinator_id, current_date):
     
     return total_expenses, expense_details
 
+@safe_cache(timeout=300)  # 5 minutos de caché
 def get_all_salesmen_data_optimized(salesmen, current_date):
     """OPTIMIZACIÓN: Obtiene todos los datos de vendedores en consultas optimizadas"""
     if not salesmen:
