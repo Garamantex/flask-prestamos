@@ -2144,6 +2144,185 @@ def get_all_salesmen_data_optimized(salesmen, current_date):
     
     return result
 
+@safe_cache(timeout=300)  # 5 minutos de caché
+def get_all_salesmen_additional_data_optimized(employee_ids, current_date):
+    """OPTIMIZACIÓN: Obtiene todos los datos adicionales de vendedores en consultas optimizadas"""
+    if not employee_ids:
+        return {}
+    
+    # 1. Obtener datos de clientes en una sola consulta optimizada
+    clients_data_query = db.session.query(
+        Client.employee_id,
+        func.count(func.distinct(Client.id)).label('total_customers'),
+        func.count(func.distinct(
+            db.case(
+                (LoanInstallment.status == InstallmentStatus.MORA, Client.id),
+                else_=None
+            )
+        )).label('customers_in_arrears')
+    ).join(
+        Loan, Loan.client_id == Client.id
+    ).join(
+        LoanInstallment, LoanInstallment.loan_id == Loan.id
+    ).filter(
+        Client.employee_id.in_(employee_ids),
+        Loan.status == True
+    ).group_by(Client.employee_id).all()
+    
+    clients_data = {}
+    for result in clients_data_query:
+        clients_data[result.employee_id] = {
+            'total_customers': result.total_customers,
+            'customers_in_arrears': result.customers_in_arrears
+        }
+    
+    # 2. Obtener datos de cuotas pendientes en una sola consulta
+    pending_installments_query = db.session.query(
+        Loan.employee_id,
+        func.sum(
+            db.case(
+                (func.date(Loan.creation_date) != current_date, LoanInstallment.fixed_amount),
+                else_=0
+            )
+        ).label('total_pending_amount'),
+        func.sum(
+            db.case(
+                (and_(
+                    and_(Loan.status == False, Loan.up_to_date == True),
+                    func.date(Loan.modification_date) == current_date
+                ), LoanInstallment.fixed_amount),
+                else_=0
+            )
+        ).label('total_pending_loan_close_amount')
+    ).join(
+        LoanInstallment, LoanInstallment.loan_id == Loan.id
+    ).filter(
+        Loan.employee_id.in_(employee_ids),
+        Loan.status == True
+    ).group_by(Loan.employee_id).all()
+    
+    pending_installments_data = {}
+    for result in pending_installments_query:
+        pending_installments_data[result.employee_id] = {
+            'total_pending_amount': float(result.total_pending_amount) if result.total_pending_amount else 0,
+            'total_pending_loan_close_amount': float(result.total_pending_loan_close_amount) if result.total_pending_loan_close_amount else 0
+        }
+    
+    # 3. Verificar si todos los préstamos fueron pagados hoy en una sola consulta
+    all_loans_paid_query = db.session.query(
+        Loan.employee_id,
+        func.count(Loan.id).label('total_loans'),
+        func.count(
+            db.case(
+                (func.date(Payment.payment_date) == current_date, Loan.id),
+                else_=None
+            )
+        ).label('paid_loans_today')
+    ).join(
+        LoanInstallment, LoanInstallment.loan_id == Loan.id
+    ).join(
+        Payment, Payment.installment_id == LoanInstallment.id
+    ).filter(
+        Loan.employee_id.in_(employee_ids),
+        Loan.status == True,
+        func.date(Loan.creation_date) != current_date
+    ).group_by(Loan.employee_id).all()
+    
+    all_loans_paid_data = {}
+    for result in all_loans_paid_query:
+        all_loans_paid_data[result.employee_id] = result.total_loans == result.paid_loans_today
+    
+    # 4. Obtener clientes recaudados hoy en una sola consulta
+    collected_clients_query = db.session.query(
+        Loan.employee_id,
+        func.count(func.distinct(Loan.id)).label('collected_clients')
+    ).join(
+        LoanInstallment, LoanInstallment.loan_id == Loan.id
+    ).join(
+        Payment, Payment.installment_id == LoanInstallment.id
+    ).filter(
+        Loan.employee_id.in_(employee_ids),
+        func.date(Payment.payment_date) == current_date,
+        LoanInstallment.status.in_(['PAGADA', 'ABONADA'])
+    ).group_by(Loan.employee_id).all()
+    
+    collected_clients_data = {}
+    for result in collected_clients_query:
+        collected_clients_data[result.employee_id] = result.collected_clients
+    
+    # 5. Obtener detalles de transacciones en una sola consulta
+    transaction_details_query = db.session.query(
+        Transaction.employee_id,
+        Transaction.transaction_types,
+        Transaction.amount,
+        Transaction.description,
+        Transaction.creation_date
+    ).filter(
+        Transaction.employee_id.in_(employee_ids),
+        func.date(Transaction.creation_date) == current_date,
+        Transaction.approval_status == ApprovalStatus.APROBADA
+    ).order_by(Transaction.creation_date.desc()).all()
+    
+    transaction_details_data = {}
+    for trans in transaction_details_query:
+        emp_id = trans.employee_id
+        if emp_id not in transaction_details_data:
+            transaction_details_data[emp_id] = {
+                'expense_details': [],
+                'income_details': [],
+                'withdrawal_details': []
+            }
+        
+        detail = {
+            'amount': float(trans.amount),
+            'description': trans.description,
+            'creation_date': trans.creation_date
+        }
+        
+        if trans.transaction_types == TransactionType.GASTO:
+            transaction_details_data[emp_id]['expense_details'].append(detail)
+        elif trans.transaction_types == TransactionType.INGRESO:
+            transaction_details_data[emp_id]['income_details'].append(detail)
+        elif trans.transaction_types == TransactionType.RETIRO:
+            transaction_details_data[emp_id]['withdrawal_details'].append(detail)
+    
+    # Inicializar datos por defecto
+    for emp_id in employee_ids:
+        if emp_id not in clients_data:
+            clients_data[emp_id] = {'total_customers': 0, 'customers_in_arrears': 0}
+        if emp_id not in pending_installments_data:
+            pending_installments_data[emp_id] = {
+                'total_pending_amount': 0,
+                'total_pending_loan_close_amount': 0
+            }
+        if emp_id not in all_loans_paid_data:
+            all_loans_paid_data[emp_id] = False
+        if emp_id not in collected_clients_data:
+            collected_clients_data[emp_id] = 0
+        if emp_id not in transaction_details_data:
+            transaction_details_data[emp_id] = {
+                'expense_details': [],
+                'income_details': [],
+                'withdrawal_details': []
+            }
+    
+    # Compilar todos los datos adicionales
+    result = {}
+    for emp_id in employee_ids:
+        result[emp_id] = {
+            'total_customers': clients_data[emp_id]['total_customers'],
+            'customers_in_arrears': clients_data[emp_id]['customers_in_arrears'],
+            'total_pending_installments_amount': pending_installments_data[emp_id]['total_pending_amount'],
+            'total_pending_installments_loan_close_amount': pending_installments_data[emp_id]['total_pending_loan_close_amount'],
+            'all_loans_paid_today': all_loans_paid_data[emp_id],
+            'total_clients_collected': collected_clients_data[emp_id],
+            'expense_details': transaction_details_data[emp_id]['expense_details'],
+            'income_details': transaction_details_data[emp_id]['income_details'],
+            'withdrawal_details': transaction_details_data[emp_id]['withdrawal_details']
+        }
+    
+    return result
+
 @routes.route('/box', methods=['GET'])
 def box():
     try:
@@ -2164,30 +2343,18 @@ def box():
         # OPTIMIZACIÓN: Obtener todos los datos de vendedores en consultas optimizadas
         salesmen_data = get_all_salesmen_data_optimized(salesmen, current_date)
         
+        # OPTIMIZACIÓN: Obtener datos adicionales en una sola consulta para todos los vendedores
+        employee_ids = [salesman[0].employee_id for salesman in salesmen]
+        additional_data = get_all_salesmen_additional_data_optimized(employee_ids, current_date)
+        
         # Procesar cada vendedor con datos pre-cargados
         for salesman, employee, user in salesmen:
             employee_id = salesman.employee_id
             data = salesmen_data[employee_id]
+            additional = additional_data[employee_id]
             
-            # Obtener datos adicionales que requieren consultas específicas
-            total_customers, customers_in_arrears = get_salesman_customers_data(employee_id)
-            total_pending_installments_amount, total_pending_installments_loan_close_amount = get_salesman_pending_installments(employee_id, current_date)
-            all_loans_paid_today = check_all_loans_paid_today(employee_id, current_date)
-            total_clients_collected = get_salesman_collected_clients(employee_id, current_date)
-            expense_details, income_details, withdrawal_details = get_salesman_transaction_details(employee_id, current_date)
-            
-            # Actualizar datos con información adicional
-            data.update({
-                'total_customers': total_customers,
-                'customers_in_arrears': customers_in_arrears,
-                'total_pending_installments_amount': total_pending_installments_amount,
-                'total_pending_installments_loan_close_amount': total_pending_installments_loan_close_amount,
-                'all_loans_paid_today': all_loans_paid_today,
-                'total_clients_collected': total_clients_collected,
-                'expense_details': expense_details,
-                'income_details': income_details,
-                'withdrawal_details': withdrawal_details
-            })
+            # Actualizar datos con información adicional optimizada
+            data.update(additional)
             
             # Calcular valor de caja
             box_value = calculate_box_value(
@@ -2198,11 +2365,11 @@ def box():
             )
             
             # Determinar estado de la caja
-            if data['employee_status'] == False and all_loans_paid_today == True:
+            if data['employee_status'] == False and data['all_loans_paid_today'] == True:
                 status_box = "Cerrada"
-            elif data['employee_status'] == False and all_loans_paid_today == False:
+            elif data['employee_status'] == False and data['all_loans_paid_today'] == False:
                 status_box = "Desactivada"
-            elif data['employee_status'] == True and all_loans_paid_today == False:
+            elif data['employee_status'] == True and data['all_loans_paid_today'] == False:
                 status_box = "Activa"
             else:
                 status_box = "Activa"
@@ -2218,24 +2385,24 @@ def box():
                 'daily_expenses_amount': data['daily_expenses_amount'],
                 'daily_withdrawals': data['daily_withdrawals'],
                 'daily_collections_made': data['daily_collection'],
-                'total_number_of_customers': total_customers,
-                'customers_in_arrears_for_the_day': customers_in_arrears,
+                'total_number_of_customers': data['total_customers'],
+                'customers_in_arrears_for_the_day': data['customers_in_arrears'],
                 'total_renewal_loans': data['total_renewal_loans'],
                 'total_new_clients_loan_amount': data['new_clients_loan_amount'],
                 'total_renewal_loans_amount': data['total_renewal_loans_amount'],
                 'daily_withdrawals_count': data['daily_withdrawals_count'],
                 'daily_collection_count': data['daily_collection_count'],
-                'total_pending_installments_amount': total_pending_installments_amount,
-                'all_loans_paid_today': all_loans_paid_today,
-                'total_clients_collected': total_clients_collected,
+                'total_pending_installments_amount': data['total_pending_installments_amount'],
+                'all_loans_paid_today': data['all_loans_paid_today'],
+                'total_clients_collected': data['total_clients_collected'],
                 'status_box': status_box,
                 'box_value': box_value,
                 'initial_box_value': data['initial_box_value'],
-                'expense_details': expense_details,
-                'income_details': income_details,
-                'withdrawal_details': withdrawal_details,
+                'expense_details': data['expense_details'],
+                'income_details': data['income_details'],
+                'withdrawal_details': data['withdrawal_details'],
                 'role_employee': data['role_employee'],
-                'total_pending_installments_loan_close_amount': total_pending_installments_loan_close_amount
+                'total_pending_installments_loan_close_amount': data['total_pending_installments_loan_close_amount']
             }
             
             salesmen_stats.append(salesman_data)
