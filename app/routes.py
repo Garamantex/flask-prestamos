@@ -2574,88 +2574,115 @@ def transactions():
         user_id = session['user_id']
         user_role = session['role']
 
-        # Obtener el empleado asociado al user_id
+        # Obtener el empleado asociado al user_id (optimización: una sola consulta)
         employee = Employee.query.filter_by(user_id=user_id).first()
-
-        # Obtener el employee_id a partir del user_id
-        employee_id = Employee.query.filter_by(user_id=user_id).first().id
+        
+        # Validar que el empleado existe
+        if not employee:
+            return "Empleado no encontrado", 404
 
         transaction_type = ''  # Definir transaction_type por defecto
         concepts = []  # Definir concepts por defecto
 
         if request.method == 'POST':
-            # Manejar la creación de la transacción
-            transaction_type = request.form.get('transaction_type')
+            try:
+                # Manejar la creación de la transacción
+                transaction_type = request.form.get('transaction_type')
+                concept_id = request.form.get('concept_id')
+                description = request.form.get('description')
+                amount = request.form.get('quantity')
 
-            if transaction_type != 'GASTO':
-                approval_status = "APROBADA"
-            else:
-                approval_status = request.form.get('status')
+                # Validar campos requeridos
+                if not all([transaction_type, concept_id, description, amount]):
+                    return "Faltan campos requeridos. Por favor, complete todos los campos.", 400
 
-            concept_id = request.form.get('concept_id')
-            description = request.form.get('description')
-            amount = request.form.get('quantity')
-            # Obtener el archivo de imagen
-            attachment = request.files.get('photo')
-
-            filename = None  # Inicializar filename
-            if attachment and attachment.filename:  # Verificar que se haya subido un archivo válido
+                # Validar que el monto sea un número válido
                 try:
-                    # Importar app para acceder a la configuración
+                    amount_decimal = Decimal(amount)
+                    if amount_decimal <= 0:
+                        return "El monto debe ser mayor a cero", 400
+                except (ValueError, TypeError):
+                    return "El monto debe ser un número válido", 400
+
+                # Validar que el concepto existe
+                concept = Concept.query.get(concept_id)
+                if not concept:
+                    return "El concepto seleccionado no existe", 400
+
+                # Determinar estado de aprobación según el tipo de transacción
+                if transaction_type != 'GASTO':
+                    approval_status = "APROBADA"
+                else:
+                    approval_status = request.form.get('status', 'PENDIENTE')
+
+                # Obtener el archivo de imagen
+                attachment = request.files.get('photo')
+
+                filename = None  # Inicializar filename
+                if attachment and attachment.filename:  # Verificar que se haya subido un archivo válido
+                    try:
+                        # Importar app para acceder a la configuración
+                        from flask import current_app
+                        upload_folder = current_app.config['UPLOAD_FOLDER']
+                        
+                        # Crear nombre único para el archivo
+                        filename = str(uuid.uuid4()) + '_' + secure_filename(attachment.filename)
+                        
+                        # Asegurar que la carpeta existe
+                        os.makedirs(upload_folder, exist_ok=True)
+                        
+                        # Guardar el archivo
+                        file_path = os.path.join(upload_folder, filename)
+                        attachment.save(file_path)
+                        
+                    except Exception as e:
+                        print(f"Error al guardar archivo: {e}")
+                        print(f"Upload folder: {upload_folder}")
+                        print(f"Filename: {filename}")
+                        filename = None
+                else:
+                    # Si no se subió archivo, usar imagen fallback
                     from flask import current_app
                     upload_folder = current_app.config['UPLOAD_FOLDER']
-                    
-                    # Crear nombre único para el archivo
-                    filename = str(uuid.uuid4()) + '_' + secure_filename(attachment.filename)
-                    
-                    # Asegurar que la carpeta existe
+                    fallback_path = os.path.join('app', 'static', 'images', 'black_bg.png')
+                    fallback_filename = 'black_bg.png'
+                    fallback_dest = os.path.join(upload_folder, fallback_filename)
                     os.makedirs(upload_folder, exist_ok=True)
-                    
-                    # Guardar el archivo
-                    file_path = os.path.join(upload_folder, filename)
-                    attachment.save(file_path)
-                    
-                    
-                except Exception as e:
-                    print(f"Error al guardar archivo: {e}")
-                    print(f"Upload folder: {upload_folder}")
-                    print(f"Filename: {filename}")
-                    filename = None
-            else:
-                # Si no se subió archivo, usar imagen fallback
-                from flask import current_app
-                upload_folder = current_app.config['UPLOAD_FOLDER']
-                fallback_path = os.path.join('app', 'static', 'images', 'black_bg.png')
-                fallback_filename = 'black_bg.png'
-                fallback_dest = os.path.join(upload_folder, fallback_filename)
-                os.makedirs(upload_folder, exist_ok=True)
-                if not os.path.exists(fallback_dest):
-                    import shutil
-                    shutil.copyfile(fallback_path, fallback_dest)
-                filename = fallback_filename
+                    if not os.path.exists(fallback_dest):
+                        import shutil
+                        shutil.copyfile(fallback_path, fallback_dest)
+                    filename = fallback_filename
 
-            current_date = datetime.now()
+                current_date = datetime.now()
 
-            # Usar el employee_id obtenido para crear la transacción
-            transaction = Transaction(
-                transaction_types=transaction_type,
-                concept_id=concept_id,
-                description=description,
-                amount=amount,
-                attachment=filename,  # Usar el nombre único del archivo
-                approval_status=approval_status,
-                employee_id=employee.id,
-                loan_id=None,
-                creation_date=current_date
-            )
+                # Crear la transacción usando el employee_id correcto
+                transaction = Transaction(
+                    transaction_types=transaction_type,
+                    concept_id=concept_id,
+                    description=description,
+                    amount=amount_decimal,
+                    attachment=filename,  # Usar el nombre único del archivo
+                    approval_status=approval_status,
+                    employee_id=employee.id,
+                    loan_id=None,
+                    creation_date=current_date
+                )
 
-            db.session.add(transaction)
-            db.session.commit()
+                # Guardar en la base de datos con manejo de errores
+                db.session.add(transaction)
+                db.session.commit()
 
-            if user_role == 'VENDEDOR':
-                return redirect(url_for('routes.menu_salesman', user_id=user_id))
-            elif user_role == 'COORDINADOR':
-                return redirect(url_for('routes.menu_manager', user_id=user_id))
+                # Redireccionar según el rol del usuario
+                if user_role == 'VENDEDOR':
+                    return redirect(url_for('routes.menu_salesman', user_id=user_id))
+                elif user_role == 'COORDINADOR':
+                    return redirect(url_for('routes.menu_manager', user_id=user_id))
+
+            except Exception as e:
+                # Rollback en caso de error
+                db.session.rollback()
+                print(f"Error al crear transacción: {e}")
+                return f"Error interno del servidor: {str(e)}", 500
 
         else:
             # Obtener todos los conceptos disponibles
