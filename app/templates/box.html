@@ -127,167 +127,159 @@
         </div>
         {% endif %}
 
-        <!-- Lista de vendedores - Accordion -->
+        <!-- Lista de vendedores - Tarjetas expandidas -->
         <div class="row">
             <div class="col-12">
-                <div class="accordion" id="salesmenAccordion">
-                    {% for salesman in salesmen_stats %}
-                    <div class="accordion-item mb-3 search-salesman-card" data-status="{{ salesman['status_box'] }}">
-                        <h2 class="accordion-header" id="salesmanHeader{{ loop.index }}">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
-                                    data-bs-target="#salesmanCollapse{{ loop.index }}" aria-expanded="false" 
-                                    aria-controls="salesmanCollapse{{ loop.index }}">
-                                <div class="d-flex align-items-center w-100">
-                                    <a href="{{ '/box-detail-admin/' + salesman['employee_id']|string if salesman['role_employee'] != 'VENDEDOR' else '/box' }}" 
-                                       class="text-decoration-none me-2" onclick="event.stopPropagation();">
-                                        <i class="bi {{ '' if salesman['role_employee'] == 'VENDEDOR' else 'bi-person-badge-fill' }} fs-5 text-primary" style="color: #0A1C47;"></i>
-                                    </a>
-                                    <div class="flex-grow-1">
-                                        <h5 class="mb-0">{{ salesman['salesman_name'] }}</h5>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="js-box-status badge fs-6">{{ salesman['status_box'] }}</span>
-                                            <small class="text-muted">
-                                                <i class="bi bi-wallet2 me-1"></i>
-                                                $ {{ '{:,.0f}'.format(salesman['box_value']) }}
-                                            </small>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex gap-2" onclick="event.stopPropagation();">
-                                        <a href="./box-detail?employee_id={{ salesman['employee_id'] }}"
-                                           class="c-btn c-btn-primary c-btn-sm">
-                                            <i class="bi bi-inboxes me-1"></i>Detalle
-                                        </a>
-                                        <form action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST" 
-                                              class="js-cerrar-caja d-inline" data-employee-id="{{ salesman['employee_id'] }}" 
-                                              data-status-box="{{ salesman['status_box'] }}">
-                                            <button type="submit" class="js-eye-button c-btn c-btn-secondary c-btn-sm">
-                                                <i class="js-eye-icon bi {{ 'bi-eye' if salesman['employee_status'] == True else 'bi-eye-slash' }}"></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                {% for salesman in salesmen_stats %}
+                <div class="salesman-card mb-3 search-salesman-card" data-status="{{ salesman['status_box'] }}">
+                    <!-- Header de la tarjeta -->
+                    <div class="salesman-card-header">
+                        <div class="d-flex align-items-center w-100">
+                            <a href="{{ '/box-detail-admin/' + salesman['employee_id']|string if salesman['role_employee'] != 'VENDEDOR' else '/box' }}" 
+                               class="text-decoration-none me-2">
+                                <i class="bi {{ '' if salesman['role_employee'] == 'VENDEDOR' else 'bi-person-badge-fill' }} fs-5 text-primary" style="color: #0A1C47;"></i>
+                            </a>
+                            <div class="flex-grow-1">
+                                <h5 class="mb-0">{{ salesman['salesman_name'] }}</h5>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="js-box-status badge fs-6">{{ salesman['status_box'] }}</span>
+                                    <small class="text-muted">
+                                        <i class="bi bi-wallet2 me-1"></i>
+                                        $ {{ '{:,.0f}'.format(salesman['box_value']) }}
+                                    </small>
                                 </div>
-                            </button>
-                        </h2>
-                        <div id="salesmanCollapse{{ loop.index }}" class="accordion-collapse collapse" 
-                             aria-labelledby="salesmanHeader{{ loop.index }}" data-bs-parent="#salesmenAccordion">
-                            <div class="accordion-body">
-
-                         <!-- Información financiera compacta en dos columnas -->
-                         <div class="row g-2">
-                             <!-- Columna izquierda -->
-                             <div class="col-md-6">
-                                 <div class="row g-1">
-                                     <div class="col-6">
-                                         <div class="metric-item">
-                                             <div class="metric-label">Valor Inicial</div>
-                                             <div class="metric-value">
-                                                 <i class="bi bi-currency-dollar me-1"></i>
-                                                 $ {{ '{:,.0f}'.format(salesman['initial_box_value']) }}
-                                             </div>
-                                         </div>
-                                     </div>
-                                     <div class="col-6">
-                                         <div class="metric-item">
-                                             <div class="metric-label">Valor Final</div>
-                                             <div class="metric-value">
-                                                 <i class="bi bi-calculator me-1"></i>
-                                                 $ {{ '{:,.0f}'.format(salesman['box_value']) }}
-                                             </div>
-                                         </div>
-                                     </div>
-                                     <div class="col-6">
-                                         <div class="metric-item">
-                                             <div class="metric-label">Debido Cobrar</div>
-                                             <div class="metric-value text-warning">
-                                                 <i class="bi bi-clock-history me-1"></i>
-                                                 $ {{ '{:,.0f}'.format(salesman['total_pending_installments_amount']+salesman['total_pending_installments_loan_close_amount']) }}
-                                             </div>
-                                         </div>
-                                     </div>
-                                     <div class="col-6">
-                                         <div class="metric-item">
-                                             <div class="metric-label">Recaudo</div>
-                                             <div class="metric-value text-success">
-                                                 <i class="bi bi-cash-coin me-1"></i>
-                                                 $ {{ '{:,.0f}'.format(salesman['total_collections_today']) }} ({{ salesman['total_clients_collected'] }})
-                                             </div>
-                                         </div>
-                                     </div>
-                                 </div>
-                             </div>
-                             
-                             <!-- Columna derecha -->
-                             <div class="col-md-6">
-                                 <div class="row g-1">
-                                     <div class="col-6">
-                                         <div class="metric-item">
-                                             <div class="metric-label">Ventas</div>
-                                             <div class="metric-value text-primary">
-                                                 <i class="bi bi-bag-plus me-1"></i>
-                                                 $ {{ '{:,.0f}'.format(salesman['total_new_clients_loan_amount']) }}
-                                             </div>
-                                             <div class="metric-sub">{{ '{:,.0f}'.format(salesman['new_clients']) }} clientes</div>
-                                         </div>
-                                     </div>
-                                     <div class="col-6">
-                                         <div class="metric-item">
-                                             <div class="metric-label">Renovaciones</div>
-                                             <div class="metric-value text-info">
-                                                 <i class="bi bi-arrow-repeat me-1"></i>
-                                                 $ {{ '{:,.0f}'.format(salesman['total_renewal_loans_amount']) }}
-                                             </div>
-                                             <div class="metric-sub">{{ salesman['total_renewal_loans'] }} renovaciones</div>
-                                         </div>
-                                     </div>
-                                     <div class="col-6">
-                                         <div class="metric-item">
-                                             <div class="metric-label">Gastos</div>
-                                             <div class="metric-value text-danger">
-                                                 <i class="bi bi-arrow-down-circle me-1"></i>
-                                                 $ {{ '{:,.0f}'.format(salesman['daily_expenses_amount']) }}
-                                             </div>
-                                             <div class="metric-sub">{{ salesman['daily_expenses'] }} gastos</div>
-                                         </div>
-                                     </div>
-                                     <div class="col-6">
-                                         <div class="metric-item">
-                                             <div class="metric-label">Retiros</div>
-                                             <div class="metric-value text-warning">
-                                                 <i class="bi bi-arrow-down-circle me-1"></i>
-                                                 $ {{ '{:,.0f}'.format(salesman['daily_withdrawals']) }}
-                                             </div>
-                                             <div class="metric-sub">{{ salesman['daily_withdrawals_count'] }} retiros</div>
-                                         </div>
-                                     </div>
-                                     <div class="col-6">
-                                         <div class="metric-item">
-                                             <div class="metric-label">Ingresos</div>
-                                             <div class="metric-value text-success">
-                                                 <i class="bi bi-arrow-up-circle me-1"></i>
-                                                 $ {{ '{:,.0f}'.format(salesman['daily_collections_made']) }}
-                                             </div>
-                                             <div class="metric-sub">{{ '{:,.0f}'.format(salesman['daily_collection_count']) }} ingresos</div>
-                                         </div>
-                                     </div>
-                                     <div class="col-6">
-                                         <div class="metric-item">
-                                             <div class="metric-label">Clientes Activos</div>
-                                             <div class="metric-value text-primary">
-                                                 <i class="bi bi-people me-1"></i>
-                                                 {{ salesman['total_number_of_customers'] }}
-                                             </div>
-                                             <div class="metric-sub">NO PAGO: {{ salesman['customers_in_arrears_for_the_day'] }}</div>
-                                         </div>
-                                     </div>
-                                 </div>
-                             </div>
-                         </div>
-
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="./box-detail?employee_id={{ salesman['employee_id'] }}"
+                                   class="c-btn c-btn-primary c-btn-sm">
+                                    <i class="bi bi-inboxes me-1"></i>Detalle
+                                </a>
+                                <form action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST" 
+                                      class="js-cerrar-caja d-inline" data-employee-id="{{ salesman['employee_id'] }}" 
+                                      data-status-box="{{ salesman['status_box'] }}">
+                                    <button type="submit" class="js-eye-button c-btn c-btn-secondary c-btn-sm">
+                                        <i class="js-eye-icon bi {{ 'bi-eye' if salesman['employee_status'] == True else 'bi-eye-slash' }}"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
+                    
+                    <!-- Contenido de la tarjeta (siempre visible) -->
+                    <div class="salesman-card-body">
+                        <!-- Información financiera compacta en dos columnas -->
+                        <div class="row g-2">
+                            <!-- Columna izquierda -->
+                            <div class="col-md-6">
+                                <div class="row g-1">
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Valor Inicial</div>
+                                            <div class="metric-value">
+                                                <i class="bi bi-currency-dollar me-1"></i>
+                                                $ {{ '{:,.0f}'.format(salesman['initial_box_value']) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Valor Final</div>
+                                            <div class="metric-value">
+                                                <i class="bi bi-calculator me-1"></i>
+                                                $ {{ '{:,.0f}'.format(salesman['box_value']) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Debido Cobrar</div>
+                                            <div class="metric-value text-warning">
+                                                <i class="bi bi-clock-history me-1"></i>
+                                                $ {{ '{:,.0f}'.format(salesman['total_pending_installments_amount']+salesman['total_pending_installments_loan_close_amount']) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Recaudo</div>
+                                            <div class="metric-value text-success">
+                                                <i class="bi bi-cash-coin me-1"></i>
+                                                $ {{ '{:,.0f}'.format(salesman['total_collections_today']) }} ({{ salesman['total_clients_collected'] }})
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Columna derecha -->
+                            <div class="col-md-6">
+                                <div class="row g-1">
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Ventas</div>
+                                            <div class="metric-value text-primary">
+                                                <i class="bi bi-bag-plus me-1"></i>
+                                                $ {{ '{:,.0f}'.format(salesman['total_new_clients_loan_amount']) }}
+                                            </div>
+                                            <div class="metric-sub">{{ '{:,.0f}'.format(salesman['new_clients']) }} clientes</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Renovaciones</div>
+                                            <div class="metric-value text-info">
+                                                <i class="bi bi-arrow-repeat me-1"></i>
+                                                $ {{ '{:,.0f}'.format(salesman['total_renewal_loans_amount']) }}
+                                            </div>
+                                            <div class="metric-sub">{{ salesman['total_renewal_loans'] }} renovaciones</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Gastos</div>
+                                            <div class="metric-value text-danger">
+                                                <i class="bi bi-arrow-down-circle me-1"></i>
+                                                $ {{ '{:,.0f}'.format(salesman['daily_expenses_amount']) }}
+                                            </div>
+                                            <div class="metric-sub">{{ salesman['daily_expenses'] }} gastos</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Retiros</div>
+                                            <div class="metric-value text-warning">
+                                                <i class="bi bi-arrow-down-circle me-1"></i>
+                                                $ {{ '{:,.0f}'.format(salesman['daily_withdrawals']) }}
+                                            </div>
+                                            <div class="metric-sub">{{ salesman['daily_withdrawals_count'] }} retiros</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Ingresos</div>
+                                            <div class="metric-value text-success">
+                                                <i class="bi bi-arrow-up-circle me-1"></i>
+                                                $ {{ '{:,.0f}'.format(salesman['daily_collections_made']) }}
+                                            </div>
+                                            <div class="metric-sub">{{ '{:,.0f}'.format(salesman['daily_collection_count']) }} ingresos</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Clientes Activos</div>
+                                            <div class="metric-value text-primary">
+                                                <i class="bi bi-people me-1"></i>
+                                                {{ salesman['total_number_of_customers'] }}
+                                            </div>
+                                            <div class="metric-sub">NO PAGO: {{ salesman['customers_in_arrears_for_the_day'] }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
     </div>
@@ -492,64 +484,52 @@
         transform: translateY(-2px);
     }
     
-    /* Estilos para accordiones personalizados */
-    .accordion-item {
+    /* Estilos para tarjetas de vendedores personalizados */
+    .salesman-card {
         border: 1px solid #e9ecef;
-        border-radius: 8px !important;
+        border-radius: 8px;
         margin-bottom: 0.5rem;
         overflow: hidden;
         transition: all 0.3s ease;
+        background-color: #ffffff;
     }
     
-    .accordion-item:hover {
+    .salesman-card:hover {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
     
-    .accordion-button {
+    .salesman-card-header {
         background-color: #f8f9fa;
         border: none;
         padding: 1rem;
         font-weight: 500;
         transition: all 0.3s ease;
+        border-bottom: 1px solid #e9ecef;
     }
     
-    .accordion-button:not(.collapsed) {
-        background-color: #e9ecef;
-        box-shadow: none;
-    }
-    
-    .accordion-button:focus {
-        box-shadow: 0 0 0 0.25rem rgba(10, 28, 71, 0.25);
-        border-color: #0A1C47;
-    }
-    
-    .accordion-button::after {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%230A1C47'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-    }
-    
-    .accordion-body {
+    .salesman-card-body {
         padding: 1rem;
         background-color: #ffffff;
     }
     
-    /* Estilos para el header del vendedor en accordion */
-    .accordion-button .badge {
+    /* Estilos para el header del vendedor */
+    .salesman-card-header .badge {
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
     }
     
-    /* Responsive para accordiones */
+    /* Responsive para tarjetas de vendedores */
     @media (max-width: 768px) {
-        .accordion-button {
+        .salesman-card-header {
             padding: 0.75rem;
         }
         
-        .accordion-button .d-flex {
+        .salesman-card-header .d-flex {
             flex-direction: column;
             align-items: flex-start !important;
         }
         
-        .accordion-button .d-flex .gap-2 {
+        .salesman-card-header .d-flex .gap-2 {
             margin-top: 0.5rem;
             width: 100%;
             justify-content: flex-end;
@@ -558,7 +538,8 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+// Función para inicializar las tarjetas de vendedores de la página box
+function initializeBoxCards() {
     // Aplicar estilos a los estados de caja
     const salesmen = document.querySelectorAll('.js-box-status');
     salesmen.forEach(salesman => {
@@ -586,49 +567,38 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Funcionalidad de búsqueda mejorada para accordiones
+    // Funcionalidad de búsqueda para tarjetas de vendedores
     const searchInput = document.getElementById('searcher');
     const salesmanCards = document.querySelectorAll('.search-salesman-card');
     
-    searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        
-        salesmanCards.forEach(card => {
-            const salesmanName = card.querySelector('h5').textContent.toLowerCase();
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
             
-            if (salesmanName.includes(searchTerm)) {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
+            salesmanCards.forEach(card => {
+                const salesmanName = card.querySelector('h5').textContent.toLowerCase();
+                
+                if (salesmanName.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
         });
-    });
+    }
 
-    // Funcionalidad para expandir/colapsar accordiones basado en estado
-    const accordionButtons = document.querySelectorAll('.accordion-button');
-    accordionButtons.forEach(button => {
-        const accordionItem = button.closest('.accordion-item');
-        const statusBox = accordionItem.getAttribute('data-status');
-        
-        // Expandir automáticamente cajas activas
-        if (statusBox === 'Activa') {
-            const collapse = accordionItem.querySelector('.accordion-collapse');
-            if (collapse) {
-                collapse.classList.add('show');
-                button.classList.remove('collapsed');
-                button.setAttribute('aria-expanded', 'true');
-            }
-        }
+    // Aplicar estilos especiales a las cajas activas
+    const activeCards = document.querySelectorAll('.search-salesman-card[data-status="Activa"]');
+    activeCards.forEach(card => {
+        card.classList.add('border-success');
+        // Mantener el fondo blanco y texto negro para el encabezado
     });
+}
 
-    // Prevenir que los enlaces dentro del header del accordion cierren el accordion
-    const accordionLinks = document.querySelectorAll('.accordion-button a, .accordion-button form');
-    accordionLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
-    });
-});
+// Solo ejecutar si estamos en la página box
+if (window.location.pathname.includes('/box') || window.location.pathname === '/') {
+    document.addEventListener('DOMContentLoaded', initializeBoxCards);
+}
 </script>
 
 {% endblock %}

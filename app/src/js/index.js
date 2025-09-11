@@ -463,15 +463,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     });
 
+    // Solo ejecutar en páginas que contengan elementos .js-eye-button
+if (document.querySelectorAll('.js-eye-button').length > 0) {
     document.querySelectorAll('.js-eye-button').forEach(function (element) {
         element.addEventListener('click', function () {
             element.classList.toggle('c-btn--closed');
-            document.querySelectorAll('.js-eye-icon').forEach(function (icon) {
+            // Solo cambiar el ícono del botón específico que se hizo clic
+            const icon = element.querySelector('.js-eye-icon');
+            if (icon) {
                 icon.classList.toggle('bi-eye');
                 icon.classList.toggle('bi-eye-slash');
-            });
+            }
         });
     });
+}
 });
 
 // Esperamos a que el documento esté completamente cargado
@@ -493,41 +498,38 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-document.addEventListener("keyup", e => {
+// Solo ejecutar la funcionalidad de búsqueda si existe el elemento #searcher
+if (document.getElementById('searcher')) {
+    document.addEventListener("keyup", e => {
+        if (e.target.matches("#searcher")) {
+            if (e.key === "Escape") e.target.value = ""
 
-    if (e.target.matches("#searcher")) {
+            document.querySelectorAll(".search-card").forEach(payment => {
+                const searchValue = e.target.value.toLowerCase()
 
+                if (searchValue.length > 2 && payment.textContent.toLowerCase().includes(searchValue)) {
+                    payment.classList.add("c-card__box-mannager");
+                } else {
+                    payment.classList.add("filter");
+                    payment.classList.remove("c-card__box-mannager");
+                }
 
-        if (e.key === "Escape") e.target.value = ""
+                if (searchValue.length === 0) {
+                    payment.classList.remove("filter");
+                    payment.classList.add("c-card__box-mannager");
+                }
+            })
 
-        document.querySelectorAll(".search-card").forEach(payment => {
-
-            const searchValue = e.target.value.toLowerCase()
-
-            if (searchValue.length > 2 && payment.textContent.toLowerCase().includes(searchValue)) {
-                payment.classList.add("c-card__box-mannager");
-            } else {
-                payment.classList.add("filter");
-                payment.classList.remove("c-card__box-mannager");
-            }
-
-            if (searchValue.length === 0) {
-                payment.classList.remove("filter");
-                payment.classList.add("c-card__box-mannager");
-            }
-        })
-
-        document.querySelectorAll(".search-salesman-card").forEach(payment => {
-
-            if (payment.textContent.toLowerCase().includes(e.target.value.toLowerCase())) {
-                payment.classList.remove("filter");
-            } else {
-                payment.classList.add("filter");
-            }
-        })
-
-    }
-});
+            document.querySelectorAll(".search-salesman-card").forEach(payment => {
+                if (payment.textContent.toLowerCase().includes(e.target.value.toLowerCase())) {
+                    payment.classList.remove("filter");
+                } else {
+                    payment.classList.add("filter");
+                }
+            })
+        }
+    });
+}
 
 document.getElementById('photo').addEventListener('change', function () {
     checkImageFilled();
