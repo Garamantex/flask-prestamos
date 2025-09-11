@@ -1450,431 +1450,673 @@ def get_concepts():
     return jsonify(concepts_json)
 
 
+# ==================== FUNCIONES AUXILIARES PARA EL ENDPOINT /box ====================
+
+def validate_coordinator_access():
+    """Valida que el usuario esté autenticado y tenga rol de coordinador"""
+    user_id = session.get('user_id')
+    
+    if user_id is None:
+        raise ValueError('Usuario no encontrado en la sesión')
+    
+    user = User.query.get(user_id)
+    if user is None or user.role != Role.COORDINADOR:
+        raise ValueError('El usuario no es un coordinador válido')
+    
+    return user_id, user
+
+def get_coordinator_data(user_id):
+    """Obtiene los datos del coordinador y sus vendedores asociados"""
+    coordinator = Employee.query.filter_by(user_id=user_id).first()
+    if not coordinator:
+        raise ValueError('No se encontró el empleado coordinador')
+    
+    coordinator_cash = coordinator.box_value
+    coordinator_name = f"{coordinator.user.first_name} {coordinator.user.last_name}"
+    
+    # Obtener el ID del manager del coordinador
+    manager_id = db.session.query(Manager.id).filter_by(employee_id=coordinator.id).scalar()
+    if not manager_id:
+        raise ValueError('No se encontró ningún coordinador asociado a este empleado')
+    
+    # OPTIMIZACIÓN: Cargar vendedores con sus relaciones en una sola consulta
+    salesmen = db.session.query(Salesman, Employee, User).join(
+        Employee, Salesman.employee_id == Employee.id
+    ).join(
+        User, Employee.user_id == User.id
+    ).filter(Salesman.manager_id == manager_id).all()
+    
+    return coordinator, coordinator_cash, coordinator_name, manager_id, salesmen
+
+def calculate_daily_transaction_totals(manager_id, current_date):
+    """Calcula los totales de transacciones diarias para el coordinador"""
+    start_of_day = datetime.combine(current_date, datetime.min.time())
+    end_of_day = datetime.combine(current_date, datetime.max.time())
+    
+    # Total de ingresos aprobados
+    total_outbound_amount = db.session.query(
+        func.sum(Transaction.amount).label('total_amount')
+    ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
+        Transaction.transaction_types == 'INGRESO',
+        Transaction.approval_status == 'APROBADA',
+        Salesman.manager_id == manager_id,
+        Transaction.creation_date.between(start_of_day, end_of_day)
+    ).scalar() or 0
+    
+    # Total de retiros aprobados
+    total_inbound_amount = db.session.query(
+        func.sum(Transaction.amount).label('total_amount')
+    ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
+        Transaction.transaction_types == 'RETIRO',
+        Transaction.approval_status == 'APROBADA',
+        Salesman.manager_id == manager_id,
+        func.date(Transaction.creation_date) == current_date
+    ).scalar() or 0
+    
+    return total_outbound_amount, total_inbound_amount
+
+def get_salesman_daily_collections(salesman_employee_id, current_date):
+    """Obtiene el total de cobros diarios de un vendedor"""
+    return db.session.query(
+        func.sum(Payment.amount)
+    ).join(
+        LoanInstallment, Payment.installment_id == LoanInstallment.id
+    ).join(
+        Loan, LoanInstallment.loan_id == Loan.id
+    ).filter(
+        Loan.client.has(employee_id=salesman_employee_id),
+        func.date(Payment.payment_date) == current_date
+    ).scalar() or 0
+
+def get_salesman_new_clients_data(salesman_employee_id, current_date):
+    """Obtiene datos de clientes nuevos del día"""
+    start_of_day = datetime.combine(current_date, datetime.min.time())
+    
+    # Cantidad de nuevos clientes
+    new_clients = Client.query.filter(
+        Client.employee_id == salesman_employee_id,
+        Client.creation_date >= start_of_day
+    ).count()
+    
+    # Monto total de préstamos de nuevos clientes
+    new_clients_loan_amount = Loan.query.join(Client).filter(
+        Client.employee_id == salesman_employee_id,
+        Loan.creation_date >= start_of_day,
+        Loan.is_renewal == False
+    ).with_entities(func.sum(Loan.amount)).scalar() or 0
+    
+    return new_clients, new_clients_loan_amount
+
+def get_salesman_renewals_data(salesman_employee_id, current_date):
+    """Obtiene datos de renovaciones del día"""
+    start_of_day = datetime.combine(current_date, datetime.min.time())
+    
+    # Cantidad de renovaciones
+    total_renewal_loans = Loan.query.filter(
+        Loan.client.has(employee_id=salesman_employee_id),
+        Loan.is_renewal == True,
+        Loan.status == True,
+        Loan.approved == True,
+        Loan.creation_date >= start_of_day
+    ).count()
+    
+    # Monto total de renovaciones
+    total_renewal_loans_amount = Loan.query.filter(
+        Loan.client.has(employee_id=salesman_employee_id),
+        Loan.is_renewal == True,
+        Loan.status == True,
+        Loan.approved == True,
+        Loan.creation_date >= start_of_day
+    ).with_entities(func.sum(Loan.amount)).scalar() or 0
+    
+    return total_renewal_loans, total_renewal_loans_amount
+
+def get_salesman_transaction_data(salesman_employee_id, current_date):
+    """Obtiene datos de transacciones del vendedor para el día"""
+    # Gastos diarios
+    daily_expenses_amount = Transaction.query.filter(
+        Transaction.employee_id == salesman_employee_id,
+        Transaction.transaction_types == TransactionType.GASTO,
+        Transaction.approval_status == ApprovalStatus.APROBADA,
+        func.date(Transaction.creation_date) == current_date
+    ).with_entities(func.sum(Transaction.amount)).scalar() or 0
+    
+    daily_expenses_count = Transaction.query.filter(
+        Transaction.employee_id == salesman_employee_id,
+        Transaction.transaction_types == TransactionType.GASTO,
+        Transaction.approval_status == ApprovalStatus.APROBADA,
+        func.date(Transaction.creation_date) == current_date
+    ).count() or 0
+    
+    # Retiros diarios
+    daily_withdrawals = Transaction.query.filter(
+        Transaction.employee_id == salesman_employee_id,
+        Transaction.transaction_types == TransactionType.RETIRO,
+        Transaction.approval_status == ApprovalStatus.APROBADA,
+        func.date(Transaction.creation_date) == current_date
+    ).with_entities(func.sum(Transaction.amount)).scalar() or 0
+    
+    daily_withdrawals_count = Transaction.query.filter(
+        Transaction.employee_id == salesman_employee_id,
+        Transaction.transaction_types == TransactionType.RETIRO,
+        Transaction.approval_status == ApprovalStatus.APROBADA,
+        func.date(Transaction.creation_date) == current_date
+    ).count() or 0
+    
+    # Ingresos diarios
+    daily_collection = Transaction.query.filter(
+        Transaction.employee_id == salesman_employee_id,
+        Transaction.transaction_types == TransactionType.INGRESO,
+        Transaction.approval_status == ApprovalStatus.APROBADA,
+        func.date(Transaction.creation_date) == current_date
+    ).with_entities(func.sum(Transaction.amount)).scalar() or 0
+    
+    daily_collection_count = Transaction.query.filter(
+        Transaction.employee_id == salesman_employee_id,
+        Transaction.transaction_types == TransactionType.INGRESO,
+        Transaction.approval_status == ApprovalStatus.APROBADA,
+        func.date(Transaction.creation_date) == current_date
+    ).count() or 0
+    
+    return {
+        'daily_expenses_amount': daily_expenses_amount,
+        'daily_expenses_count': daily_expenses_count,
+        'daily_withdrawals': daily_withdrawals,
+        'daily_withdrawals_count': daily_withdrawals_count,
+        'daily_collection': daily_collection,
+        'daily_collection_count': daily_collection_count
+    }
+
+def get_salesman_customers_data(salesman_employee_id):
+    """Obtiene datos de clientes del vendedor"""
+    employee = Employee.query.get(salesman_employee_id)
+    
+    # Clientes totales activos
+    total_customers = sum(
+        1 for client in employee.clients
+        for loan in client.loans
+        if loan.status
+    )
+    
+    # Clientes en mora
+    customers_in_arrears = sum(
+        1 for client in employee.clients
+        for loan in client.loans
+        if loan.status and any(
+            installment.status == InstallmentStatus.MORA
+            for installment in loan.installments
+        )
+    )
+    
+    return total_customers, customers_in_arrears
+
+def get_salesman_pending_installments(salesman_employee_id, current_date):
+    """Calcula cuotas pendientes del vendedor"""
+    employee = Employee.query.get(salesman_employee_id)
+    total_pending_installments_amount = 0
+    total_pending_installments_loan_close_amount = 0
+    
+    for client in employee.clients:
+        for loan in client.loans:
+            # Excluir préstamos creados hoy mismo
+            if loan.creation_date.date() == current_date:
+                continue
+            
+            if loan.status:
+                # Encuentra la última cuota pendiente
+                pending_installment = LoanInstallment.query.filter(
+                    LoanInstallment.loan_id == loan.id
+                ).order_by(LoanInstallment.due_date.asc()).first()
+                if pending_installment:
+                    total_pending_installments_amount += pending_installment.fixed_amount
+            elif loan.status == False and loan.up_to_date and loan.modification_date.date() == current_date:
+                pending_installment_paid = LoanInstallment.query.filter(
+                    LoanInstallment.loan_id == loan.id
+                ).order_by(LoanInstallment.due_date.asc()).first()
+                total_pending_installments_loan_close_amount += pending_installment_paid.fixed_amount
+    
+    return total_pending_installments_amount, total_pending_installments_loan_close_amount
+
+def check_all_loans_paid_today(salesman_employee_id, current_date):
+    """Verifica si todos los préstamos fueron pagados hoy"""
+    all_loans_paid = Loan.query.filter_by(employee_id=salesman_employee_id)
+    all_loans_paid_today = False
+    
+    for loan in all_loans_paid:
+        loan_installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+        for installment in loan_installments:
+            payments = Payment.query.filter_by(installment_id=installment.id).all()
+            if any(payment.payment_date.date() == current_date for payment in payments):
+                all_loans_paid_today = True
+                break
+        if all_loans_paid_today:
+            break
+    
+    return all_loans_paid_today
+
+def calculate_box_value(initial_box_value, total_collections_today, daily_withdrawals, 
+                       daily_expenses_amount, daily_collection, new_clients_loan_amount, 
+                       total_renewal_loans_amount, existing_record_today):
+    """Calcula el valor de caja del vendedor"""
+    if existing_record_today:
+        return initial_box_value - float(daily_withdrawals) - float(daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount) - float(total_renewal_loans_amount)
+    else:
+        return initial_box_value + float(total_collections_today) - float(daily_withdrawals) - float(daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount) - float(total_renewal_loans_amount)
+
+def get_salesman_transaction_details(salesman_employee_id, current_date):
+    """Obtiene detalles de transacciones del vendedor"""
+    transactions = Transaction.query.filter_by(
+        employee_id=salesman_employee_id
+    ).order_by(Transaction.creation_date.desc()).all()
+    
+    today = current_date
+    expenses = [trans for trans in transactions if
+                trans.transaction_types == TransactionType.GASTO and trans.creation_date.date() == today]
+    incomes = [trans for trans in transactions if
+               trans.transaction_types == TransactionType.INGRESO and trans.approval_status == ApprovalStatus.APROBADA and trans.creation_date.date() == today]
+    withdrawals = [trans for trans in transactions if
+                   trans.transaction_types == TransactionType.RETIRO and trans.approval_status == ApprovalStatus.APROBADA and trans.creation_date.date() == today]
+    
+    expense_details = [
+        {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+         'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
+    income_details = [
+        {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+         'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y'), 'employee_id': salesman_employee_id, 'username': Employee.query.get(salesman_employee_id).user.username} for trans in incomes]
+    withdrawal_details = [
+        {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+         'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y'), 'employee_id': salesman_employee_id, 'username': Employee.query.get(salesman_employee_id).user.username} for trans in withdrawals]
+    
+    return expense_details, income_details, withdrawal_details
+
+def get_salesman_collected_clients(salesman_employee_id, current_date):
+    """Obtiene el número de clientes recaudados hoy"""
+    # Clientes recaudados cerrados
+    total_clients_collected_close = sum(
+        1 for client in Employee.query.get(salesman_employee_id).clients
+        for loan in client.loans
+        if loan.status == False and any(
+            installment.status == InstallmentStatus.PAGADA and installment.payment_date == current_date
+            for installment in loan.installments
+        )
+    )
+    
+    # Clientes recaudados activos (usando subconsulta)
+    client_subquery = db.session.query(Client.id).filter(
+        Client.employee_id == salesman_employee_id).subquery()
+    
+    loan_subquery = db.session.query(Loan.id).filter(
+        Loan.client_id.in_(client_subquery.select())).subquery()
+    
+    subquery = db.session.query(
+        Loan.id
+    ).join(
+        LoanInstallment, LoanInstallment.loan_id == Loan.id
+    ).join(
+        Payment, Payment.installment_id == LoanInstallment.id
+    ).filter(
+        Loan.id.in_(loan_subquery.select()),
+        func.date(Payment.payment_date) == current_date,
+        LoanInstallment.status.in_(['PAGADA', 'ABONADA'])
+    ).group_by(
+        Loan.id
+    ).subquery()
+    
+    total_clients_collected = db.session.query(
+        func.count()
+    ).select_from(
+        subquery
+    ).scalar() or 0
+    
+    return total_clients_collected
+
+def get_coordinator_expenses(coordinator_id, current_date):
+    """Obtiene gastos del coordinador para el día"""
+    expenses = Transaction.query.filter(
+        Transaction.employee_id == coordinator_id,
+        Transaction.transaction_types == 'GASTO',
+        func.date(Transaction.creation_date) == current_date
+    ).all()
+    
+    total_expenses = sum(expense.amount for expense in expenses)
+    
+    expense_details = [
+        {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
+         'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
+    
+    return total_expenses, expense_details
+
+def get_all_salesmen_data_optimized(salesmen, current_date):
+    """OPTIMIZACIÓN: Obtiene todos los datos de vendedores en consultas optimizadas"""
+    if not salesmen:
+        return {}
+    
+    # Extraer IDs de empleados
+    employee_ids = [salesman[0].employee_id for salesman in salesmen]
+    
+    # Validar que tenemos IDs de empleados
+    if not employee_ids:
+        return {}
+    
+    # 1. Obtener todos los EmployeeRecord en una sola consulta
+    employee_records = db.session.query(EmployeeRecord).filter(
+        EmployeeRecord.employee_id.in_(employee_ids)
+    ).order_by(EmployeeRecord.employee_id, EmployeeRecord.id.desc()).all()
+    
+    # Agrupar por employee_id y tomar el más reciente
+    latest_records = {}
+    for record in employee_records:
+        if record.employee_id not in latest_records:
+            latest_records[record.employee_id] = record
+    
+    # 2. Obtener registros del día actual
+    today_records = db.session.query(EmployeeRecord).filter(
+        EmployeeRecord.employee_id.in_(employee_ids),
+        func.date(EmployeeRecord.creation_date) == current_date
+    ).all()
+    today_records_dict = {record.employee_id: record for record in today_records}
+    
+    # 3. Obtener todas las transacciones del día en una sola consulta
+    start_of_day = datetime.combine(current_date, datetime.min.time())
+    
+    transactions_query = db.session.query(
+        Transaction.employee_id,
+        Transaction.transaction_types,
+        func.sum(Transaction.amount).label('total_amount'),
+        func.count(Transaction.id).label('count')
+    ).filter(
+        Transaction.employee_id.in_(employee_ids),
+        func.date(Transaction.creation_date) == current_date,
+        Transaction.approval_status == ApprovalStatus.APROBADA
+    ).group_by(
+        Transaction.employee_id, Transaction.transaction_types
+    ).all()
+    
+    # Agrupar transacciones por empleado y tipo
+    transactions_by_employee = {}
+    for trans in transactions_query:
+        emp_id = trans.employee_id
+        if emp_id not in transactions_by_employee:
+            transactions_by_employee[emp_id] = {}
+        transactions_by_employee[emp_id][trans.transaction_types] = {
+            'amount': trans.total_amount or 0,
+            'count': trans.count or 0
+        }
+    
+    # 4. Obtener datos de clientes nuevos en una sola consulta
+    new_clients_query = db.session.query(
+        Client.employee_id,
+        func.count(Client.id).label('new_clients_count'),
+        func.sum(Loan.amount).label('new_loans_amount')
+    ).join(Loan, Client.id == Loan.client_id).filter(
+        Client.employee_id.in_(employee_ids),
+        Client.creation_date >= start_of_day,
+        Loan.is_renewal == False
+    ).group_by(Client.employee_id).all()
+    
+    new_clients_data = {emp_id: {'count': 0, 'amount': 0} for emp_id in employee_ids}
+    for data in new_clients_query:
+        new_clients_data[data.employee_id] = {
+            'count': data.new_clients_count or 0,
+            'amount': data.new_loans_amount or 0
+        }
+    
+    # 5. Obtener datos de renovaciones en una sola consulta optimizada
+    renewals_query = db.session.query(
+        Client.employee_id,
+        func.count(Loan.id).label('renewals_count'),
+        func.sum(Loan.amount).label('renewals_amount')
+    ).join(Loan, Client.id == Loan.client_id).filter(
+        Client.employee_id.in_(employee_ids),
+        Loan.is_renewal == True,
+        Loan.status == True,
+        Loan.approved == True,
+        Loan.creation_date >= start_of_day
+    ).group_by(Client.employee_id).all()
+    
+    renewals_data = {emp_id: {'count': 0, 'amount': 0} for emp_id in employee_ids}
+    for data in renewals_query:
+        renewals_data[data.employee_id] = {
+            'count': data.renewals_count or 0,
+            'amount': data.renewals_amount or 0
+        }
+    
+    # 6. Obtener cobros diarios en una sola consulta optimizada
+    collections_query = db.session.query(
+        Client.employee_id,
+        func.sum(Payment.amount).label('total_collections')
+    ).join(
+        Loan, Client.id == Loan.client_id
+    ).join(
+        LoanInstallment, Loan.id == LoanInstallment.loan_id
+    ).join(
+        Payment, LoanInstallment.id == Payment.installment_id
+    ).filter(
+        Client.employee_id.in_(employee_ids),
+        func.date(Payment.payment_date) == current_date
+    ).group_by(Client.employee_id).all()
+    
+    collections_data = {emp_id: 0 for emp_id in employee_ids}
+    for data in collections_query:
+        collections_data[data.employee_id] = data.total_collections or 0
+    
+    # 7. Obtener datos de clientes en una sola consulta (simplificado)
+    clients_query = db.session.query(
+        Client.employee_id,
+        func.count(Client.id).label('total_clients')
+    ).filter(
+        Client.employee_id.in_(employee_ids)
+    ).group_by(Client.employee_id).all()
+    
+    # 8. Obtener préstamos activos por separado para evitar problemas con case
+    active_loans_query = db.session.query(
+        Client.employee_id,
+        func.count(Loan.id).label('active_loans')
+    ).join(Loan, Client.id == Loan.client_id).filter(
+        Client.employee_id.in_(employee_ids),
+        Loan.status == True
+    ).group_by(Client.employee_id).all()
+    
+    clients_data = {emp_id: {'total': 0, 'active_loans': 0} for emp_id in employee_ids}
+    
+    # Procesar clientes totales
+    for data in clients_query:
+        clients_data[data.employee_id]['total'] = data.total_clients or 0
+    
+    # Procesar préstamos activos
+    for data in active_loans_query:
+        clients_data[data.employee_id]['active_loans'] = data.active_loans or 0
+    
+    # Compilar todos los datos
+    result = {}
+    for salesman, employee, user in salesmen:
+        emp_id = salesman.employee_id
+        
+        # Obtener valor inicial de caja de forma segura
+        initial_box_value = 0
+        if emp_id in latest_records:
+            initial_box_value = latest_records[emp_id].closing_total
+        
+        # Datos básicos
+        result[emp_id] = {
+            'employee_id': emp_id,
+            'employee': employee,
+            'user': user,
+            'salesman': salesman,
+            'role_employee': user.role.value,
+            'employee_status': employee.status,
+            'salesman_name': f'{user.first_name} {user.last_name}',
+            
+            # Valores de caja
+            'initial_box_value': initial_box_value,
+            'existing_record_today': emp_id in today_records_dict,
+            
+            # Transacciones del día
+            'daily_expenses_amount': transactions_by_employee.get(emp_id, {}).get(TransactionType.GASTO, {}).get('amount', 0),
+            'daily_expenses_count': transactions_by_employee.get(emp_id, {}).get(TransactionType.GASTO, {}).get('count', 0),
+            'daily_withdrawals': transactions_by_employee.get(emp_id, {}).get(TransactionType.RETIRO, {}).get('amount', 0),
+            'daily_withdrawals_count': transactions_by_employee.get(emp_id, {}).get(TransactionType.RETIRO, {}).get('count', 0),
+            'daily_collection': transactions_by_employee.get(emp_id, {}).get(TransactionType.INGRESO, {}).get('amount', 0),
+            'daily_collection_count': transactions_by_employee.get(emp_id, {}).get(TransactionType.INGRESO, {}).get('count', 0),
+            
+            # Clientes nuevos
+            'new_clients': new_clients_data[emp_id]['count'],
+            'new_clients_loan_amount': new_clients_data[emp_id]['amount'],
+            
+            # Renovaciones
+            'total_renewal_loans': renewals_data[emp_id]['count'],
+            'total_renewal_loans_amount': renewals_data[emp_id]['amount'],
+            
+            # Clientes
+            'total_customers': clients_data[emp_id]['active_loans'],
+            'customers_in_arrears': 0,  # Se calculará por separado si es necesario
+            
+            # Cobros diarios
+            'total_collections_today': collections_data[emp_id],
+            
+            # Otros datos que requieren consultas más complejas
+            'total_pending_installments_amount': 0,
+            'total_pending_installments_loan_close_amount': 0,
+            'all_loans_paid_today': False,
+            'total_clients_collected': 0,
+            'expense_details': [],
+            'income_details': [],
+            'withdrawal_details': []
+        }
+    
+    return result
+
 @routes.route('/box', methods=['GET'])
 def box():
     try:
-        # Obtener el user_id de la sesión
-        user_id = session.get('user_id')
-
-
-        if user_id is None:
-            return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
-
-        # Verificar si el usuario es un coordinador
-        user = User.query.get(user_id)
-        if user is None or user.role != Role.COORDINADOR:
-            return jsonify({'message': 'El usuario no es un coordinador válido'}), 403
-
-        # Obtener la información de la caja del coordinador
-        coordinator = Employee.query.filter_by(user_id=user_id).first()
-        coordinator_cash = coordinator.box_value
-
-        coordinator_name = f"{user.first_name} {user.last_name}"
-
-        # Obtener el ID del manager del coordinador
-        manager_id = db.session.query(Manager.id).filter_by(
-            employee_id=coordinator.id).scalar()
-
-        if not manager_id:
-            return jsonify({'message': 'No se encontró ningún coordinador asociado a este empleado'}), 404
-
-        salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
-
-        # Funciones para sumar el valor de todas las transacciones en estado: APROBADO y Tipo: INGRESO/RETIRO
+        # Validar acceso del coordinador
+        user_id, user = validate_coordinator_access()
+        
+        # Obtener datos del coordinador y sus vendedores
+        coordinator, coordinator_cash, coordinator_name, manager_id, salesmen = get_coordinator_data(user_id)
+        
         current_date = datetime.now().date()
-
-        # Calcular la fecha de inicio y fin del día actual
-        start_of_day = datetime.combine(current_date, datetime.min.time())
-        end_of_day = datetime.combine(current_date, datetime.max.time())
-
-        # Filtrar las transacciones para el día actual del manager en sesión
-        total_outbound_amount = db.session.query(
-            func.sum(Transaction.amount).label('total_amount')
-        ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
-            Transaction.transaction_types == 'INGRESO',
-            Transaction.approval_status == 'APROBADA',
-            Salesman.manager_id == manager_id,  # Filtrar solo por el manager en sesión
-            Transaction.creation_date.between(
-                start_of_day, end_of_day)  # Filtrar por fecha actual
-        ).scalar() or 0
-
-        # Filtrar las transacciones para el día actual del manager en sesión
-        total_inbound_amount = db.session.query(
-            func.sum(Transaction.amount).label('total_amount')
-        ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
-            Transaction.transaction_types == 'RETIRO',
-            Transaction.approval_status == 'APROBADA',
-            Salesman.manager_id == manager_id,  # Filtrar solo por el manager en sesión
-            # Filtrar por fecha actual
-            func.date(Transaction.creation_date) == current_date
-        ).scalar() or 0
-
-
-        # Inicializa la lista para almacenar las estadísticas de los vendedores
+        
+        # Calcular totales de transacciones del coordinador
+        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals(manager_id, current_date)
+        
+        # Inicializar lista para estadísticas de vendedores
         salesmen_stats = []
-
-        # Ciclo a través de cada vendedor asociado al coordinador
-        for salesman in salesmen:
-            # Inicializar variables para recopilar estadísticas para cada vendedor
-            total_collections_today = 0  # Recaudo Diario
-            daily_expenses_count = 0  # Gastos Diarios
-            daily_expenses_amount = 0  # Valor Gastos Diarios
-            daily_withdrawals = 0  # Retiros Diarios
-            daily_collection = 0  # Ingresos Diarios
-            customers_in_arrears = 0  # Clientes en MORA o NO PAGO
-            total_renewal_loans = 0  # Cantidad de Renovaciones
-            total_renewal_loans_amount = 0  # Valor Total Renovaciones
-            total_customers = 0  # Clientes Totales (Activos)
-            new_clients = 0  # Clientes Nuevos
-            new_clients_loan_amount = 0  # Valor Prestamos Nuevos
-            daily_withdrawals_count = 0  # Cantidad Retiros Diarios
-            daily_collection_count = 0  # Cantidad Ingresos Diarios
-            total_pending_installments_amount = 0  # Monto total de cuotas pendientes
-            box_value = 0  # Valor de la caja del vendedor
-            initial_box_value = 0
-            # Monto total de cuotas pendientes de préstamos por cerrar
-            total_pending_installments_loan_close_amount = 0
-
-            # Obtener el valor de la caja del vendedor
-            employee = Employee.query.get(salesman.employee_id)
-            employee_id = employee.id
-
-
-            employee_userid = User.query.get(employee.user_id)
-
-
-
-
-            role_employee = employee_userid.role.value
-
-
-            # Obtener el valor inicial de la caja del vendedor
-            employee_records = EmployeeRecord.query.filter_by(
-                employee_id=salesman.employee_id).order_by(EmployeeRecord.id.desc()).first()
-            if employee_records:
-                initial_box_value = employee_records.closing_total
-
-            # Verificar si ya existe un registro en EmployeeRecord con la fecha actual
-            existing_record_today = EmployeeRecord.query.filter(
-                EmployeeRecord.employee_id == salesman.employee_id,
-                func.date(EmployeeRecord.creation_date) == datetime.now().date()
-            ).first()
-
-            all_loans_paid = Loan.query.filter_by(
-                employee_id=salesman.employee_id)
-            all_loans_paid_today = False
-            for loan in all_loans_paid:
-                loan_installments = LoanInstallment.query.filter_by(
-                    loan_id=loan.id).all()
-                for installment in loan_installments:
-                    payments = Payment.query.filter_by(
-                        installment_id=installment.id).all()
-                    if any(payment.payment_date.date() == current_date for payment in payments):
-                        all_loans_paid_today = True
-                        break
-                    if all_loans_paid_today:
-                        break
-
-            # Calcula el total de cobros para el día con estado "PAGADA"
-            total_collections_today = db.session.query(
-                func.sum(Payment.amount)
-            ).join(
-                LoanInstallment, Payment.installment_id == LoanInstallment.id
-            ).join(
-                Loan, LoanInstallment.loan_id == Loan.id
-            ).filter(
-                Loan.client.has(employee_id=salesman.employee_id),
-                func.date(Payment.payment_date) == datetime.now().date()
-            ).scalar() or 0
-
-            for client in employee.clients:
-                for loan in client.loans:
-                    # Excluir préstamos creados hoy mismo
-                    if loan.creation_date.date() == datetime.now().date():
-                        continue
-                    
-                    if loan.status:
-                        # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
-                        pending_installment = LoanInstallment.query.filter(
-                            LoanInstallment.loan_id == loan.id
-                        ).order_by(LoanInstallment.due_date.asc()).first()
-                        if pending_installment:
-                            total_pending_installments_amount += pending_installment.fixed_amount
-                    elif loan.status == False and loan.up_to_date and loan.modification_date.date() == datetime.now().date():
-                        pending_installment_paid = LoanInstallment.query.filter(
-                            LoanInstallment.loan_id == loan.id
-                        ).order_by(LoanInstallment.due_date.asc()).first()
-                        total_pending_installments_loan_close_amount += pending_installment_paid.fixed_amount
-
-            # Calcula la cantidad de nuevos clientes registrados en el día
-            new_clients = Client.query.filter(
-                Client.employee_id == salesman.employee_id,
-                Client.creation_date >= datetime.now().replace(
-                    hour=0, minute=0, second=0, microsecond=0),
-                # Client.creation_date <= datetime.now()
-            ).count()
-
-            # Calcula el total de préstamos de los nuevos clientes
-            new_clients_loan_amount = Loan.query.join(Client).filter(
-                Client.employee_id == salesman.employee_id,
-                Loan.creation_date >= datetime.now().replace(
-                    hour=0, minute=0, second=0, microsecond=0),
-                # Loan.creation_date <= datetime.now(),
-                Loan.is_renewal == False  # Excluir renovaciones
-            ).with_entities(func.sum(Loan.amount)).scalar() or 0
-
-            # Calcula el total de renovaciones para el día actual para este vendedor
-            total_renewal_loans = Loan.query.filter(
-                Loan.client.has(employee_id=salesman.employee_id),
-                Loan.is_renewal == True,
-                Loan.status == True,
-                Loan.approved == True,
-                Loan.creation_date >= datetime.now().replace(
-                    hour=0, minute=0, second=0, microsecond=0)
-                # Loan.creation_date < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-            ).count()
-
-            # Calcula el monto total de las renovaciones de préstamos para este vendedor
-            total_renewal_loans_amount = Loan.query.filter(
-                Loan.client.has(employee_id=salesman.employee_id),
-                Loan.is_renewal == True,
-                Loan.status == True,
-                Loan.approved == True,
-                Loan.creation_date >= datetime.now().replace(
-                    hour=0, minute=0, second=0, microsecond=0)
-                # Loan.creation_date < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-            ).with_entities(func.sum(Loan.amount)).scalar() or 0
-
-            # Calcula Valor de los gastos diarios
-            daily_expenses_amount = Transaction.query.filter(
-                Transaction.employee_id == salesman.employee_id,
-                Transaction.transaction_types == TransactionType.GASTO,
-                Transaction.approval_status == ApprovalStatus.APROBADA,
-                # Filtrar por fecha actual
-                func.date(Transaction.creation_date) == datetime.now().date()
-            ).with_entities(func.sum(Transaction.amount)).scalar() or 0
-
-            # Calcula el número de transacciones de gastos diarios
-            daily_expenses_count = Transaction.query.filter(
-                Transaction.employee_id == salesman.employee_id,
-                Transaction.transaction_types == TransactionType.GASTO,
-                Transaction.approval_status == ApprovalStatus.APROBADA,
-                # Filtrar por fecha actual
-                func.date(Transaction.creation_date) == datetime.now().date()
-            ).count() or 0
-
-            # Calcula los retiros diarios basados en transacciones de RETIRO
-            daily_withdrawals = Transaction.query.filter(
-                Transaction.employee_id == salesman.employee_id,
-                Transaction.transaction_types == TransactionType.RETIRO,
-                Transaction.approval_status == ApprovalStatus.APROBADA,
-                # Filtrar por fecha actual
-                func.date(Transaction.creation_date) == datetime.now().date()
-            ).with_entities(func.sum(Transaction.amount)).scalar() or 0
-
-            daily_withdrawals_count = Transaction.query.filter(
-                Transaction.employee_id == salesman.employee_id,
-                Transaction.transaction_types == TransactionType.RETIRO,
-                Transaction.approval_status == ApprovalStatus.APROBADA,
-                # Filtrar por fecha actual
-                func.date(Transaction.creation_date) == datetime.now().date()
-            ).count() or 0
-
-            # Calcula las colecciones diarias basadas en transacciones de INGRESO
-            daily_collection = Transaction.query.filter(
-                Transaction.employee_id == salesman.employee_id,
-                Transaction.transaction_types == TransactionType.INGRESO,
-                Transaction.approval_status == ApprovalStatus.APROBADA,
-                # Filtrar por fecha actual
-                func.date(Transaction.creation_date) == datetime.now().date()
-            ).with_entities(func.sum(Transaction.amount)).scalar() or 0
-
-            daily_collection_count = Transaction.query.filter(
-                Transaction.employee_id == salesman.employee_id,
-                Transaction.transaction_types == TransactionType.INGRESO,
-                Transaction.approval_status == ApprovalStatus.APROBADA,
-                # Filtrar por fecha actual
-                func.date(Transaction.creation_date) == datetime.now().date()
-            ).count() or 0
-
-            # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de creación descendente
-            transactions = Transaction.query.filter_by(
-                employee_id=employee_id).order_by(Transaction.creation_date.desc()).all()
-
-            # Filtrar transacciones por tipo y fecha
-            today = datetime.today().date()
-            expenses = [trans for trans in transactions if
-                        trans.transaction_types == TransactionType.GASTO and trans.creation_date.date() == today]
-            incomes = [trans for trans in transactions if
-                       trans.transaction_types == TransactionType.INGRESO and trans.approval_status == ApprovalStatus.APROBADA and trans.creation_date.date() == today]
-            withdrawals = [trans for trans in transactions if
-                           trans.transaction_types == TransactionType.RETIRO and trans.approval_status == ApprovalStatus.APROBADA and trans.creation_date.date() == today]
-
-            # Recopilar detalles con formato de fecha y clases de Bootstrap
-            expense_details = [
-                {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
-                 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
-            income_details = [
-                {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
-                 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y'), 'employee_id': employee_id, 'username': Employee.query.get(employee_id).user.username} for trans in incomes]
-            withdrawal_details = [
-                {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
-                 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y'), 'employee_id': employee_id, 'username': Employee.query.get(employee_id).user.username} for trans in withdrawals]
-
-            # Número total de clientes del vendedor
-            total_customers = sum(
-                1 for client in salesman.employee.clients
-                for loan in client.loans
-                if loan.status
+        
+        # OPTIMIZACIÓN: Obtener todos los datos de vendedores en consultas optimizadas
+        salesmen_data = get_all_salesmen_data_optimized(salesmen, current_date)
+        
+        # Procesar cada vendedor con datos pre-cargados
+        for salesman, employee, user in salesmen:
+            employee_id = salesman.employee_id
+            data = salesmen_data[employee_id]
+            
+            # Obtener datos adicionales que requieren consultas específicas
+            total_customers, customers_in_arrears = get_salesman_customers_data(employee_id)
+            total_pending_installments_amount, total_pending_installments_loan_close_amount = get_salesman_pending_installments(employee_id, current_date)
+            all_loans_paid_today = check_all_loans_paid_today(employee_id, current_date)
+            total_clients_collected = get_salesman_collected_clients(employee_id, current_date)
+            expense_details, income_details, withdrawal_details = get_salesman_transaction_details(employee_id, current_date)
+            
+            # Actualizar datos con información adicional
+            data.update({
+                'total_customers': total_customers,
+                'customers_in_arrears': customers_in_arrears,
+                'total_pending_installments_amount': total_pending_installments_amount,
+                'total_pending_installments_loan_close_amount': total_pending_installments_loan_close_amount,
+                'all_loans_paid_today': all_loans_paid_today,
+                'total_clients_collected': total_clients_collected,
+                'expense_details': expense_details,
+                'income_details': income_details,
+                'withdrawal_details': withdrawal_details
+            })
+            
+            # Calcular valor de caja
+            box_value = calculate_box_value(
+                data['initial_box_value'], data['total_collections_today'], 
+                data['daily_withdrawals'], data['daily_expenses_amount'],
+                data['daily_collection'], data['new_clients_loan_amount'],
+                data['total_renewal_loans_amount'], data['existing_record_today']
             )
-
-            # Clientes morosos para el día
-            customers_in_arrears = sum(
-                1 for client in salesman.employee.clients
-                for loan in client.loans
-                if loan.status and any(
-                    installment.status == InstallmentStatus.MORA
-                    for installment in loan.installments
-                )
-            )
-
-            # Calcula la cantidad de clientes recaudados en el día
-            total_clients_collected_close = sum(
-                1 for client in salesman.employee.clients
-                for loan in client.loans
-                if loan.status == False and any(
-                    installment.status == InstallmentStatus.PAGADA and installment.payment_date == datetime.now().date()
-                    for installment in loan.installments
-                )
-            )
-
-            # Crear subconsulta para obtener los IDs de los clientes
-            client_subquery = db.session.query(Client.id).filter(
-                Client.employee_id == employee_id).subquery()
-
-            # Crear subconsulta para obtener los IDs de los préstamos
-            loan_subquery = db.session.query(Loan.id).filter(
-                Loan.client_id.in_(client_subquery.select())).subquery()
-
-            # Crear subconsulta para contar los préstamos únicos
-            subquery = db.session.query(
-                Loan.id
-            ).join(
-                LoanInstallment, LoanInstallment.loan_id == Loan.id
-            ).join(
-                Payment, Payment.installment_id == LoanInstallment.id
-            ).filter(
-                Loan.id.in_(loan_subquery.select()),
-                func.date(Payment.payment_date) == datetime.now().date(),
-                LoanInstallment.status.in_(['PAGADA', 'ABONADA'])
-            ).group_by(
-                Loan.id
-            ).subquery()
-
-            # Contar el número de préstamos únicos
-            total_clients_collected = db.session.query(
-                func.count()
-            ).select_from(
-                subquery
-            ).scalar() or 0
-
-            # Convertir los valores de estadísticas a números antes de agregarlos a salesmen_stats
-            # Obtener el estado del modelo Employee
-            employee_status = salesman.employee.status
-
-            status_box = ""
-
-            if employee_status == False and all_loans_paid_today == True:
+            
+            # Determinar estado de la caja
+            if data['employee_status'] == False and all_loans_paid_today == True:
                 status_box = "Cerrada"
-            elif employee_status == False and all_loans_paid_today == False:
+            elif data['employee_status'] == False and all_loans_paid_today == False:
                 status_box = "Desactivada"
-            elif employee_status == True and all_loans_paid_today == False:
+            elif data['employee_status'] == True and all_loans_paid_today == False:
                 status_box = "Activa"
             else:
                 status_box = "Activa"
-
-            # Si ya existe un registro del día, no sumar total_collections_today
-            if existing_record_today:
-                box_value = initial_box_value - float(daily_withdrawals) - float(
-                    daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount) - float(total_renewal_loans_amount)
-            else:
-                box_value = initial_box_value + float(total_collections_today) - float(daily_withdrawals) - float(
-                    daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount) - float(total_renewal_loans_amount)
-
+            
+            # Crear datos del vendedor
             salesman_data = {
-                'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
-                'employee_id': salesman.employee_id,
-                'employee_status': employee_status,
-                'total_collections_today': total_collections_today,
-                'new_clients': new_clients,
-                'daily_expenses': daily_expenses_count,
-                'daily_expenses_amount': daily_expenses_amount,
-                'daily_withdrawals': daily_withdrawals,
-                'daily_collections_made': daily_collection,
+                'salesman_name': data['salesman_name'],
+                'employee_id': employee_id,
+                'employee_status': data['employee_status'],
+                'total_collections_today': data['total_collections_today'],
+                'new_clients': data['new_clients'],
+                'daily_expenses': data['daily_expenses_count'],
+                'daily_expenses_amount': data['daily_expenses_amount'],
+                'daily_withdrawals': data['daily_withdrawals'],
+                'daily_collections_made': data['daily_collection'],
                 'total_number_of_customers': total_customers,
                 'customers_in_arrears_for_the_day': customers_in_arrears,
-                'total_renewal_loans': total_renewal_loans,
-                'total_new_clients_loan_amount': new_clients_loan_amount,
-                'total_renewal_loans_amount': total_renewal_loans_amount,
-                'daily_withdrawals_count': daily_withdrawals_count,
-                'daily_collection_count': daily_collection_count,
+                'total_renewal_loans': data['total_renewal_loans'],
+                'total_new_clients_loan_amount': data['new_clients_loan_amount'],
+                'total_renewal_loans_amount': data['total_renewal_loans_amount'],
+                'daily_withdrawals_count': data['daily_withdrawals_count'],
+                'daily_collection_count': data['daily_collection_count'],
                 'total_pending_installments_amount': total_pending_installments_amount,
                 'all_loans_paid_today': all_loans_paid_today,
                 'total_clients_collected': total_clients_collected,
                 'status_box': status_box,
                 'box_value': box_value,
-                'initial_box_value': initial_box_value,
+                'initial_box_value': data['initial_box_value'],
                 'expense_details': expense_details,
                 'income_details': income_details,
                 'withdrawal_details': withdrawal_details,
-                'role_employee': role_employee,
+                'role_employee': data['role_employee'],
                 'total_pending_installments_loan_close_amount': total_pending_installments_loan_close_amount
             }
-
+            
             salesmen_stats.append(salesman_data)
-
-        # Obtener el término de búsqueda
-        search_term = request.args.get('salesman_name')
-        all_boxes_closed = all(
-            salesman_data['status_box'] == 'Cerrada' for salesman_data in salesmen_stats)
-
-        # Inicializar search_term como cadena vacía si es None
-        search_term = search_term if search_term else ""
-
-        # Realizar la búsqueda en la lista de salesmen_stats si hay un término de búsqueda
+        
+        # Procesar búsqueda
+        search_term = request.args.get('salesman_name', '')
         if search_term:
             salesmen_stats = [salesman for salesman in salesmen_stats if
                               search_term.lower() in salesman['salesman_name'].lower()]
-
-        # Obtener los gastos del coordinador
-        expenses = Transaction.query.filter(
-            Transaction.employee_id == coordinator.id,
-            Transaction.transaction_types == 'GASTO',
-            func.date(Transaction.creation_date) == current_date
-        ).all()
-
-        # Obtener el valor total de los gastos
-        total_expenses = sum(expense.amount for expense in expenses)
-
-        expense_details = [
-            {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
-             'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
-
+        
+        # Verificar si todas las cajas están cerradas
+        all_boxes_closed = all(
+            salesman_data['status_box'] == 'Cerrada' for salesman_data in salesmen_stats)
+        
+        # Obtener gastos del coordinador
+        total_expenses, coordinator_expense_details = get_coordinator_expenses(coordinator.id, current_date)
+        
+        # Crear datos de la caja del coordinador
         coordinator_box = {
-        'maximum_cash': float(coordinator_cash),
-        'total_outbound_amount': float(total_outbound_amount),
-        'total_inbound_amount': float(total_inbound_amount),
-        'final_box_value': float(coordinator_cash) +
-                        float(total_inbound_amount) -
-                        float(total_outbound_amount) -
-                        float(total_expenses),
+            'maximum_cash': float(coordinator_cash),
+            'total_outbound_amount': float(total_outbound_amount),
+            'total_inbound_amount': float(total_inbound_amount),
+            'final_box_value': float(coordinator_cash) + float(total_inbound_amount) - 
+                             float(total_outbound_amount) - float(total_expenses),
         }
-
-
-        # Renderizar la plantilla con las variables
-        return render_template('box.html', coordinator_box=coordinator_box, salesmen_stats=salesmen_stats,
-                               search_term=search_term, all_boxes_closed=all_boxes_closed,
-                               coordinator_name=coordinator_name, user_id=user_id, expense_details=expense_details, total_expenses=total_expenses)
+        
+        # Renderizar la plantilla
+        return render_template('box.html', 
+                             coordinator_box=coordinator_box, 
+                             salesmen_stats=salesmen_stats,
+                             search_term=search_term, 
+                             all_boxes_closed=all_boxes_closed,
+                             coordinator_name=coordinator_name, 
+                             user_id=user_id, 
+                             expense_details=coordinator_expense_details, 
+                             total_expenses=total_expenses)
+                             
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 401 if 'Usuario no encontrado' in str(e) else 403
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
