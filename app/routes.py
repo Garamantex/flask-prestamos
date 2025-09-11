@@ -1177,190 +1177,170 @@ def mark_overdue():
     return jsonify({"error": "No se encontraron cuotas para marcar como MORA"}), 404
 
 
+# Constantes para estados de caja
+BOX_STATUS = {
+    'CLOSED': 'Cerrada',
+    'ACTIVE': 'Activa', 
+    'DEACTIVATED': 'Desactivada'
+}
+
+def calculate_status_box(employee_status, all_loans_paid_today):
+    """
+    Calcula el estado de la caja basado en el estado del empleado y si todos los préstamos están pagados hoy.
+    
+    Lógica de negocio:
+    - Si empleado está activo y todos los préstamos pagados hoy → Caja Cerrada
+    - Si empleado está inactivo y todos los préstamos pagados hoy → Caja Activa  
+    - Si empleado está inactivo y no todos los préstamos pagados hoy → Caja Desactivada
+    - Si empleado está activo y no todos los préstamos pagados hoy → Caja Activa (caso por defecto)
+    
+    Args:
+        employee_status (bool): Estado del empleado (True=activo, False=inactivo)
+        all_loans_paid_today (bool): Si todos los préstamos están pagados hoy
+    
+    Returns:
+        str: Estado de la caja ("Cerrada", "Activa", "Desactivada")
+    """
+    # Validar parámetros
+    if not isinstance(employee_status, bool) or not isinstance(all_loans_paid_today, bool):
+        return BOX_STATUS['ACTIVE']  # Estado por defecto en caso de error
+    
+    # Empleado activo y todos los préstamos pagados hoy
+    if employee_status and all_loans_paid_today:
+        return BOX_STATUS['CLOSED']
+    
+    # Empleado inactivo y todos los préstamos pagados hoy
+    if not employee_status and all_loans_paid_today:
+        return BOX_STATUS['ACTIVE']
+    
+    # Empleado inactivo y no todos los préstamos pagados hoy
+    if not employee_status and not all_loans_paid_today:
+        return BOX_STATUS['DEACTIVATED']
+    
+    # Empleado activo y no todos los préstamos pagados hoy (caso por defecto)
+    return BOX_STATUS['ACTIVE']
+
+
 @routes.route('/payment_list/<int:user_id>', methods=['GET'])
 def payments_list(user_id):
-    # Obtiene el ID de usuario desde la ruta
-    user_id = user_id
+    # Validar user_id
+    if not user_id or user_id <= 0:
+        return jsonify({"error": "ID de usuario inválido"}), 400
 
-    # Busca al empleado asociado al usuario
-    employee = Employee.query.filter_by(user_id=user_id).first()
-    employee_id = employee.id
-    employee_status = employee.status
     current_date = datetime.now().date()
+
+    # Optimización 1: Una sola consulta para obtener empleado con sus clientes
+    employee = db.session.query(Employee).options(
+        joinedload(Employee.clients)
+    ).filter_by(user_id=user_id).first()
 
     if not employee:
         return jsonify({"error": "No se encontró el empleado asociado al usuario."}), 404
 
-    all_loans_paid = Loan.query.filter_by(employee_id=employee.id).all()
+    employee_id = employee.id
+    employee_status = employee.status
 
-    all_loans_paid_count = 0
-
-    all_loans_paid_today = False
-
-    # Inicializa un set para almacenar los IDs de clientes que tienen pagos hoy
-    clients_with_payments_today = set()
-
-    # Obtiene todos los préstamos del empleado
-    all_loans_paid = Loan.query.filter_by(employee_id=employee.id).all()
-
-    # Recorre cada préstamo y sus cuotas para verificar pagos del día de hoy
-    for loan in all_loans_paid:
-        loan_installments = LoanInstallment.query.filter_by(
-            loan_id=loan.id).all()
-        for installment in loan_installments:
-            payments = Payment.query.filter_by(
-                installment_id=installment.id).all()
-            for payment in payments:
-                if payment.payment_date.date() == current_date:
-                    # Agrega el ID del cliente al set si hay un pago hoy
-                    clients_with_payments_today.add(loan.client_id)
-                    break
-
+    # Optimización 2: Una sola consulta para obtener clientes con pagos hoy
+    clients_with_payments_today = set(
+        db.session.query(Loan.client_id).join(
+            LoanInstallment, Loan.id == LoanInstallment.loan_id
+        ).join(
+            Payment, LoanInstallment.id == Payment.installment_id
+        ).filter(
+            Loan.employee_id == employee_id,
+            func.date(Payment.payment_date) == current_date
+        ).distinct().all()
+    )
+    
     # La cantidad de clientes con pagos hoy es el tamaño del set
     all_loans_paid_count = len(clients_with_payments_today)
 
-    # Contar préstamos activos (status=True) más los inactivos modificados hoy
+    # Optimización 3: Contar préstamos activos (status=True) más los inactivos modificados hoy
     active_loans_count = db.session.query(Loan).filter(
-        Loan.employee_id == employee.id,
+        Loan.employee_id == employee_id,
         (Loan.status == True) | 
-        ((Loan.status == False) & (func.date(Loan.modification_date) == datetime.now().date()))
+        ((Loan.status == False) & (func.date(Loan.modification_date) == current_date))
     ).count()
 
-    if active_loans_count == all_loans_paid_count:
-        all_loans_paid_today = True
+    # Determinar si todos los préstamos están pagados hoy
+    all_loans_paid_today = (active_loans_count == all_loans_paid_count)
 
-
-    # Calcula el total de cobros para el día con estado "PAGADA"
+    # Optimización 4: Calcular el total de cobros para el día
     total_collections_today = db.session.query(
         func.sum(Payment.amount)
     ).join(
         LoanInstallment, Payment.installment_id == LoanInstallment.id
     ).join(
         Loan, LoanInstallment.loan_id == Loan.id
+    ).join(
+        Client, Loan.client_id == Client.id
     ).filter(
-        Loan.client.has(employee_id=employee_id),
-        func.date(Payment.payment_date) == datetime.now().date()
+        Client.employee_id == employee_id,
+        func.date(Payment.payment_date) == current_date
     ).scalar() or 0
 
 
-    status_box = ""
-
-    if employee_status == True and all_loans_paid_today == True:
-        status_box = "Cerrada"
-    elif employee_status == False and all_loans_paid_today == True:
-        status_box = "Activa"
-    elif employee_status == False and all_loans_paid_today == False:
-        status_box = "Desactivada"
-    elif employee_status == True and all_loans_paid_today == False:
-        status_box = "Activa"
-    else:
-        status_box = "Activa"
+    # Optimización 9: Usar función separada para calcular status_box
+    status_box = calculate_status_box(employee_status, all_loans_paid_today)
 
 
     # Inicializa la lista para almacenar la información de los clientes
     clients_information = []
     clients_information_paid = []
 
-    # Precargar datos mínimos
-    client_ids = [c.id for c in employee.clients]
-    loans = Loan.query.filter(
-        Loan.client_id.in_(client_ids),
+    # Optimización 5: Obtener préstamos activos del empleado en una sola consulta
+    loans = db.session.query(Loan).join(Client, Loan.client_id == Client.id).filter(
+        Client.employee_id == employee_id,
         Loan.status == True
     ).all()
 
     if loans:
         loan_ids = [l.id for l in loans]
 
-        # Agregaciones por préstamo
-        paid_installments_by_loan = dict(db.session.query(
+        # Optimización 6: Una sola consulta para todas las agregaciones por préstamo
+        from sqlalchemy import case
+        
+        loan_aggregations = db.session.query(
             LoanInstallment.loan_id,
-            func.count(LoanInstallment.id)
-        ).filter(
-            LoanInstallment.loan_id.in_(loan_ids),
-            LoanInstallment.status == InstallmentStatus.PAGADA
-        ).group_by(LoanInstallment.loan_id).all())
-
-        total_paid_amount_by_loan = dict(db.session.query(
-            LoanInstallment.loan_id,
-            func.coalesce(func.sum(Payment.amount), 0)
-        ).join(Payment, Payment.installment_id == LoanInstallment.id)
-         .filter(LoanInstallment.loan_id.in_(loan_ids))
-         .group_by(LoanInstallment.loan_id).all())
-
-        overdue_counts_by_loan = dict(db.session.query(
-            LoanInstallment.loan_id,
-            func.count(LoanInstallment.id)
-        ).filter(
-            LoanInstallment.loan_id.in_(loan_ids),
-            LoanInstallment.status == InstallmentStatus.MORA
-        ).group_by(LoanInstallment.loan_id).all())
-
-        overdue_amount_by_loan = dict(db.session.query(
-            LoanInstallment.loan_id,
-            func.coalesce(func.sum(LoanInstallment.amount), 0)
-        ).filter(
-            LoanInstallment.loan_id.in_(loan_ids),
-            LoanInstallment.status == InstallmentStatus.MORA
-        ).group_by(LoanInstallment.loan_id).all())
-
-        outstanding_amount_by_loan = dict(db.session.query(
-            LoanInstallment.loan_id,
-            func.coalesce(func.sum(LoanInstallment.amount), 0)
-        ).filter(
-            LoanInstallment.loan_id.in_(loan_ids),
-            LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA])
-        ).group_by(LoanInstallment.loan_id).all())
-
-        amount_paid_installments_by_loan = dict(db.session.query(
-            LoanInstallment.loan_id,
-            func.coalesce(func.sum(LoanInstallment.fixed_amount), 0)
-        ).filter(
-            LoanInstallment.loan_id.in_(loan_ids),
-            LoanInstallment.status.in_([InstallmentStatus.ABONADA, InstallmentStatus.PAGADA])
-        ).group_by(LoanInstallment.loan_id).all())
-
-        # Último pago por préstamo
-        last_payment_by_loan = {}
-        last_payment_rows = db.session.query(
-            LoanInstallment.loan_id,
-            func.max(Payment.payment_date)
-        ).join(Payment, Payment.installment_id == LoanInstallment.id) \
+            func.count(case((LoanInstallment.status == InstallmentStatus.PAGADA, LoanInstallment.id), else_=None)).label('paid_installments'),
+            func.coalesce(func.sum(case((LoanInstallment.status == InstallmentStatus.PAGADA, Payment.amount), else_=0)), 0).label('total_paid_amount'),
+            func.count(case((LoanInstallment.status == InstallmentStatus.MORA, LoanInstallment.id), else_=None)).label('overdue_installments'),
+            func.coalesce(func.sum(case((LoanInstallment.status == InstallmentStatus.MORA, LoanInstallment.amount), else_=0)), 0).label('overdue_amount'),
+            func.coalesce(func.sum(case((LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.amount), else_=0)), 0).label('outstanding_amount'),
+            func.coalesce(func.sum(case((LoanInstallment.status.in_([InstallmentStatus.ABONADA, InstallmentStatus.PAGADA]), LoanInstallment.fixed_amount), else_=0)), 0).label('amount_paid_installments')
+        ).outerjoin(Payment, Payment.installment_id == LoanInstallment.id) \
          .filter(LoanInstallment.loan_id.in_(loan_ids)) \
          .group_by(LoanInstallment.loan_id).all()
-        for loan_id, last_date in last_payment_rows:
-            last_payment_by_loan[loan_id] = last_date
 
-        # Próxima cuota pendiente por préstamo (MIN due_date)
-        next_installment_rows = db.session.query(
-            LoanInstallment.loan_id,
-            func.min(LoanInstallment.due_date)
-        ).filter(
-            LoanInstallment.loan_id.in_(loan_ids),
-            LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
-        ).group_by(LoanInstallment.loan_id).all()
-        next_due_by_loan = {loan_id: due for loan_id, due in next_installment_rows}
+        # Convertir a diccionarios para compatibilidad
+        paid_installments_by_loan = {row.loan_id: row.paid_installments for row in loan_aggregations}
+        total_paid_amount_by_loan = {row.loan_id: float(row.total_paid_amount) for row in loan_aggregations}
+        overdue_counts_by_loan = {row.loan_id: row.overdue_installments for row in loan_aggregations}
+        overdue_amount_by_loan = {row.loan_id: float(row.overdue_amount) for row in loan_aggregations}
+        outstanding_amount_by_loan = {row.loan_id: float(row.outstanding_amount) for row in loan_aggregations}
+        amount_paid_installments_by_loan = {row.loan_id: float(row.amount_paid_installments) for row in loan_aggregations}
 
-        # Valor de cuota fija (tomar mínima por préstamo)
-        fixed_amount_rows = db.session.query(
+        # Optimización 7: Una sola consulta para datos adicionales de préstamos
+        loan_additional_data = db.session.query(
             LoanInstallment.loan_id,
-            func.min(LoanInstallment.fixed_amount)
-        ).filter(LoanInstallment.loan_id.in_(loan_ids)) \
+            func.max(case((Payment.payment_date.isnot(None), Payment.payment_date), else_=None)).label('last_payment_date'),
+            func.min(case((LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA]), LoanInstallment.due_date), else_=None)).label('next_due_date'),
+            func.min(LoanInstallment.fixed_amount).label('fixed_amount'),
+            func.max(case((LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.due_date), else_=None)).label('prev_due_date')
+        ).outerjoin(Payment, Payment.installment_id == LoanInstallment.id) \
+         .filter(LoanInstallment.loan_id.in_(loan_ids)) \
          .group_by(LoanInstallment.loan_id).all()
-        fixed_amount_by_loan = {loan_id: fa for loan_id, fa in fixed_amount_rows}
 
-        # Estado de cuota previa por préstamo (más reciente por due_date)
-        prev_installment_rows = db.session.query(
-            LoanInstallment.loan_id,
-            func.max(LoanInstallment.due_date)
-        ).filter(
-            LoanInstallment.loan_id.in_(loan_ids),
-            LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA])
-        ).group_by(LoanInstallment.loan_id).all()
-        prev_due_by_loan = {loan_id: due for loan_id, due in prev_installment_rows}
+        # Convertir a diccionarios
+        last_payment_by_loan = {row.loan_id: row.last_payment_date for row in loan_additional_data if row.last_payment_date}
+        next_due_by_loan = {row.loan_id: row.next_due_date for row in loan_additional_data if row.next_due_date}
+        fixed_amount_by_loan = {row.loan_id: row.fixed_amount for row in loan_additional_data if row.fixed_amount}
+        prev_due_by_loan = {row.loan_id: row.prev_due_date for row in loan_additional_data if row.prev_due_date}
 
+        # Obtener estado de cuota previa
         prev_status_by_loan = {}
         if prev_due_by_loan:
-            prev_pairs = db.session.query(
+            prev_status_rows = db.session.query(
                 LoanInstallment.loan_id,
                 LoanInstallment.status
             ).filter(
@@ -1368,7 +1348,7 @@ def payments_list(user_id):
                     [(lid, due) for lid, due in prev_due_by_loan.items()]
                 )
             ).all()
-            prev_status_by_loan = {lid: status for lid, status in prev_pairs}
+            prev_status_by_loan = {lid: status for lid, status in prev_status_rows}
 
         # Construcción final sin N+1
         client_by_id = {c.id: c for c in employee.clients}
@@ -1425,38 +1405,26 @@ def payments_list(user_id):
             clients_information.append(client_info)
 
 
-        # Créditos cerrados hoy (sección "paid")
-        for loan in Loan.query.filter(
-            Loan.client_id.in_(client_ids),
+        # Optimización 8: Préstamos cerrados hoy con una sola consulta
+        closed_loans_today = db.session.query(
+            Loan.id,
+            func.sum(Payment.amount).label('total_paid')
+        ).join(LoanInstallment, Loan.id == LoanInstallment.loan_id) \
+         .join(Payment, LoanInstallment.id == Payment.installment_id) \
+         .join(Client, Loan.client_id == Client.id) \
+         .filter(
+            Client.employee_id == employee_id,
             Loan.status == False,
             Loan.up_to_date == True,
-            func.date(Loan.modification_date) == datetime.now().date()
-        ).all():
+            func.date(Loan.modification_date) == current_date
+         ).group_by(Loan.id).all()
 
-                # Obtener la primera cuota de cada cliente y su valor
-                first_installment_paid = LoanInstallment.query.filter(
-                    LoanInstallment.loan_id == loan.id
-                ).order_by(LoanInstallment.due_date.asc()).first()
-
-
-                # Verificar que first_installment_paid no sea None antes de acceder a sus pagos
-                if first_installment_paid is not None:
-                    total_installment_value_paid = sum(
-                        payment.amount for payment in first_installment_paid.payments)
-
-
-                    # Agrega la información del cliente y su crédito a la lista de información de clientes
-                    client_information_paid = {
-                        'Total Installment Value Paid': total_installment_value_paid,
-                    }
-
-                    clients_information_paid.append(client_information_paid)
-                else:
-                    # Si no hay cuotas, agregar un valor por defecto
-                    client_information_paid = {
-                        'Total Installment Value Paid': 0,
-                    }
-                    clients_information_paid.append(client_information_paid)
+        # Agregar datos de préstamos cerrados
+        for loan_id, total_paid in closed_loans_today:
+            client_information_paid = {
+                'Total Installment Value Paid': float(total_paid) if total_paid else 0,
+            }
+            clients_information_paid.append(client_information_paid)
 
     # Obtén el término de búsqueda del formulario
     search_term = request.args.get('search', '')
@@ -1472,19 +1440,20 @@ def payments_list(user_id):
 
     # Calcular la suma total de los valores de pagos a plazos
     total_installment_value = sum(
-        client['First Installment Value'] for client in clients_information)
+        float(client['First Installment Value']) for client in clients_information)
 
     paid_total_installment_value = sum(
-        client_info_paid['Total Installment Value Paid'] for client_info_paid in clients_information_paid
+        float(client_info_paid['Total Installment Value Paid']) for client_info_paid in clients_information_paid
     )
 
+    # Calcular el total combinado (convertir a float para evitar errores de tipo)
+    total_combined_value = float(total_installment_value) + float(paid_total_installment_value)
 
-    porcentaje_cobro = int(total_collections_today / total_installment_value *
-                           100) if total_installment_value != 0 else 0
-
+    porcentaje_cobro = int(float(total_collections_today) / float(total_combined_value) *
+                           100) if total_combined_value != 0 else 0
 
     # Renderiza la información filtrada como una respuesta JSON y también renderiza una plantilla
-    return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box, employee_id=employee_id, user_id=user_id, active_loans_count=active_loans_count, all_loans_paid_count=all_loans_paid_count, total_installment_value=total_installment_value + paid_total_installment_value, total_collections_today=total_collections_today, porcentaje_cobro=porcentaje_cobro)
+    return render_template('payments-route.html', clients=filtered_clients_information, status_box=status_box, employee_id=employee_id, user_id=user_id, active_loans_count=active_loans_count, all_loans_paid_count=all_loans_paid_count, total_installment_value=total_combined_value, total_collections_today=total_collections_today, porcentaje_cobro=porcentaje_cobro)
 
 
 def is_workday(date):
