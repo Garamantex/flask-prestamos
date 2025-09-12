@@ -1,0 +1,86 @@
+// Estilos específicos para la página de ruta de pagos
+// =====================================================
+
+// Estilos para tarjetas de clientes
+.client-card {
+    border: 1px solid $neutral-200;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    background-color: $white-100;
+    
+    &:hover {
+        box-shadow: 0 2px 8px rgba($neutral-900, 0.1);
+    }
+}
+
+.client-card-header {
+    background-color: $neutral-50;
+    border: none;
+    padding: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid $neutral-200;
+    
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+.client-card-body {
+    padding: 1rem;
+    background-color: $white-100;
+}
+
+// Estilos para elementos ocultos/mostrar
+.hidden, 
+.u-hidden {
+    display: none !important;
+}
+
+.dates {
+    display: none !important;
+}
+
+// Mostrar elementos cuando se activa el botón de mostrar/ocultar
+.show-details {
+    .hidden {
+        display: block !important;
+    }
+    
+    .u-hidden {
+        display: block !important;
+    }
+    
+    .dates {
+        display: block !important;
+    }
+}
+
+// Responsive adjustments para tarjetas de clientes
+@media (max-width: 768px) {
+    .client-card-header {
+        padding: 0.75rem;
+        
+        .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            
+            .gap-2 {
+                margin-top: 0.5rem;
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    }
+    
+    .client-card-body .d-flex.gap-2 {
+        flex-direction: column;
+        
+        .c-btn {
+            width: 100%;
+        }
+    }
+}
