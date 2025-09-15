@@ -1438,16 +1438,33 @@ def payments_list(user_id):
         key=lambda x: x['First Modification Date'] or datetime.max
     )
 
-    # Calcular la suma total de los valores de pagos a plazos
-    total_installment_value = sum(
-        float(client['First Installment Value']) for client in clients_information)
+    # Calcular el debido cobrar usando la misma lógica que en el endpoint /box
+    total_pending_installments_amount = 0
+    total_pending_installments_loan_close_amount = 0
+    
+    # Calcular cuotas pendientes para préstamos activos
+    for client in employee.clients:
+        for loan in client.loans:
+            # Excluir préstamos creados hoy mismo
+            if loan.creation_date.date() == current_date:
+                continue
+            
+            if loan.status:
+                # Encuentra la primera cuota ordenada por fecha de vencimiento (igual que en /box)
+                pending_installment = LoanInstallment.query.filter(
+                    LoanInstallment.loan_id == loan.id
+                ).order_by(LoanInstallment.due_date.asc()).first()
+                if pending_installment:
+                    total_pending_installments_amount += pending_installment.fixed_amount
+            elif loan.status == False and loan.up_to_date and loan.modification_date.date() == current_date:
+                pending_installment_paid = LoanInstallment.query.filter(
+                    LoanInstallment.loan_id == loan.id
+                ).order_by(LoanInstallment.due_date.asc()).first()
+                if pending_installment_paid:
+                    total_pending_installments_loan_close_amount += pending_installment_paid.fixed_amount
 
-    paid_total_installment_value = sum(
-        float(client_info_paid['Total Installment Value Paid']) for client_info_paid in clients_information_paid
-    )
-
-    # Calcular el total combinado (convertir a float para evitar errores de tipo)
-    total_combined_value = float(total_installment_value) + float(paid_total_installment_value)
+    # Calcular el total combinado (debido cobrar + préstamos cerrados hoy)
+    total_combined_value = float(total_pending_installments_amount) + float(total_pending_installments_loan_close_amount)
 
     porcentaje_cobro = int(float(total_collections_today) / float(total_combined_value) *
                            100) if total_combined_value != 0 else 0
