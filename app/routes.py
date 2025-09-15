@@ -2144,7 +2144,6 @@ def get_all_salesmen_data_optimized(salesmen, current_date):
     
     return result
 
-@safe_cache(timeout=300)  # 5 minutos de caché
 def get_all_salesmen_additional_data_optimized(employee_ids, current_date):
     """OPTIMIZACIÓN: Obtiene todos los datos adicionales de vendedores en consultas optimizadas"""
     if not employee_ids:
@@ -2176,37 +2175,40 @@ def get_all_salesmen_additional_data_optimized(employee_ids, current_date):
             'customers_in_arrears': result.customers_in_arrears
         }
     
-    # 2. Obtener datos de cuotas pendientes en una sola consulta
-    pending_installments_query = db.session.query(
-        Loan.employee_id,
-        func.sum(
-            db.case(
-                (func.date(Loan.creation_date) != current_date, LoanInstallment.fixed_amount),
-                else_=0
-            )
-        ).label('total_pending_amount'),
-        func.sum(
-            db.case(
-                (and_(
-                    and_(Loan.status == False, Loan.up_to_date == True),
-                    func.date(Loan.modification_date) == current_date
-                ), LoanInstallment.fixed_amount),
-                else_=0
-            )
-        ).label('total_pending_loan_close_amount')
-    ).join(
-        LoanInstallment, LoanInstallment.loan_id == Loan.id
-    ).filter(
-        Loan.employee_id.in_(employee_ids),
-        Loan.status == True
-    ).group_by(Loan.employee_id).all()
-    
+    # 2. Obtener datos de cuotas pendientes usando la misma lógica que el código original
+    # Para cada empleado, calcular manualmente como en el código original
     pending_installments_data = {}
-    for result in pending_installments_query:
-        pending_installments_data[result.employee_id] = {
-            'total_pending_amount': float(result.total_pending_amount) if result.total_pending_amount else 0,
-            'total_pending_loan_close_amount': float(result.total_pending_loan_close_amount) if result.total_pending_loan_close_amount else 0
+    
+    for emp_id in employee_ids:
+        employee = Employee.query.get(emp_id)
+        total_pending_installments_amount = 0
+        total_pending_installments_loan_close_amount = 0
+        
+        for client in employee.clients:
+            for loan in client.loans:
+                # Excluir préstamos creados hoy mismo
+                if loan.creation_date.date() == current_date:
+                    continue
+                
+                if loan.status:
+                    # Encuentra la primera cuota ordenada por fecha de vencimiento (igual que el original)
+                    pending_installment = LoanInstallment.query.filter(
+                        LoanInstallment.loan_id == loan.id
+                    ).order_by(LoanInstallment.due_date.asc()).first()
+                    if pending_installment:
+                        total_pending_installments_amount += pending_installment.fixed_amount
+                elif loan.status == False and loan.up_to_date and loan.modification_date.date() == current_date:
+                    pending_installment_paid = LoanInstallment.query.filter(
+                        LoanInstallment.loan_id == loan.id
+                    ).order_by(LoanInstallment.due_date.asc()).first()
+                    if pending_installment_paid:
+                        total_pending_installments_loan_close_amount += pending_installment_paid.fixed_amount
+        
+        pending_installments_data[emp_id] = {
+            'total_pending_amount': float(total_pending_installments_amount),
+            'total_pending_loan_close_amount': float(total_pending_installments_loan_close_amount)
         }
+    
     
     # 3. Verificar si todos los préstamos fueron pagados hoy en una sola consulta
     all_loans_paid_query = db.session.query(
@@ -2346,6 +2348,7 @@ def box():
         # OPTIMIZACIÓN: Obtener datos adicionales en una sola consulta para todos los vendedores
         employee_ids = [salesman[0].employee_id for salesman in salesmen]
         additional_data = get_all_salesmen_additional_data_optimized(employee_ids, current_date)
+        
         
         # Procesar cada vendedor con datos pre-cargados
         for salesman, employee, user in salesmen:
