@@ -157,3 +157,83 @@
         }
     }
 }
+
+// Estilos para préstamos procesados con colores según estado
+.processed-card {
+    // Verde para PAGADA
+    &[data-status="PAGADA"] {
+        border-left: 4px solid #28a745;
+        background-color: rgba(40, 167, 69, 0.05);
+        
+        .client-card-header {
+            background-color: rgba(40, 167, 69, 0.1);
+        }
+        
+        .metric-item .metric-value {
+            color: #28a745 !important;
+        }
+    }
+    
+    // Naranja para ABONADA
+    &[data-status="ABONADA"] {
+        border-left: 4px solid #fd7e14;
+        background-color: rgba(253, 126, 20, 0.05);
+        
+        .client-card-header {
+            background-color: rgba(253, 126, 20, 0.1);
+        }
+        
+        .metric-item .metric-value {
+            color: #fd7e14 !important;
+        }
+    }
+    
+    // Rojo para MORA
+    &[data-status="MORA"] {
+        border-left: 4px solid #dc3545;
+        background-color: rgba(220, 53, 69, 0.05);
+        
+        .client-card-header {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+        
+        .metric-item .metric-value {
+            color: #dc3545 !important;
+        }
+    }
+    
+    // PENDIENTE (color por defecto)
+    &[data-status="PENDIENTE"] {
+        border-left: 4px solid #6c757d;
+        background-color: rgba(108, 117, 125, 0.05);
+        
+        .client-card-header {
+            background-color: rgba(108, 117, 125, 0.1);
+        }
+        
+        .metric-item .metric-value {
+            color: #6c757d !important;
+        }
+    }
+}
+
+// Animación suave para mostrar/ocultar sección procesada
+#processed-loans-section {
+    transition: all 0.3s ease-in-out;
+    
+    &.show {
+        display: block !important;
+        animation: fadeInUp 0.3s ease-in-out;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
