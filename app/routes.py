@@ -1471,7 +1471,15 @@ def payments_list(user_id):
                 'First Modification Date': client.first_modification_date.isoformat() if client.first_modification_date else None,
             }
 
-            clients_information.append(client_info)
+            # Filtrar préstamos: ocultar si el estado actual no es PENDIENTE y el último pago fue hoy
+            should_hide = (
+                installment_status != 'PENDIENTE' and 
+                last_payment_date and 
+                last_payment_date.date() == current_date
+            )
+            
+            if not should_hide:
+                clients_information.append(client_info)
 
 
         # Optimización 8: Préstamos cerrados hoy con una sola consulta
