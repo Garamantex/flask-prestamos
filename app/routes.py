@@ -1072,6 +1072,10 @@ def confirm_payment():
                 )
                 payments_to_create.append(payment)
                 remaining_payment -= installment_amount_due
+                
+                # Si el pago restante es exactamente 0, significa que se pagó completamente
+                if remaining_payment == 0:
+                    break
             else:
                 # El pago solo cubre parcialmente esta cuota
                 installment.status = InstallmentStatus.ABONADA
@@ -1107,6 +1111,15 @@ def confirm_payment():
     # Operaciones en lote
     db.session.add_all(payments_to_create)
     db.session.commit()
+
+    # Invalidar cache después del pago
+    current_cache = get_cache()
+    if hasattr(current_cache, 'app') and current_cache.app:
+        current_cache.delete_memoized(get_salesman_customers_data, loan.employee_id)
+        current_cache.delete_memoized(get_salesman_pending_installments, loan.employee_id)
+        current_cache.delete_memoized(check_all_loans_paid_today, loan.employee_id)
+        current_cache.delete_memoized(get_salesman_collected_clients, loan.employee_id)
+        current_cache.delete_memoized(get_salesman_transaction_details, loan.employee_id)
 
     return jsonify({"message": "El pago se ha registrado correctamente."}), 200
 
@@ -1324,7 +1337,7 @@ def payments_list(user_id):
         loan_additional_data = db.session.query(
             LoanInstallment.loan_id,
             func.max(case((Payment.payment_date.isnot(None), Payment.payment_date), else_=None)).label('last_payment_date'),
-            func.min(case((LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA]), LoanInstallment.due_date), else_=None)).label('next_due_date'),
+            func.min(case((LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]), LoanInstallment.due_date), else_=None)).label('next_due_date'),
             func.min(LoanInstallment.fixed_amount).label('fixed_amount'),
             func.max(case((LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.due_date), else_=None)).label('prev_due_date')
         ).outerjoin(Payment, Payment.installment_id == LoanInstallment.id) \
@@ -1337,8 +1350,9 @@ def payments_list(user_id):
         fixed_amount_by_loan = {row.loan_id: row.fixed_amount for row in loan_additional_data if row.fixed_amount}
         prev_due_by_loan = {row.loan_id: row.prev_due_date for row in loan_additional_data if row.prev_due_date}
 
-        # Obtener estado de cuota previa
+        # Obtener estado de cuota previa y actual
         prev_status_by_loan = {}
+        current_status_by_loan = {}
         if prev_due_by_loan:
             prev_status_rows = db.session.query(
                 LoanInstallment.loan_id,
@@ -1349,6 +1363,42 @@ def payments_list(user_id):
                 )
             ).all()
             prev_status_by_loan = {lid: status for lid, status in prev_status_rows}
+        
+        # Obtener el estado actual de la cuota pendiente más próxima
+        current_status_rows = db.session.query(
+            LoanInstallment.loan_id,
+            LoanInstallment.status,
+            LoanInstallment.amount
+        ).filter(
+            LoanInstallment.loan_id.in_(loan_ids),
+            LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA])
+        ).order_by(LoanInstallment.loan_id, LoanInstallment.due_date.asc()).all()
+        
+        # Agrupar por loan_id y tomar la primera cuota pendiente
+        for loan_id, status, amount in current_status_rows:
+            if loan_id not in current_status_by_loan:
+                # Si la cuota tiene monto 0, debería estar PAGADA
+                if amount == 0:
+                    current_status_by_loan[loan_id] = InstallmentStatus.PAGADA
+                else:
+                    current_status_by_loan[loan_id] = status
+        
+        # Obtener el estado de la última cuota procesada (pagada o abonada)
+        last_processed_status_rows = db.session.query(
+            LoanInstallment.loan_id,
+            LoanInstallment.status,
+            LoanInstallment.amount,
+            LoanInstallment.due_date
+        ).filter(
+            LoanInstallment.loan_id.in_(loan_ids),
+            LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA])
+        ).order_by(LoanInstallment.loan_id, LoanInstallment.due_date.desc()).all()
+        
+        # Agrupar por loan_id y tomar la última cuota procesada
+        last_processed_by_loan = {}
+        for loan_id, status, amount, due_date in last_processed_status_rows:
+            if loan_id not in last_processed_by_loan:
+                last_processed_by_loan[loan_id] = status
 
         # Construcción final sin N+1
         client_by_id = {c.id: c for c in employee.clients}
@@ -1370,8 +1420,27 @@ def payments_list(user_id):
             next_due = next_due_by_loan.get(loan.id)
             last_payment_date = last_payment_by_loan.get(loan.id)
             prev_status = prev_status_by_loan.get(loan.id)
+            current_status = current_status_by_loan.get(loan.id)
+            last_processed_status = last_processed_by_loan.get(loan.id)
 
             approved = 'Aprobado' if loan.approved else 'Pendiente de Aprobación'
+
+            # Calcular el estado de la cuota de manera más precisa
+            if total_outstanding_amount == 0:
+                installment_status = 'PAGADA'
+            elif overdue_installments > 0:
+                installment_status = 'MORA'
+            elif last_processed_status:
+                # Si hay una cuota procesada recientemente, mostrar su estado
+                installment_status = last_processed_status.value
+            elif current_status:
+                # Verificar si la cuota actual tiene monto 0 (completamente pagada)
+                if current_status == InstallmentStatus.PAGADA or current_status.value == 'PAGADA':
+                    installment_status = 'PAGADA'
+                else:
+                    installment_status = current_status.value
+            else:
+                installment_status = 'PENDIENTE'
 
             client_info = {
                 'First Name': client.first_name,
@@ -1393,7 +1462,7 @@ def payments_list(user_id):
                 'Next Installment Date front': next_due.strftime('%Y-%m-%d') if next_due else '0',
                 'Cuota Number': round(cuota_number_with_decimal, 2),
                 'Due Date': next_due.isoformat() if next_due else 0,
-                'Installment Status': 'MORA' if overdue_installments > 0 else ('PENDIENTE' if total_outstanding_amount > 0 else 'PAGADA'),
+                'Installment Status': installment_status,
                 'Previous Installment Status': prev_status.value if prev_status else None,
                 'Last Loan Modification Date': loan.modification_date.isoformat() if loan.modification_date else None,
                 'Previous Installment Paid Amount': 0,
