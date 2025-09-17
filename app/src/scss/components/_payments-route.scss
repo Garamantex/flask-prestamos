@@ -1,6 +1,44 @@
 // Estilos específicos para la página de ruta de pagos
 // =====================================================
 
+// Estilos para toda el área superior fija
+.fixed-top-section {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: $white-100;
+    border-bottom: 2px solid $neutral-200;
+    box-shadow: 0 2px 8px rgba($neutral-900, 0.1);
+    padding: 0;
+    margin: 0;
+    
+    .container {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+    
+    // Reducir márgenes en la sección fija
+    .row {
+        margin-bottom: 0.75rem;
+        
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+    
+    .mb-3 {
+        margin-bottom: 0.75rem !important;
+    }
+}
+
+// Contenedor principal con margen superior para la sección fija
+.main-content-container {
+    margin-top: 450px; // Valor para desktop
+    padding-top: 2rem;
+}
+
 // Estilos para tarjetas de clientes
 .client-card {
     border: 1px solid $neutral-200;
@@ -12,6 +50,11 @@
     
     &:hover {
         box-shadow: 0 2px 8px rgba($neutral-900, 0.1);
+    }
+    
+    // Asegurar que la primera tarjeta tenga margen superior
+    &:first-child {
+        margin-top: 0.5rem;
     }
 }
 
@@ -61,6 +104,36 @@
 
 // Responsive adjustments para tarjetas de clientes
 @media (max-width: 768px) {
+    // Ajustar la sección fija en móviles
+    .fixed-top-section {
+        .container {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .row {
+            margin-bottom: 0.5rem;
+        }
+        
+        .mb-3 {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .row.g-2 {
+            margin: 0;
+        }
+        
+        .metric-item {
+            margin-bottom: 0.5rem;
+        }
+    }
+    
+    // Ajustar el margen superior en móviles
+    .main-content-container {
+        margin-top: 430px; // Valor específico para móviles
+        padding-top: 1.5rem;
+    }
+    
     .client-card-header {
         padding: 0.75rem;
         

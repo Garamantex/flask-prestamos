@@ -2,78 +2,86 @@
 
 {% block content %}
 <div class="c-form">
-    <div class="container pt-5">
-        <!-- Botones de navegación -->
-        <div class="row">
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3"
-                    href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver</a>
-            </div>
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3"
-                    href="{{ url_for('routes.logout') }}">Salir</a>
-            </div>
-        </div>
-
-        <!-- Barra de búsqueda -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="c-form__container">
-                    <div class="c-form__group">
-                        <label class="c-form__label">Buscar Cliente</label>
-                        <input type="text" name="search" id="searcher" class="c-form__input"
-                               placeholder="Ingrese el nombre del cliente">
-                    </div>
+    <!-- Área fija superior -->
+    <div class="fixed-top-section">
+        <div class="container pt-3">
+            <!-- Botones de navegación -->
+            <div class="row">
+                <div class="col">
+                    <a class="c-btn c-btn-primary c-btn-block mb-3"
+                        href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver</a>
+                </div>
+                <div class="col">
+                    <a class="c-btn c-btn-primary c-btn-block mb-3"
+                        href="{{ url_for('routes.logout') }}">Salir</a>
                 </div>
             </div>
-        </div>
 
-        <!-- Resumen de créditos del día -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="c-form__container">
-                    <div class="row">
-                        <div class="col-8 col-md-7">
-                            <h5 class="mb-3">
-                                <i class="bi bi-credit-card me-2 text-primary"></i>Créditos del Día
-                            </h5>
-                        </div>
-                        <div class="col-4 col-md-5 text-end">
-                            <button class="c-btn c-btn-outline-primary c-btn-sm js-btn-ocultar"
-                                id="btn-ocultar" title="Mostrar/Ocultar detalles">
-                                <i id="icono-ocultar" class="bi bi-eye js-icono-ocultar"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Métricas del día -->
-                    <div class="row g-2">
-                        <div class="col-lg-6 col-md-6">
-                            <div class="metric-item">
-                                <div class="metric-label">Clientes Activos</div>
-                                <div class="metric-value text-primary">
-                                    <i class="bi bi-person-check-fill me-1"></i>
-                                    {{ all_loans_paid_count }} / {{ active_loans_count }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-6 col-md-6">
-                            <div class="metric-item">
-                                <div class="metric-label">Recaudo del Día</div>
-                                <div class="metric-value text-success">
-                                    <i class="bi bi-cash-coin me-1"></i>
-                                    $ {{ '{:,.0f}'.format(total_collections_today | float | int) }}
-                                </div>
-                                <div class="metric-sub">
-                                    Meta: $ {{ '{:,.0f}'.format(total_installment_value | float | int) }} 
-                                    ({{ porcentaje_cobro }}%)
-                                </div>
-                            </div>
+            <!-- Barra de búsqueda -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="c-form__container">
+                        <div class="c-form__group">
+                            <label class="c-form__label">Buscar Cliente</label>
+                            <input type="text" name="search" id="searcher" class="c-form__input"
+                                   placeholder="Ingrese el nombre del cliente">
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Resumen de créditos del día -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="c-form__container">
+                        <div class="row">
+                            <div class="col-8 col-md-7">
+                                <h5 class="mb-3">
+                                    <i class="bi bi-credit-card me-2 text-primary"></i>Créditos del Día
+                                </h5>
+                            </div>
+                            <div class="col-4 col-md-5 text-end">
+                                <button class="c-btn c-btn-outline-primary c-btn-sm js-btn-ocultar"
+                                    id="btn-ocultar" title="Mostrar/Ocultar detalles">
+                                    <i id="icono-ocultar" class="bi bi-eye js-icono-ocultar"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Métricas del día -->
+                        <div class="row g-2">
+                            <div class="col-lg-6 col-md-6">
+                                <div class="metric-item">
+                                    <div class="metric-label">Clientes Activos</div>
+                                    <div class="metric-value text-primary">
+                                        <i class="bi bi-person-check-fill me-1"></i>
+                                        {{ all_loans_paid_count }} / {{ active_loans_count }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6 col-md-6">
+                                <div class="metric-item">
+                                    <div class="metric-label">Recaudo del Día</div>
+                                    <div class="metric-value text-success">
+                                        <i class="bi bi-cash-coin me-1"></i>
+                                        $ {{ '{:,.0f}'.format(total_collections_today | float | int) }}
+                                    </div>
+                                    <div class="metric-sub">
+                                        Meta: $ {{ '{:,.0f}'.format(total_installment_value | float | int) }} 
+                                        ({{ porcentaje_cobro }}%)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <!-- Contenido principal con margen superior -->
+    <div class="main-content-container">
+        <div class="container">
         <!-- Lista de clientes -->
         <div class="row">
             <div class="col-12">
@@ -220,6 +228,7 @@
                 </div>
                 {% endfor %}
             </div>
+        </div>
         </div>
     </div>
 </div>
