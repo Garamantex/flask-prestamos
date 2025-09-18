@@ -3345,19 +3345,34 @@ def approval_expenses():
             )
 
             for transaccion, empleado_vendedor in query:
-                # Obtener el concepto de la transacción
-                concepto = Concept.query.get(transaccion.concept_id)
+                try:
+                    # Verificar que empleado_vendedor.user no sea None
+                    if not empleado_vendedor.user:
+                        continue
+                    
+                    # Obtener el concepto de la transacción
+                    concepto = Concept.query.get(transaccion.concept_id)
 
-                # Crear un diccionario con los detalles de la transacción pendiente, incluyendo el nombre del vendedor
-                detalle_transaccion = {
-                    'id': transaccion.id,
-                    'tipo': transaccion.transaction_types.name,
-                    'concepto': concepto.name,
-                    'descripcion': transaccion.description,
-                    'monto': transaccion.amount,
-                    'attachment': transaccion.attachment,
-                    'vendedor': empleado_vendedor.user.first_name + ' ' + empleado_vendedor.user.last_name
-                }
+                    # Crear un diccionario con los detalles de la transacción pendiente, incluyendo el nombre del vendedor
+                    first_name = empleado_vendedor.user.first_name or ''
+                    last_name = empleado_vendedor.user.last_name or ''
+                    vendedor_name = f"{first_name} {last_name}".strip()
+                    concepto_name = concepto.name if concepto else 'Sin concepto'
+                    
+                    # Validar que transaction_types no sea None
+                    tipo_name = transaccion.transaction_types.name if transaccion.transaction_types else 'Sin tipo'
+                    
+                    detalle_transaccion = {
+                        'id': transaccion.id,
+                        'tipo': tipo_name,
+                        'concepto': concepto_name,
+                        'descripcion': transaccion.description or '',
+                        'monto': transaccion.amount,
+                        'attachment': transaccion.attachment or '',
+                        'vendedor': vendedor_name
+                    }
+                except Exception as e:
+                    continue
 
                 # Agregar los detalles a la lista
                 detalles_transacciones.append(detalle_transaccion)
