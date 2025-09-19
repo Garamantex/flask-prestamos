@@ -1,13 +1,8 @@
 // Estilos específicos para la página de ruta de pagos
 // =====================================================
 
-// Estilos para toda el área superior fija
-.fixed-top-section {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
+// Estilos para toda el área superior
+.top-section {
     background-color: $white-100;
     border-bottom: 2px solid $neutral-200;
     box-shadow: 0 2px 8px rgba($neutral-900, 0.1);
@@ -19,7 +14,7 @@
         padding-bottom: 0.75rem;
     }
     
-    // Reducir márgenes en la sección fija
+    // Reducir márgenes en la sección superior
     .row {
         margin-bottom: 0.75rem;
         
@@ -33,9 +28,8 @@
     }
 }
 
-// Contenedor principal con margen superior para la sección fija
+// Contenedor principal (ya no necesita margen superior)
 .main-content-container {
-    margin-top: 450px; // Valor para desktop
     padding-top: 2rem;
 }
 
@@ -104,8 +98,8 @@
 
 // Responsive adjustments para tarjetas de clientes
 @media (max-width: 768px) {
-    // Ajustar la sección fija en móviles
-    .fixed-top-section {
+    // Ajustar la sección superior en móviles
+    .top-section {
         .container {
             padding-top: 0.5rem;
             padding-bottom: 0.5rem;
@@ -128,9 +122,8 @@
         }
     }
     
-    // Ajustar el margen superior en móviles
+    // Ajustar el padding en móviles
     .main-content-container {
-        margin-top: 430px; // Valor específico para móviles
         padding-top: 1.5rem;
     }
     
