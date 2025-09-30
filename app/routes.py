@@ -1416,7 +1416,17 @@ def payments_list(user_id):
 
             overdue_installments = int(overdue_counts_by_loan.get(loan.id, 0) or 0)
             total_overdue_amount = float(overdue_amount_by_loan.get(loan.id, 0) or 0)
-            total_outstanding_amount = float(outstanding_amount_by_loan.get(loan.id, 0) or 0)
+            
+            # Calcular el saldo pendiente real usando la misma lógica que credit_detail
+            valor_total_prestamo = float(loan.amount + (loan.amount * loan.interest / 100))
+            # Usar la misma consulta que get_loan_details: sumar TODOS los pagos realizados
+            total_pagos_realizados = db.session.query(func.sum(Payment.amount)).join(
+                LoanInstallment, Payment.installment_id == LoanInstallment.id
+            ).filter(
+                LoanInstallment.loan_id == loan.id
+            ).scalar() or 0
+            total_outstanding_amount = float(valor_total_prestamo - float(total_pagos_realizados))
+            
             total_amount_paid = float(amount_paid_installments_by_loan.get(loan.id, 0) or 0)
 
             next_due = next_due_by_loan.get(loan.id)
@@ -1577,7 +1587,17 @@ def payments_list(user_id):
 
             overdue_installments = int(processed_overdue_counts_by_loan.get(loan.id, 0) or 0)
             total_overdue_amount = float(processed_overdue_amount_by_loan.get(loan.id, 0) or 0)
-            total_outstanding_amount = float(processed_outstanding_amount_by_loan.get(loan.id, 0) or 0)
+            
+            # Calcular el saldo pendiente real usando la misma lógica que credit_detail
+            valor_total_prestamo = float(loan.amount + (loan.amount * loan.interest / 100))
+            # Usar la misma consulta que get_loan_details: sumar TODOS los pagos realizados
+            total_pagos_realizados = db.session.query(func.sum(Payment.amount)).join(
+                LoanInstallment, Payment.installment_id == LoanInstallment.id
+            ).filter(
+                LoanInstallment.loan_id == loan.id
+            ).scalar() or 0
+            total_outstanding_amount = float(valor_total_prestamo - float(total_pagos_realizados))
+            
             total_amount_paid = float(processed_amount_paid_installments_by_loan.get(loan.id, 0) or 0)
 
             next_due = processed_next_due_by_loan.get(loan.id)
