@@ -1083,7 +1083,7 @@ def confirm_payment():
         
         # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
         loan.modification_date = current_datetime
-        if loan.client.first_modification_date != current_date:
+        if not loan.client.first_modification_date:
             loan.client.first_modification_date = current_datetime
         loan.client.debtor = False
 
