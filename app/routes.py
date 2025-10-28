@@ -1322,7 +1322,7 @@ def payments_list(user_id):
         loan_aggregations = db.session.query(
             LoanInstallment.loan_id,
             func.count(case((LoanInstallment.status == InstallmentStatus.PAGADA, LoanInstallment.id), else_=None)).label('paid_installments'),
-            func.coalesce(func.sum(case((LoanInstallment.status == InstallmentStatus.PAGADA, Payment.amount), else_=0)), 0).label('total_paid_amount'),
+            func.coalesce(func.sum(case((LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA]), Payment.amount), else_=0)), 0).label('total_paid_amount'),
             func.count(case((LoanInstallment.status == InstallmentStatus.MORA, LoanInstallment.id), else_=None)).label('overdue_installments'),
             func.coalesce(func.sum(case((LoanInstallment.status == InstallmentStatus.MORA, LoanInstallment.amount), else_=0)), 0).label('overdue_amount'),
             func.coalesce(func.sum(case((LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.amount), else_=0)), 0).label('outstanding_amount'),
@@ -1527,7 +1527,7 @@ def payments_list(user_id):
         processed_loan_aggregations = db.session.query(
             LoanInstallment.loan_id,
             db.func.count(db.case((LoanInstallment.status == InstallmentStatus.PAGADA, LoanInstallment.id), else_=None)).label('paid_installments'),
-            db.func.coalesce(db.func.sum(db.case((LoanInstallment.status == InstallmentStatus.PAGADA, Payment.amount), else_=0)), 0).label('total_paid_amount'),
+            db.func.coalesce(db.func.sum(db.case((LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA]), Payment.amount), else_=0)), 0).label('total_paid_amount'),
             db.func.count(db.case((LoanInstallment.status == InstallmentStatus.MORA, LoanInstallment.id), else_=None)).label('overdue_installments'),
             db.func.coalesce(db.func.sum(db.case((LoanInstallment.status == InstallmentStatus.MORA, LoanInstallment.amount), else_=0)), 0).label('overdue_amount'),
             db.func.coalesce(db.func.sum(db.case((LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.amount), else_=0)), 0).label('outstanding_amount'),

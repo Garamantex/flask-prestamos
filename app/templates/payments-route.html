@@ -148,7 +148,7 @@
                                             <div class="metric-label">Cuota Actual</div>
                                             <div class="metric-value text-info">
                                                 <i class="bi bi-123 me-1" style="display: none;"></i>
-                                                {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}
+                                                {{ "%.1f" | format(client['Cuota Number']) }} / {{ client['Total Installments'] | float | int }}
                                             </div>
                                         </div>
                                     </div>
@@ -279,7 +279,7 @@
                                                 <div class="metric-label">Cuota Actual</div>
                                                 <div class="metric-value text-info">
                                                     <i class="bi bi-123 me-1" style="display: none;"></i>
-                                                    {{ client['Cuota Number'] }} / {{ client['Total Installments'] | float | int }}
+                                                    {{ "%.1f" | format(client['Cuota Number']) }} / {{ client['Total Installments'] | float | int }}
                                                 </div>
                                             </div>
                                         </div>
