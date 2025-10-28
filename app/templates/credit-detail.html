@@ -21,7 +21,7 @@
                         <p>Cuotas Totales: <span>{{ loan_detail.cuotas_totales }}</span></p>
                     </li>
                     <li class="c-card__internal">
-                        <p>Cuotas Pagadas: <span>{{ loan_detail.cuotas_pagadas }}</span></p>
+                        <p>Cuotas Pagadas: <span>{{ "%.1f" | format(loan_detail.cuotas_progreso_decimal) }} / {{ loan_detail.cuotas_totales }}</span></p>
                     </li>
                     <li class="c-card__internal">
                         <p>Cuotas Abonadas: <span>{{ installments|selectattr('status.value', 'equalto', 'ABONADA')|list|length }}</span></p>

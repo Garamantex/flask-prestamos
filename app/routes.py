@@ -1777,13 +1777,16 @@ def get_loan_details(loan_id):
         1 for installment in installments if installment.status == InstallmentStatus.MORA)
     valor_total = loan.amount + (loan.amount * loan.interest / 100)
 
-    # SE DEBE MODIFICAR EL CALCULO DE LA SUMA DEL SALDO PENDIENTE
-    # Calcular la suma de todos los pagos realizados para este préstamo
+    # Calcular el progreso de cuotas con decimales (incluyendo abonos parciales)
     total_pagos_realizados = db.session.query(func.sum(Payment.amount)).join(
         LoanInstallment, Payment.installment_id == LoanInstallment.id
     ).filter(
         LoanInstallment.loan_id == loan_id
     ).scalar() or 0
+    
+    # Calcular el valor de una cuota (asumiendo que todas tienen el mismo valor)
+    valor_cuota = valor_total / total_cuotas if total_cuotas > 0 else 0
+    cuotas_progreso_decimal = (total_pagos_realizados / valor_cuota) if valor_cuota > 0 else cuotas_pagadas
     
     saldo_pendiente = valor_total - total_pagos_realizados
 
@@ -1798,6 +1801,7 @@ def get_loan_details(loan_id):
         'loan_id': loan_id,
         'cuotas_totales': total_cuotas,
         'cuotas_pagadas': cuotas_pagadas,
+        'cuotas_progreso_decimal': round(cuotas_progreso_decimal, 1),
         'cuotas_vencidas': cuotas_vencidas,
         'valor_total': valor_total,
         'saldo_pendiente': saldo_pendiente
