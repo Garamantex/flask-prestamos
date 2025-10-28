@@ -1083,7 +1083,8 @@ def confirm_payment():
         
         # Actualizar el campo modification_date del préstamo después de procesar el pago parcial
         loan.modification_date = current_datetime
-        if not loan.client.first_modification_date:
+        # Resetear first_modification_date si es el primer cambio del día
+        if not loan.client.first_modification_date or loan.client.first_modification_date.date() != current_date:
             loan.client.first_modification_date = current_datetime
         loan.client.debtor = False
 
@@ -1134,12 +1135,14 @@ def mark_overdue():
 
     if pending_installment:
         pending_installment.status = InstallmentStatus.MORA
-        pending_installment.updated_at = datetime.now()
+        if pending_installment.payment_date is None:
+            pending_installment.payment_date = datetime.now().date()
 
         client = Client.query.join(Loan).filter(Loan.id == loan_id).first()
         if client:
             client.debtor = True
-            if not client.first_modification_date:
+            # Resetear first_modification_date si es el primer cambio del día
+            if not client.first_modification_date or client.first_modification_date.date() != datetime.now().date():
                 client.first_modification_date = datetime.now()
             db.session.add(client)
 
@@ -1163,7 +1166,8 @@ def mark_overdue():
         client = Client.query.join(Loan).filter(Loan.id == loan_id).first()
         if client:
             client.debtor = True
-            if not client.first_modification_date:
+            # Resetear first_modification_date si es el primer cambio del día
+            if not client.first_modification_date or client.first_modification_date.date() != datetime.now().date():
                 client.first_modification_date = datetime.now()
             db.session.add(client)
 
@@ -2100,11 +2104,12 @@ def check_all_loans_paid_today(salesman_employee_id, current_date):
 def calculate_box_value(initial_box_value, total_collections_today, daily_withdrawals, 
                        daily_expenses_amount, daily_collection, new_clients_loan_amount, 
                        total_renewal_loans_amount, existing_record_today):
-    """Calcula el valor de caja del vendedor"""
-    if existing_record_today:
-        return initial_box_value - float(daily_withdrawals) - float(daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount) - float(total_renewal_loans_amount)
-    else:
-        return initial_box_value + float(total_collections_today) - float(daily_withdrawals) - float(daily_expenses_amount) + float(daily_collection) - float(new_clients_loan_amount) - float(total_renewal_loans_amount)
+    """Calcula el valor de caja del vendedor usando la misma fórmula que box-detail"""
+    # Usar la misma fórmula que en box-detail del vendedor
+    total_ingresos = float(initial_box_value)  # Valor inicial (closing_total)
+    total_movimientos = float(total_collections_today) + float(daily_collection)  # Pagos + ingresos
+    total_egresos = float(daily_withdrawals) + float(daily_expenses_amount) + float(new_clients_loan_amount) + float(total_renewal_loans_amount)
+    return total_movimientos + total_ingresos - total_egresos
 
 @safe_cache(timeout=180)  # 3 minutos de caché
 def get_salesman_transaction_details(salesman_employee_id, current_date):
@@ -3344,53 +3349,66 @@ def approval_expenses():
         # Inicializar una lista para almacenar las transacciones pendientes de aprobación
         detalles_transacciones = []
 
-        # Obtener los vendedores asociados a este coordinador
-        vendedores_a_cargo = Salesman.query.filter_by(manager_id=empleado.manager.id).all()
+        # Función auxiliar para procesar transacciones
+        def procesar_transaccion(transaccion, empleado_vendedor, es_coordinador=False):
+            try:
+                # Obtener el concepto de la transacción
+                concepto = Concept.query.get(transaccion.concept_id)
 
-        # Iterar sobre los vendedores y obtener las transacciones pendientes de cada uno
-        for vendedor in vendedores_a_cargo:
-            # Realizar una unión entre las tablas Transaction y Employee para obtener el nombre del vendedor
-            query = db.session.query(Transaction, Employee).join(Employee).filter(
-                Transaction.employee_id == vendedor.employee_id,
-                Transaction.approval_status == ApprovalStatus.PENDIENTE
-            )
+                # Crear un diccionario con los detalles de la transacción pendiente, incluyendo el nombre del vendedor
+                # Manejo seguro de nombres - usar getattr para evitar AttributeError
+                first_name = getattr(empleado_vendedor.user, 'first_name', '') or ''
+                last_name = getattr(empleado_vendedor.user, 'last_name', '') or ''
+                vendedor_name = f"{first_name} {last_name}".strip()
+                
+                # Manejo seguro de concepto - verificar si existe
+                concepto_name = getattr(concepto, 'name', 'Sin concepto') if concepto else 'Sin concepto'
+                
+                # Manejo seguro de transaction_types - verificar si existe
+                tipo_name = getattr(transaccion.transaction_types, 'name', 'Sin tipo') if transaccion.transaction_types else 'Sin tipo'
+                
+                # Manejo seguro de attachment - verificar si existe y no es None
+                attachment_name = transaccion.attachment if transaccion.attachment else ''
 
-            for transaccion, empleado_vendedor in query:
-                try:
-                    # Obtener el concepto de la transacción
-                    concepto = Concept.query.get(transaccion.concept_id)
+                detalle_transaccion = {
+                    'id': transaccion.id,
+                    'tipo': tipo_name,
+                    'concepto': concepto_name,
+                    'descripcion': transaccion.description or '',
+                    'monto': transaccion.amount,
+                    'attachment': attachment_name,
+                    'vendedor': vendedor_name,
+                    'es_coordinador': es_coordinador
+                }
 
-                    # Crear un diccionario con los detalles de la transacción pendiente, incluyendo el nombre del vendedor
-                    # Manejo seguro de nombres - usar getattr para evitar AttributeError
-                    first_name = getattr(empleado_vendedor.user, 'first_name', '') or ''
-                    last_name = getattr(empleado_vendedor.user, 'last_name', '') or ''
-                    vendedor_name = f"{first_name} {last_name}".strip()
-                    
-                    # Manejo seguro de concepto - verificar si existe
-                    concepto_name = getattr(concepto, 'name', 'Sin concepto') if concepto else 'Sin concepto'
-                    
-                    # Manejo seguro de transaction_types - verificar si existe
-                    tipo_name = getattr(transaccion.transaction_types, 'name', 'Sin tipo') if transaccion.transaction_types else 'Sin tipo'
-                    
-                    # Manejo seguro de attachment - verificar si existe y no es None
-                    attachment_name = transaccion.attachment if transaccion.attachment else ''
+                # Agregar los detalles a la lista
+                detalles_transacciones.append(detalle_transaccion)
+                
+            except Exception as e:
+                # Si hay un error con una transacción específica, continuar con las demás
+                return
 
-                    detalle_transaccion = {
-                        'id': transaccion.id,
-                        'tipo': tipo_name,
-                        'concepto': concepto_name,
-                        'descripcion': transaccion.description or '',
-                        'monto': transaccion.amount,
-                        'attachment': attachment_name,
-                        'vendedor': vendedor_name
-                    }
+        # 1. Obtener transacciones pendientes del coordinador
+        query_coordinador = db.session.query(Transaction, Employee).join(Employee).filter(
+            Transaction.employee_id == empleado.id,
+            Transaction.approval_status == ApprovalStatus.PENDIENTE
+        )
 
-                    # Agregar los detalles a la lista
-                    detalles_transacciones.append(detalle_transaccion)
-                    
-                except Exception as e:
-                    # Si hay un error con una transacción específica, continuar con las demás
-                    continue
+        for transaccion, empleado_coordinador in query_coordinador:
+            procesar_transaccion(transaccion, empleado_coordinador, es_coordinador=True)
+
+        # 2. Obtener transacciones de vendedores usando JOIN con Salesman
+        query_vendedores = db.session.query(Transaction, Employee).join(
+            Employee, Transaction.employee_id == Employee.id
+        ).join(
+            Salesman, Salesman.employee_id == Employee.id
+        ).filter(
+            Salesman.manager_id == empleado.manager.id,
+            Transaction.approval_status == ApprovalStatus.PENDIENTE
+        )
+
+        for transaccion, empleado_vendedor in query_vendedores:
+            procesar_transaccion(transaccion, empleado_vendedor, es_coordinador=False)
 
         # Confirmar la sesión de la base de datos después de la actualización
         db.session.commit()
@@ -4772,6 +4790,18 @@ def edit_payment(loan_id):
         LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA])
     ).all()
 
+    # 📅 **Capturar el timestamp original del primer pago del día**
+    original_payment_timestamp = None
+    if installments_paid_today:
+        # Obtener el timestamp más temprano de los pagos de hoy para este préstamo
+        earliest_payment = db.session.query(func.min(Payment.payment_date)).filter(
+            Payment.installment_id.in_([i.id for i in installments_paid_today]),
+            func.date(Payment.payment_date) == current_date
+        ).scalar()
+        
+        if earliest_payment:
+            original_payment_timestamp = earliest_payment
+
     for installment in installments_paid_today:
         if installment.status == InstallmentStatus.PAGADA:
             # ✅ Restaurar el monto original en cuotas pagadas completamente
@@ -4781,7 +4811,6 @@ def edit_payment(loan_id):
             installment.amount = installment.fixed_amount
             
         installment.status = InstallmentStatus.PENDIENTE  # Volver a estado pendiente
-        installment.payment_date = None  # Eliminar la fecha de pago
 
     db.session.commit()
 
@@ -4818,7 +4847,8 @@ def edit_payment(loan_id):
                 # La cuota ya está pagada completamente
                 installment.status = InstallmentStatus.PAGADA
                 installment.amount = Decimal('0')
-                installment.payment_date = datetime.now().date()
+                if installment.payment_date is None:
+                    installment.payment_date = datetime.now().date()
 
     db.session.commit()
 
@@ -4837,13 +4867,14 @@ def edit_payment(loan_id):
                 
                 if amount_due_for_installment > 0:
                     installment.status = InstallmentStatus.PAGADA
-                    installment.payment_date = datetime.now().date()
+                    if installment.payment_date is None:
+                        installment.payment_date = datetime.now().date()
                     installment.amount = Decimal('0')
                     
                     # Crear el pago asociado a esta cuota por el monto pendiente
                     payment = Payment(
                         amount=amount_due_for_installment, 
-                        payment_date=datetime.now(), 
+                        payment_date=original_payment_timestamp if original_payment_timestamp else datetime.now(), 
                         installment_id=installment.id
                     )
                     db.session.add(payment)
@@ -4875,12 +4906,13 @@ def edit_payment(loan_id):
                     if remaining_payment >= amount_due_for_installment:
                         # Se completa la cuota
                         installment.status = InstallmentStatus.PAGADA
-                        installment.payment_date = datetime.now().date()
+                        if installment.payment_date is None:
+                            installment.payment_date = datetime.now().date()
                         installment.amount = Decimal('0')
                         
                         payment = Payment(
                             amount=amount_due_for_installment, 
-                            payment_date=datetime.now(), 
+                            payment_date=original_payment_timestamp if original_payment_timestamp else datetime.now(), 
                             installment_id=installment.id
                         )
                         db.session.add(payment)
@@ -4892,7 +4924,7 @@ def edit_payment(loan_id):
                         
                         payment = Payment(
                             amount=remaining_payment, 
-                            payment_date=datetime.now(), 
+                            payment_date=original_payment_timestamp if original_payment_timestamp else datetime.now(), 
                             installment_id=installment.id
                         )
                         db.session.add(payment)
