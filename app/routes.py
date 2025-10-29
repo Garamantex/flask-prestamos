@@ -2596,17 +2596,44 @@ def get_all_salesmen_data_optimized_history(salesmen, filter_date):
     if not employee_ids:
         return {}
     
-    # 1. Obtener EmployeeRecord para la fecha filtrada específica
-    filter_date_records = db.session.query(EmployeeRecord).filter(
-        EmployeeRecord.employee_id.in_(employee_ids),
-        func.date(EmployeeRecord.creation_date) == filter_date
-    ).order_by(EmployeeRecord.employee_id, EmployeeRecord.id.desc()).all()
+    # Si es el día actual, usar la misma lógica que get_all_salesmen_data_optimized
+    current_date = datetime.now().date()
+    is_current_day = filter_date == current_date
     
-    filter_date_records_dict = {}
-    for record in filter_date_records:
-        # Tomar el más reciente para cada empleado
-        if record.employee_id not in filter_date_records_dict:
-            filter_date_records_dict[record.employee_id] = record
+    if is_current_day:
+        # 1. Obtener todos los EmployeeRecord en una sola consulta (último de cualquier día)
+        employee_records = db.session.query(EmployeeRecord).filter(
+            EmployeeRecord.employee_id.in_(employee_ids)
+        ).order_by(EmployeeRecord.employee_id, EmployeeRecord.id.desc()).all()
+        
+        # Agrupar por employee_id y tomar el más reciente
+        latest_records = {}
+        for record in employee_records:
+            if record.employee_id not in latest_records:
+                latest_records[record.employee_id] = record
+        
+        # 2. Obtener registros del día actual
+        today_records = db.session.query(EmployeeRecord).filter(
+            EmployeeRecord.employee_id.in_(employee_ids),
+            func.date(EmployeeRecord.creation_date) == current_date
+        ).all()
+        today_records_dict = {record.employee_id: record for record in today_records}
+    else:
+        # Para fechas históricas, usar la lógica original
+        latest_records = {}
+        today_records_dict = {}
+        
+        # 1. Obtener EmployeeRecord para la fecha filtrada específica
+        filter_date_records = db.session.query(EmployeeRecord).filter(
+            EmployeeRecord.employee_id.in_(employee_ids),
+            func.date(EmployeeRecord.creation_date) == filter_date
+        ).order_by(EmployeeRecord.employee_id, EmployeeRecord.id.desc()).all()
+        
+        filter_date_records_dict = {}
+        for record in filter_date_records:
+            # Tomar el más reciente para cada empleado
+            if record.employee_id not in filter_date_records_dict:
+                filter_date_records_dict[record.employee_id] = record
     
     # 2. Obtener todas las transacciones del día filtrado en una sola consulta
     transactions_query = db.session.query(
@@ -2699,12 +2726,18 @@ def get_all_salesmen_data_optimized_history(salesmen, filter_date):
     for salesman, employee, user in salesmen:
         emp_id = salesman.employee_id
         
-        # Obtener valor inicial de caja: usar EmployeeRecord si existe para filter_date, sino employee.box_value
+        # Obtener valor inicial de caja según el tipo de fecha
         initial_box_value = 0
-        if emp_id in filter_date_records_dict:
-            initial_box_value = float(filter_date_records_dict[emp_id].closing_total)
+        if is_current_day:
+            # Para día actual, usar la misma lógica que box
+            if emp_id in latest_records:
+                initial_box_value = latest_records[emp_id].closing_total
         else:
-            initial_box_value = float(employee.box_value)
+            # Para fechas históricas, usar EmployeeRecord del día filtrado
+            if emp_id in filter_date_records_dict:
+                initial_box_value = float(filter_date_records_dict[emp_id].closing_total)
+            else:
+                initial_box_value = float(employee.box_value)
         
         # Datos básicos
         result[emp_id] = {
@@ -2718,6 +2751,7 @@ def get_all_salesmen_data_optimized_history(salesmen, filter_date):
             
             # Valores de caja
             'initial_box_value': initial_box_value,
+            'existing_record_today': emp_id in today_records_dict if is_current_day else False,
             
             # Transacciones del día filtrado
             'daily_expenses_amount': transactions_by_employee.get(emp_id, {}).get(TransactionType.GASTO, {}).get('amount', 0),
@@ -5428,14 +5462,17 @@ def history_box():
             # Combinar datos
             data.update(additional)
             
-            # Calcular valor de caja usando la fórmula específica de history_box
-            box_value = (data.get('initial_box_value', 0) + 
-                        float(data.get('total_collections_today', 0)) - 
-                        float(data.get('daily_withdrawals', 0)) - 
-                        float(data.get('daily_expenses_amount', 0)) + 
-                        float(data.get('daily_collection', 0)) - 
-                        float(data.get('new_clients_loan_amount', 0)) - 
-                        float(data.get('total_renewal_loans_amount', 0)))
+            # Calcular valor de caja usando la misma función que box
+            box_value = calculate_box_value(
+                data.get('initial_box_value', 0), 
+                data.get('total_collections_today', 0), 
+                data.get('daily_withdrawals', 0), 
+                data.get('daily_expenses_amount', 0),
+                data.get('daily_collection', 0), 
+                data.get('new_clients_loan_amount', 0),
+                data.get('total_renewal_loans_amount', 0), 
+                data.get('existing_record_today', False)
+            )
             
             # Crear datos del vendedor con la estructura esperada
             salesman_data = {
