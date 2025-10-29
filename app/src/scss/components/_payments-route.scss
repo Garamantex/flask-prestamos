@@ -1,0 +1,232 @@
+// Estilos específicos para la página de ruta de pagos
+// =====================================================
+
+// Estilos para toda el área superior
+.top-section {
+    background-color: $white-100;
+    border-bottom: 2px solid $neutral-200;
+    box-shadow: 0 2px 8px rgba($neutral-900, 0.1);
+    padding: 0;
+    margin: 0;
+    
+    .container {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+    
+    // Reducir márgenes en la sección superior
+    .row {
+        margin-bottom: 0.75rem;
+        
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+    
+    .mb-3 {
+        margin-bottom: 0.75rem !important;
+    }
+}
+
+// Contenedor principal (ya no necesita margen superior)
+.main-content-container {
+    padding-top: 2rem;
+}
+
+// Estilos para tarjetas de clientes
+.client-card {
+    border: 1px solid $neutral-200;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    background-color: $white-100;
+    
+    &:hover {
+        box-shadow: 0 2px 8px rgba($neutral-900, 0.1);
+    }
+    
+    // Asegurar que la primera tarjeta tenga margen superior
+    &:first-child {
+        margin-top: 0.5rem;
+    }
+}
+
+.client-card-header {
+    background-color: $neutral-50;
+    border: none;
+    padding: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid $neutral-200;
+    
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+.client-card-body {
+    padding: 1rem;
+    background-color: $white-100;
+}
+
+// Estilos para elementos ocultos/mostrar
+.hidden, 
+.u-hidden {
+    display: none !important;
+}
+
+.dates {
+    display: none !important;
+}
+
+// Mostrar elementos cuando se activa el botón de mostrar/ocultar
+.show-details {
+    .hidden {
+        display: block !important;
+    }
+    
+    .u-hidden {
+        display: block !important;
+    }
+    
+    .dates {
+        display: block !important;
+    }
+}
+
+// Responsive adjustments para tarjetas de clientes
+@media (max-width: 768px) {
+    // Ajustar la sección superior en móviles
+    .top-section {
+        .container {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .row {
+            margin-bottom: 0.5rem;
+        }
+        
+        .mb-3 {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .row.g-2 {
+            margin: 0;
+        }
+        
+        .metric-item {
+            margin-bottom: 0.5rem;
+        }
+    }
+    
+    // Ajustar el padding en móviles
+    .main-content-container {
+        padding-top: 1.5rem;
+    }
+    
+    .client-card-header {
+        padding: 0.75rem;
+        
+        .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            
+            .gap-2 {
+                margin-top: 0.5rem;
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    }
+    
+    .client-card-body .d-flex.gap-2 {
+        flex-direction: column;
+        
+        .c-btn {
+            width: 100%;
+        }
+    }
+}
+
+// Estilos para préstamos procesados con colores según estado
+.processed-card {
+    // Verde para PAGADA
+    &[data-status="PAGADA"] {
+        border-left: 4px solid #28a745;
+        background-color: rgba(40, 167, 69, 0.05);
+        
+        .client-card-header {
+            background-color: rgba(40, 167, 69, 0.1);
+        }
+        
+        .metric-item .metric-value {
+            color: #28a745 !important;
+        }
+    }
+    
+    // Naranja para ABONADA
+    &[data-status="ABONADA"] {
+        border-left: 4px solid #fd7e14;
+        background-color: rgba(253, 126, 20, 0.05);
+        
+        .client-card-header {
+            background-color: rgba(253, 126, 20, 0.1);
+        }
+        
+        .metric-item .metric-value {
+            color: #fd7e14 !important;
+        }
+    }
+    
+    // Rojo para MORA
+    &[data-status="MORA"] {
+        border-left: 4px solid #dc3545;
+        background-color: rgba(220, 53, 69, 0.05);
+        
+        .client-card-header {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+        
+        .metric-item .metric-value {
+            color: #dc3545 !important;
+        }
+    }
+    
+    // PENDIENTE (color por defecto)
+    &[data-status="PENDIENTE"] {
+        border-left: 4px solid #6c757d;
+        background-color: rgba(108, 117, 125, 0.05);
+        
+        .client-card-header {
+            background-color: rgba(108, 117, 125, 0.1);
+        }
+        
+        .metric-item .metric-value {
+            color: #6c757d !important;
+        }
+    }
+}
+
+// Animación suave para mostrar/ocultar sección procesada
+#processed-loans-section {
+    transition: all 0.3s ease-in-out;
+    
+    &.show {
+        display: block !important;
+        animation: fadeInUp 0.3s ease-in-out;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

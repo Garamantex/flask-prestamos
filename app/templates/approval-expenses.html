@@ -35,7 +35,9 @@
                             <p>Tipo de Gasto: <span>{{ detalle_transaccion['tipo'] }}</span></p>
                             <p>Concepto: <span>{{ detalle_transaccion['concepto'] }}</span></p>
                             <p>Descripción: <span>{{ detalle_transaccion['descripcion'] }}</span></p>
-                            <button class="c-btn c-btn-primary js-comprobante mt-4" data-target="modal{{ loop.index }}">Ver comprobante</button>
+                            {% if detalle_transaccion['attachment'] %}
+                                <button class="c-btn c-btn-primary js-comprobante mt-4" data-target="modal{{ loop.index }}">Ver comprobante</button>
+                            {% endif %}
                             <form class="mt-4" method="POST"
                                 action="{{ url_for('routes.modify_transaction', transaction_id=detalle_transaccion['id']) }}">
                                 <label for="approval_status">Aprobar/Denegar:</label>
@@ -51,7 +53,11 @@
                 </ul>
                 {% for detalle_transaccion in detalles_transacciones %}
                     <div class="c-modal" id="modal{{ loop.index }}">
-                        <img class="img-attachment" src="{{ url_for('static', filename='images/' + detalle_transaccion['attachment']) }}" alt="Imagen de la transacción">
+                        {% if detalle_transaccion['attachment'] %}
+                            <img class="img-attachment" src="{{ url_for('static', filename='images/' + detalle_transaccion['attachment']|urlencode) }}" alt="Imagen de la transacción">
+                        {% else %}
+                            <p>No hay comprobante disponible</p>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>

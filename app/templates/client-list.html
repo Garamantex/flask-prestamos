@@ -3,6 +3,7 @@
 {% block content %}
 <div class="c-form">
     <div class="container pt-5">
+        <!-- Botones de navegación -->
         <div class="row">
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Menu</a>
@@ -11,6 +12,8 @@
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.logout') }}">Salir</a>
             </div>
         </div>
+
+        <!-- Título -->
         <div class="row">
             <div class="col">
                 <div class="c-users">
@@ -18,40 +21,239 @@
                 </div>
             </div>
         </div>
-        <div class="row mt-4">
-            <div class="col">
-                <form style="display: flex; flex-direction: column;" method="post" action="{{ url_for('routes.client_list', user_id=user_id) }}">
-                    <div class="form-group">
-                        <input type="text" name="search" class="form-control" placeholder="Buscar por nombre, documento o alias">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Buscar</button>
-                </form>
+
+        <!-- Barra de búsqueda -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="c-form__container">
+                    <form method="post" action="{{ url_for('routes.client_list', user_id=user_id) }}">
+                        <div class="c-form__group">
+                            <label class="c-form__label">Buscar Cliente</label>
+                            <input type="text" name="search" class="c-form__input" placeholder="Buscar por nombre, documento o alias">
+                        </div>
+                        <button type="submit" class="c-btn c-btn-primary">Buscar</button>
+                    </form>
+                </div>
             </div>
         </div>
-        <div class="row mt-4">
-            <div class="col">
-                <ul class="request-list c-overflow">
-                    {% for client in client_list %}
-                    <li class="request-item">
-                        <p>Nombre: <span>{{ client.first_name }} {{ client.last_name }}</span></p>
-                        <p>Alias: <span>{{ client.alias }}</span></p>
-                        <p>Documento: <span>{{ client.document }}</span></p>
-                        <p>Celular: <span>{{ client.cellphone }}</span></p>
-                        <p>Dirección: <span>{{ client.address }}</span></p>
-                        <p>Barrio: <span>{{ client.neighborhood }}</span></p>
-                        <p>Estado: <span>{{ "Activo" if client.status else "Inactivo" }}</span></p>
-                        <p>Deudor: <span>{{ "Sí" if client.debtor else "No" }}</span></p>
-                        <p>Lista Negra: <span>{{ "Sí" if client.black_list else "No" }}</span></p>
-                        <p>Fecha Creación: <span>{{ client.creation_date }}</span></p>
-                        <p>Fecha Modificación: <span>{{ client.modification_date }}</span></p>
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between;">
-                            <a style="margin: 1.5rem 0;" class="btn btn-primary" href="{{ url_for('routes.credit_detail', id=client.loans[-1].id) }}">Ver detalle del crédito</a>
+
+        <!-- Lista de clientes con cards modernas -->
+        <div class="row">
+            <div class="col-12">
+                {% for client in client_list %}
+                <div class="client-card mb-3">
+                    <!-- Header de la tarjeta -->
+                    <div class="client-card-header">
+                        <div class="d-flex align-items-center w-100">
+                            <div class="client-icon me-2">
+                                <i class="bi bi-person-circle fs-4 text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="mb-0">{{ client.first_name }} {{ client.last_name }}</h5>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="client-status badge">{{ "Activo" if client.status else "Inactivo" }}</span>
+                                    {% if client.alias %}
+                                    <small class="text-muted">{{ client.alias }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('routes.credit_detail', id=client.loans[-1].id) }}" class="c-btn c-btn-primary c-btn-sm">
+                                    <i class="bi bi-eye me-1"></i>Ver Crédito
+                                </a>
+                            </div>
                         </div>
-                    </li>
-                    {% endfor %}
-                </ul>
+                    </div>
+                    
+                    <!-- Contenido de la tarjeta -->
+                    <div class="client-card-body">
+                        <div class="row g-2">
+                            <!-- Información personal -->
+                            <div class="col-md-6">
+                                <div class="client-info-section">
+                                    <h6 class="client-section-title">Información Personal</h6>
+                                    <div class="client-info-grid">
+                                        <div class="client-info-item">
+                                            <span class="client-info-label">Documento:</span>
+                                            <span class="client-info-value">{{ client.document }}</span>
+                                        </div>
+                                        <div class="client-info-item">
+                                            <span class="client-info-label">Celular:</span>
+                                            <span class="client-info-value">{{ client.cellphone }}</span>
+                                        </div>
+                                        <div class="client-info-item">
+                                            <span class="client-info-label">Dirección:</span>
+                                            <span class="client-info-value">{{ client.address or 'No especificada' }}</span>
+                                        </div>
+                                        <div class="client-info-item">
+                                            <span class="client-info-label">Barrio:</span>
+                                            <span class="client-info-value">{{ client.neighborhood or 'No especificado' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Estado y fechas -->
+                            <div class="col-md-6">
+                                <div class="client-info-section">
+                                    <h6 class="client-section-title">Estado y Fechas</h6>
+                                    <div class="client-info-grid">
+                                        <div class="client-info-item">
+                                            <span class="client-info-label">Deudor:</span>
+                                            <span class="client-info-value client-status-{{ 'yes' if client.debtor else 'no' }}">
+                                                {{ "Sí" if client.debtor else "No" }}
+                                            </span>
+                                        </div>
+                                        <div class="client-info-item">
+                                            <span class="client-info-label">Lista Negra:</span>
+                                            <span class="client-info-value client-status-{{ 'yes' if client.black_list else 'no' }}">
+                                                {{ "Sí" if client.black_list else "No" }}
+                                            </span>
+                                        </div>
+                                        <div class="client-info-item">
+                                            <span class="client-info-label">Creado:</span>
+                                            <span class="client-info-value">{{ client.creation_date }}</span>
+                                        </div>
+                                        <div class="client-info-item">
+                                            <span class="client-info-label">Modificado:</span>
+                                            <span class="client-info-value">{{ client.modification_date }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
+
+<style>
+/* Estilos para tarjetas de clientes */
+.client-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+}
+
+.client-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.client-card-header {
+    background-color: #f8f9fa;
+    border: none;
+    padding: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.client-card-body {
+    padding: 1rem;
+    background-color: #ffffff;
+}
+
+.client-info-section {
+    margin-bottom: 1rem;
+}
+
+.client-section-title {
+    color: #495057;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 0.25rem;
+}
+
+.client-info-grid {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.client-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0;
+}
+
+.client-info-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.client-info-value {
+    font-size: 0.85rem;
+    color: #212529;
+    font-weight: 600;
+}
+
+.client-status {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.client-status.badge {
+    background-color: #28a745;
+    color: white;
+}
+
+.client-status-yes {
+    color: #dc3545;
+    font-weight: 700;
+}
+
+.client-status-no {
+    color: #28a745;
+    font-weight: 700;
+}
+
+.client-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive para tarjetas de clientes */
+@media (max-width: 768px) {
+    .client-card-header {
+        padding: 0.75rem;
+    }
+    
+    .client-card-header .d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .client-card-header .d-flex .gap-2 {
+        margin-top: 0.5rem;
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .client-info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .client-info-label {
+        font-size: 0.8rem;
+    }
+    
+    .client-info-value {
+        font-size: 0.8rem;
+    }
+}
+</style>
 {% endblock %}
