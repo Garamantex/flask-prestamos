@@ -14,7 +14,7 @@
         <div class="row mb-2">
             <div class="col-12">
                 <h2 class="c-cajas__item__title c-headings c-headings__h2 text-center mb-2">Cartera {{ wallet_data['main_admin']['name'] }}</h2>
-                <div class="c-card mb-3 p-3" style="background: #e5e5e5;">
+                <div class="c-card c-card--summary mb-3 p-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <span><b>Créditos</b></span>
                         <span><b>#</b> {{ wallet_data['Total Sellers with Active Loans'] }}</span>
@@ -62,20 +62,20 @@
             <div class="col-12">
                 <h4 class="c-headings c-headings__h4 mb-2">Cajas</h4>
                 <div id="accordionMainAdmin">
-                    <div class="card mb-2" style="border-radius: 0.5rem; overflow: hidden;">
-                        <div class="card-header p-0" id="headingMainAdmin">
-                            <h5 class="mb-0 d-flex align-items-center" style="padding: 1rem;">
-                                <button class="btn btn-link w-100 text-left" type="button" data-toggle="collapse" data-target="#collapseMainAdmin" aria-expanded="true" aria-controls="collapseMainAdmin" style="font-size: 1.1rem;">
+                    <div class="card c-accordion mb-2">
+                        <div class="card-header" id="headingMainAdmin">
+                            <h5 class="mb-0 d-flex align-items-center">
+                                <button class="btn btn-link w-100 text-left" type="button" data-toggle="collapse" data-target="#collapseMainAdmin" aria-expanded="true" aria-controls="collapseMainAdmin">
                                     <span><b>Administrador:</b> {{ wallet_data['main_admin']['name'] }}</span>
-                                    <span class="float-right ml-2"><i class="fa fa-medal" style="color: #e57373;"></i></span>
+                                    <span class="float-right ml-2"><i class="fa fa-medal c-icon-medal"></i></span>
                                 </button>
                             </h5>
                         </div>
                         <div id="collapseMainAdmin" class="collapse show" aria-labelledby="headingMainAdmin" data-parent="#accordionMainAdmin">
-                            <div class="card-body p-2" style="background: #f9f9f9;">
+                            <div class="card-body">
                                 {% if wallet_data['main_admin']['boxes'] %}
                                     {% for box in wallet_data['main_admin']['boxes'] %}
-                                    <div class="c-card mb-3 p-3" style="padding: 1rem;">
+                                    <div class="c-card c-card--content mb-3 p-3">
                                         <div class="card-header mb-2 p-0"><b>Vendedor:</b> {{ box['First Name'] }} {{ box['Last Name'] }}</div>
                                         <div class="row">
                                             <div class="c-card__internal col-12 col-md-6 mb-2 mb-md-0">
@@ -114,20 +114,20 @@
                 <h4 class="c-headings c-headings__h4 mb-2">Cajas por Administrador</h4>
                 <div id="accordionSubadmins">
                     {% for subadmin in wallet_data['subadmins'] %}
-                    <div class="card mb-2" style="border-radius: 0.5rem; overflow: hidden;">
-                        <div class="card-header p-0" id="heading{{ loop.index }}">
-                            <h5 class="mb-0 d-flex align-items-center" style="padding: 1rem;">
-                                <button class="btn btn-link w-100 text-left" type="button" data-toggle="collapse" data-target="#collapse{{ loop.index }}" aria-expanded="false" aria-controls="collapse{{ loop.index }}" style="font-size: 1.1rem;">
+                    <div class="card c-accordion mb-2">
+                        <div class="card-header" id="heading{{ loop.index }}">
+                            <h5 class="mb-0 d-flex align-items-center">
+                                <button class="btn btn-link w-100 text-left" type="button" data-toggle="collapse" data-target="#collapse{{ loop.index }}" aria-expanded="false" aria-controls="collapse{{ loop.index }}">
                                     <span><b>Administrador:</b> {{ subadmin['name'] }}</span>
-                                    <span class="float-right ml-2"><i class="fa fa-medal" style="color: #e57373;"></i></span>
+                                    <span class="float-right ml-2"><i class="fa fa-medal c-icon-medal"></i></span>
                                 </button>
                             </h5>
                         </div>
                         <div id="collapse{{ loop.index }}" class="collapse" aria-labelledby="heading{{ loop.index }}" data-parent="#accordionSubadmins">
-                            <div class="card-body p-2" style="background: #f9f9f9;">
+                            <div class="card-body">
                                 {% if subadmin['boxes'] %}
                                     {% for box in subadmin['boxes'] %}
-                                    <div class="c-card mb-3 p-3" style="padding: 1rem;">
+                                    <div class="c-card c-card--content mb-3 p-3">
                                         <div class="card-header mb-2 p-0"><b>Vendedor:</b> {{ box['First Name'] }} {{ box['Last Name'] }}</div>
                                         <div class="row">
                                             <div class="c-card__internal col-12 col-md-6 mb-2 mb-md-0">

@@ -4262,27 +4262,54 @@ def wallet():
 @routes.route('/wallet-detail/<int:employee_id>', methods=['GET'])
 def wallet_detail(employee_id):
     show_all = request.args.get('show_all', '0') == '1'
+    search_term = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 20  # Mostrar 20 préstamos por página
+    
     # Obtener el empleado
     employee = Employee.query.filter_by(id=employee_id).first()
     if not employee:
         return jsonify({'message': 'Empleado no encontrado'}), 404
 
-    # Inicializar variables
+    # Construir query base con joins para optimizar
+    loans_query = db.session.query(Loan).join(
+        Client, Loan.client_id == Client.id
+    ).join(
+        Salesman, Loan.employee_id == Salesman.employee_id
+    ).join(
+        Employee, Salesman.employee_id == Employee.id
+    ).join(
+        User, Employee.user_id == User.id
+    )
+
+    # Filtrar por estado según el toggle
+    if not show_all:
+        loans_query = loans_query.filter(Loan.status == True)
+
+    # Filtrar por nombre del cliente si hay búsqueda
+    if search_term:
+        loans_query = loans_query.filter(
+            (Client.first_name.ilike(f'%{search_term}%')) |
+            (Client.last_name.ilike(f'%{search_term}%'))
+        )
+
+    # Paginar los resultados
+    loans_paginated = loans_query.order_by(Loan.id.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    # Inicializar variables para totales
     total_loans = 0
     total_overdue_amount = 0
     loans_detail = []
 
-    # Obtener préstamos según el toggle
-    if show_all:
-        loans = Loan.query.all()
-    else:
-        loans = Loan.query.filter_by(status=True).all()
-
-    for loan in loans:
+    # Procesar cada préstamo de la página actual
+    for loan in loans_paginated.items:
         # Obtener el vendedor asociado al préstamo
         seller = Salesman.query.filter_by(employee_id=loan.employee_id).first()
         # Obtener el cliente asociado al préstamo
         client = Client.query.filter_by(id=loan.client_id).first()
+        
         # Calcular el valor total del préstamo (suma de cuotas en PENDIENTE o MORA)
         total_loan_amount = 0
         total_overdue_amount_loan = 0
@@ -4299,10 +4326,10 @@ def wallet_detail(employee_id):
                 total_paid_installments_loan += 1
         # Detalle de cada préstamo
         loan_info = {
-            'Seller First Name': seller.employee.user.first_name,
-            'Seller Last Name': seller.employee.user.last_name,
-            'Client First Name': client.first_name,
-            'Client Last Name': client.last_name,
+            'Seller First Name': seller.employee.user.first_name if seller and seller.employee else '',
+            'Seller Last Name': seller.employee.user.last_name if seller and seller.employee else '',
+            'Client First Name': client.first_name if client else '',
+            'Client Last Name': client.last_name if client else '',
             'Loan ID': loan.id,
             'Loan Amount': str(loan.amount),
             'Total Overdue Amount': str(total_overdue_amount_loan),
@@ -4314,13 +4341,40 @@ def wallet_detail(employee_id):
         # Incrementar el contador de préstamos y el valor total de préstamos pendientes o en mora
         total_loans += 1
         total_overdue_amount += total_overdue_amount_loan
+
+    # Calcular totales de todos los préstamos (no solo la página actual)
+    total_query = db.session.query(Loan).join(
+        Client, Loan.client_id == Client.id
+    )
+    if not show_all:
+        total_query = total_query.filter(Loan.status == True)
+    if search_term:
+        total_query = total_query.filter(
+            (Client.first_name.ilike(f'%{search_term}%')) |
+            (Client.last_name.ilike(f'%{search_term}%'))
+        )
+    all_loans = total_query.all()
+    
+    total_all_loans = 0
+    total_all_overdue = 0
+    for loan in all_loans:
+        total_all_loans += 1
+        for installment in loan.installments:
+            if installment.status == InstallmentStatus.MORA:
+                total_all_overdue += float(installment.amount)
+
     # Crear un diccionario con los datos solicitados
     wallet_detail_data = {
-        'Total Loans': total_loans,
-        'Total Overdue Amount': str(total_overdue_amount),
+        'Total Loans': total_all_loans,
+        'Total Overdue Amount': str(int(total_all_overdue)),
         'Loans Detail': loans_detail,
     }
-    return render_template('wallet-detail.html', wallet_detail_data=wallet_detail_data, user_id=employee_id, show_all=show_all)
+    return render_template('wallet-detail.html', 
+                         wallet_detail_data=wallet_detail_data, 
+                         user_id=employee_id, 
+                         show_all=show_all,
+                         search=search_term,
+                         pagination=loans_paginated)
 
 
 @routes.route('/list-expenses')
