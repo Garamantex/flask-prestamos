@@ -91,6 +91,53 @@
     line-height: 1.1;
 }
 
+// Variantes de card para diferentes contextos
+.c-card {
+    &--summary {
+        background-color: $neutral-200;
+    }
+    
+    &--content {
+        background-color: $white-100;
+    }
+}
+
+// Accordion styles consistentes con el sistema
+.card {
+    &.c-accordion {
+        border-radius: 0.5rem;
+        overflow: hidden;
+        border: 1px solid $neutral-200;
+        
+        .card-header {
+            padding: 1rem;
+            background-color: $white-100;
+            border-bottom: 1px solid $neutral-200;
+            
+            .btn-link {
+                font-size: 1.1rem;
+                color: $neutral-800;
+                text-decoration: none;
+                
+                &:hover {
+                    color: $primary;
+                    text-decoration: none;
+                }
+            }
+        }
+        
+        .card-body {
+            padding: 0.5rem;
+            background-color: $neutral-100;
+        }
+    }
+}
+
+// Icono de medalla con color del sistema
+.c-icon-medal {
+    color: $danger;
+}
+
 // Responsive adjustments para métricas
 @media (max-width: 768px) {
     .metric-item {
