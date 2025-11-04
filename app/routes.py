@@ -1,7 +1,7 @@
 # Importaciones del módulo estándar de Python
 from sqlalchemy import join, tuple_
 from sqlalchemy.orm import joinedload
-from flask import request, render_template, session, redirect, url_for
+from flask import request, render_template, session, redirect, url_for, flash
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from datetime import timedelta, datetime as dt, date as dt_date
@@ -688,6 +688,7 @@ def create_client(user_id):
                 db.session.add(transaction)
                 db.session.commit()
 
+            flash('Préstamo creado exitosamente', 'success')
             return redirect(url_for('routes.credit_detail', id=loan.id))
 
         return render_template('create-client.html', user_id=user_id)
@@ -872,40 +873,53 @@ def renewal():
 
 @routes.route('/credit-detail/<int:id>')
 def credit_detail(id):
-    loan = Loan.query.get(id)
-    client = Client.query.get(loan.client_id)
-    installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
-    payments = Payment.query.join(LoanInstallment).filter(
-        LoanInstallment.loan_id == loan.id).all()
-
-    # Verificar si ya se generaron las cuotas del préstamo
-    if not installments and loan.approved == 1:
-        generate_loan_installments(loan)
+    try:
+        loan = Loan.query.get(id)
+        if not loan:
+            flash('Préstamo no encontrado', 'error')
+            return redirect(url_for('routes.menu_salesman', user_id=session.get('user_id')))
+        
+        client = Client.query.get(loan.client_id)
+        if not client:
+            flash('Cliente no encontrado', 'error')
+            return redirect(url_for('routes.menu_salesman', user_id=session.get('user_id')))
+        
         installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+        payments = Payment.query.join(LoanInstallment).filter(
+            LoanInstallment.loan_id == loan.id).all()
 
-    loans = Loan.query.all()  # Obtener todos los créditos
-    loan_detail = get_loan_details(id)
+        # Verificar si ya se generaron las cuotas del préstamo
+        if not installments and loan.approved == 1:
+            generate_loan_installments(loan)
+            installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
 
-    # Agrupar pagos por fecha y hora, y calcular el total pagado en cada fecha/hora
-    payments_by_datetime = {}
-    for payment in payments:
-        # Solo incluir pagos mayores a 0
-        if float(payment.amount) > 0:
-            payment_datetime = payment.payment_date
-            if payment_datetime not in payments_by_datetime:
-                payments_by_datetime[payment_datetime] = {
-                    'datetime': payment_datetime,
-                    'date': payment_datetime.date(),
-                    'time': payment_datetime.time(),
-                    'total_amount': 0
-                }
-            payments_by_datetime[payment_datetime]['total_amount'] += float(payment.amount)
+        loans = Loan.query.all()  # Obtener todos los créditos
+        loan_detail = get_loan_details(id)
 
-    # Ordenar por fecha y hora (más reciente primero)
-    payments_by_datetime = dict(sorted(payments_by_datetime.items(), reverse=True))
+        # Agrupar pagos por fecha y hora, y calcular el total pagado en cada fecha/hora
+        payments_by_datetime = {}
+        for payment in payments:
+            # Solo incluir pagos mayores a 0
+            if float(payment.amount) > 0:
+                payment_datetime = payment.payment_date
+                if payment_datetime not in payments_by_datetime:
+                    payments_by_datetime[payment_datetime] = {
+                        'datetime': payment_datetime,
+                        'date': payment_datetime.date(),
+                        'time': payment_datetime.time(),
+                        'total_amount': 0
+                    }
+                payments_by_datetime[payment_datetime]['total_amount'] += float(payment.amount)
 
-    return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
-                           loan_detail=loan_detail, payments=payments, payments_by_datetime=payments_by_datetime, user_id=session['user_id'])
+        # Ordenar por fecha y hora (más reciente primero)
+        payments_by_datetime = dict(sorted(payments_by_datetime.items(), reverse=True))
+
+        return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
+                               loan_detail=loan_detail, payments=payments, payments_by_datetime=payments_by_datetime, user_id=session['user_id'])
+    except Exception as e:
+        # Manejo de excepciones: mostrar un mensaje de error y registrar la excepción
+        flash(f'Error al cargar el detalle del préstamo: {str(e)}', 'error')
+        return redirect(url_for('routes.menu_salesman', user_id=session.get('user_id')))
 
 
 @routes.route('/modify-installments/<int:loan_id>', methods=['POST'])
