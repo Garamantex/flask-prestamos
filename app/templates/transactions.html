@@ -30,7 +30,8 @@
                 <div class="c-form__container c-form--mobile">
                     <h2 class="c-form__title">Registrar Transacción</h2>
                     
-                    <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data" id="transactionForm">
+                        <input type="hidden" name="transaction_token" value="{{ transaction_token }}">
                         <fieldset>
                             <legend>Tipo de Transacción</legend>
                             
@@ -76,7 +77,7 @@
                             <input type="file" class="form-control" id="photo" accept="image/*" capture="user" name="photo">
                         </div>
                         
-                        <button class="c-btn c-btn-primary mb-4" type="submit">Enviar</button>
+                        <button class="c-btn c-btn-primary mb-4" type="submit" id="submitButton">Enviar</button>
                 </form>
             </div>
         </div>
@@ -85,6 +86,25 @@
 
 
 <script>
+    // Prevenir múltiples envíos del formulario
+    document.getElementById('transactionForm').addEventListener('submit', function(e) {
+        var submitButton = document.getElementById('submitButton');
+        var form = this;
+        
+        // Si el botón ya está deshabilitado, prevenir el envío
+        if (submitButton.disabled) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Deshabilitar el botón y cambiar el texto
+        submitButton.disabled = true;
+        submitButton.textContent = 'Enviando...';
+        
+        // Opcional: prevenir doble clic accidental manteniendo el envío
+        // El botón deshabilitado ya previene múltiples clics
+    });
+    
     // Obtener el tipo de transacción pasado desde el backend
     var transactionType = "{{ transaction_type }}";
     // Filtrar las opciones del segundo select basado en el tipo de transacción inicial
