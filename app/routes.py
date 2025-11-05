@@ -5836,20 +5836,20 @@ def process_coordinator_hierarchy(manager_id, current_date):
     all_subordinates = Salesman.query.filter_by(manager_id=manager_id).all()
 
     for subordinate in all_subordinates:
-        employee_id = subordinate.employee_id
-        employee = Employee.query.get(employee_id)
+        subordinate_employee_id = subordinate.employee_id
+        employee = Employee.query.get(subordinate_employee_id)
         
         if not employee:
             continue
 
         # Transacciones de tipo INGRESO del subordinado = RETIRO para el coordinador
         # (El subordinado recibe dinero del coordinador)
-        transaction_withdrawals = Transaction.query.filter_by(employee_id=employee_id, transaction_types=TransactionType.INGRESO,
+        transaction_withdrawals = Transaction.query.filter_by(employee_id=subordinate_employee_id, transaction_types=TransactionType.INGRESO,
                                                               approval_status=ApprovalStatus.APROBADA).filter(func.date(Transaction.creation_date) == current_date).all()
 
         # Transacciones de tipo RETIRO del subordinado = INGRESO para el coordinador
         # (El subordinado devuelve dinero al coordinador)
-        transaction_incomes = Transaction.query.filter_by(employee_id=employee_id, transaction_types=TransactionType.RETIRO,
+        transaction_incomes = Transaction.query.filter_by(employee_id=subordinate_employee_id, transaction_types=TransactionType.RETIRO,
                                                           approval_status=ApprovalStatus.APROBADA).filter(func.date(Transaction.creation_date) == current_date).all()
 
         # Obtener RETIROS del Coordinador = INGRESOS del subordinado
@@ -5866,10 +5866,12 @@ def process_coordinator_hierarchy(manager_id, current_date):
         total_employee_incomes_amount += float(employee_incomes_amount)
 
     # Valor total de INGRESOS Coordinador
+    # Incluye transacciones INGRESO del coordinador + RETIRO de subordinados
     daily_incomes_amount = float(sum(
         transaction.amount for transaction in transaction_incomes_today)) + float(total_employee_incomes_amount)
 
     # Valor total de RETIROS Coordinador
+    # Incluye transacciones RETIRO del coordinador + INGRESO de subordinados
     daily_withdrawals_amount = float(sum(
         transaction.amount for transaction in transaction_withdrawals_today)) + float(total_employee_withdrawals_amount)
 
@@ -5877,17 +5879,19 @@ def process_coordinator_hierarchy(manager_id, current_date):
     daily_expenses_amount = float(
         sum(transaction.amount for transaction in transaction_expenses_today))
 
+    # Calcular closing_total usando la misma fórmula que la interfaz
+    # Usar box_value actual como base (ya incluye transacciones del coordinador)
+    # Solo sumar/restar transacciones de subordinados y gastos
+    # Fórmula: box_value + inbound (subordinados) - outbound (subordinados) - expenses
+    closing_total_calculated = float(manager_array.box_value) + float(total_employee_incomes_amount) - float(total_employee_withdrawals_amount) - float(daily_expenses_amount)
+
     employee_record = EmployeeRecord(
         employee_id=employee_id,
         initial_state=initial_state,
         incomings=daily_incomes_amount,
         expenses=daily_expenses_amount,
         withdrawals=daily_withdrawals_amount,
-        closing_total=float(initial_state) + float(daily_incomes_amount)
-        - float(new_clients_loan_amount)
-        - float(total_renewal_loans_amount)
-        - float(daily_withdrawals_amount)
-        - float(daily_expenses_amount),  # Calcular el cierre de caja
+        closing_total=closing_total_calculated,  # Usar el valor calculado como en la interfaz
         creation_date=datetime.now(),
         loans_to_collect=loans_to_collect,  # NO SE USA
         paid_installments=paid_installments,  # NO SE USA
