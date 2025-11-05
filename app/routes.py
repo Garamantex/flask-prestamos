@@ -3980,6 +3980,21 @@ def transactions():
 
         if request.method == 'POST':
             try:
+                # Validar token para prevenir duplicados
+                submitted_token = request.form.get('transaction_token')
+                current_token = session.get('current_transaction_token')
+                used_tokens = session.get('used_transaction_tokens', [])
+                
+                # Verificar que el token existe y no ha sido usado
+                if not submitted_token or not current_token:
+                    return "Token de transacción no válido. Por favor, recargue la página e intente nuevamente.", 400
+                
+                if submitted_token != current_token:
+                    return "Token de transacción no coincide. Por favor, recargue la página e intente nuevamente.", 400
+                
+                if submitted_token in used_tokens:
+                    return "Esta transacción ya fue procesada. Por favor, no recargue la página después de enviar.", 400
+                
                 # Manejar la creación de la transacción
                 transaction_type = request.form.get('transaction_type')
                 concept_id = request.form.get('concept_id')
@@ -4065,6 +4080,13 @@ def transactions():
                 # Guardar en la base de datos con manejo de errores
                 db.session.add(transaction)
                 db.session.commit()
+                
+                # Marcar token como usado para prevenir duplicados
+                used_tokens.append(submitted_token)
+                session['used_transaction_tokens'] = used_tokens
+                # Limpiar el token actual para forzar generar uno nuevo en el próximo GET
+                session.pop('current_transaction_token', None)
+                session.modified = True
 
                 # Redireccionar según el rol del usuario
                 if user_role == 'VENDEDOR':
@@ -4081,8 +4103,17 @@ def transactions():
         else:
             # Obtener todos los conceptos disponibles
             concepts = Concept.query.all()
+            
+            # Generar token único para prevenir duplicados
+            transaction_token = str(uuid.uuid4())
+            # Inicializar lista de tokens usados si no existe
+            if 'used_transaction_tokens' not in session:
+                session['used_transaction_tokens'] = []
+            # Almacenar el token actual en la sesión
+            session['current_transaction_token'] = transaction_token
+            session.modified = True
 
-            return render_template('transactions.html', concepts=concepts, user_role=user_role, user_id=user_id)
+            return render_template('transactions.html', concepts=concepts, user_role=user_role, user_id=user_id, transaction_token=transaction_token)
     else:
         return "Acceso no autorizado."
 
