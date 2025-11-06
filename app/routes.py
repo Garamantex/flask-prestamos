@@ -1908,13 +1908,14 @@ def get_coordinator_data(user_id):
     
     return coordinator, coordinator_cash, coordinator_name, manager_id, salesmen
 
-def calculate_daily_transaction_totals(manager_id, current_date):
+def calculate_daily_transaction_totals(manager_id, current_date, coordinator_id=None):
     """Calcula los totales de transacciones diarias para el coordinador"""
     start_of_day = datetime.combine(current_date, datetime.min.time())
     end_of_day = datetime.combine(current_date, datetime.max.time())
     
-    # Total de ingresos aprobados
-    total_outbound_amount = db.session.query(
+    # Total de retiros aprobados (RETIROS del coordinador = INGRESO de subordinados + RETIRO del coordinador)
+    # Primero: INGRESO de subordinados (retiros del coordinador)
+    total_outbound_from_subordinates = db.session.query(
         func.sum(Transaction.amount).label('total_amount')
     ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
         Transaction.transaction_types == 'INGRESO',
@@ -1923,8 +1924,23 @@ def calculate_daily_transaction_totals(manager_id, current_date):
         Transaction.creation_date.between(start_of_day, end_of_day)
     ).scalar() or 0
     
-    # Total de retiros aprobados
-    total_inbound_amount = db.session.query(
+    # Segundo: RETIRO directo del coordinador (si existe)
+    total_outbound_from_coordinator = 0
+    if coordinator_id:
+        total_outbound_from_coordinator = db.session.query(
+            func.sum(Transaction.amount).label('total_amount')
+        ).filter(
+            Transaction.employee_id == coordinator_id,
+            Transaction.transaction_types == 'RETIRO',
+            Transaction.approval_status == 'APROBADA',
+            func.date(Transaction.creation_date) == current_date
+        ).scalar() or 0
+    
+    total_outbound_amount = float(total_outbound_from_subordinates) + float(total_outbound_from_coordinator)
+    
+    # Total de ingresos aprobados (INGRESOS del coordinador = RETIRO de subordinados + INGRESO del coordinador)
+    # Primero: RETIRO de subordinados (ingresos del coordinador)
+    total_inbound_from_subordinates = db.session.query(
         func.sum(Transaction.amount).label('total_amount')
     ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
         Transaction.transaction_types == 'RETIRO',
@@ -1932,6 +1948,20 @@ def calculate_daily_transaction_totals(manager_id, current_date):
         Salesman.manager_id == manager_id,
         func.date(Transaction.creation_date) == current_date
     ).scalar() or 0
+    
+    # Segundo: INGRESO directo del coordinador (si existe)
+    total_inbound_from_coordinator = 0
+    if coordinator_id:
+        total_inbound_from_coordinator = db.session.query(
+            func.sum(Transaction.amount).label('total_amount')
+        ).filter(
+            Transaction.employee_id == coordinator_id,
+            Transaction.transaction_types == 'INGRESO',
+            Transaction.approval_status == 'APROBADA',
+            func.date(Transaction.creation_date) == current_date
+        ).scalar() or 0
+    
+    total_inbound_amount = float(total_inbound_from_subordinates) + float(total_inbound_from_coordinator)
     
     return total_outbound_amount, total_inbound_amount
 
@@ -3027,13 +3057,14 @@ def get_all_salesmen_additional_data_optimized_history(employee_ids, filter_date
     
     return result
 
-def calculate_daily_transaction_totals_history(manager_id, filter_date):
+def calculate_daily_transaction_totals_history(manager_id, filter_date, coordinator_id=None):
     """Calcula los totales de transacciones diarias para el coordinador en history-box"""
     start_of_day = datetime.combine(filter_date, datetime.min.time())
     end_of_day = datetime.combine(filter_date, datetime.max.time())
     
-    # Total de ingresos aprobados (RETIROS del coordinador)
-    total_outbound_amount = db.session.query(
+    # Total de retiros aprobados (RETIROS del coordinador = INGRESO de subordinados + RETIRO del coordinador)
+    # Primero: INGRESO de subordinados (retiros del coordinador)
+    total_outbound_from_subordinates = db.session.query(
         func.sum(Transaction.amount).label('total_amount')
     ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
         Transaction.transaction_types == 'INGRESO',
@@ -3042,8 +3073,23 @@ def calculate_daily_transaction_totals_history(manager_id, filter_date):
         func.date(Transaction.creation_date) == filter_date
     ).scalar() or 0
     
-    # Total de retiros aprobados (INGRESOS del coordinador)
-    total_inbound_amount = db.session.query(
+    # Segundo: RETIRO directo del coordinador (si existe)
+    total_outbound_from_coordinator = 0
+    if coordinator_id:
+        total_outbound_from_coordinator = db.session.query(
+            func.sum(Transaction.amount).label('total_amount')
+        ).filter(
+            Transaction.employee_id == coordinator_id,
+            Transaction.transaction_types == 'RETIRO',
+            Transaction.approval_status == 'APROBADA',
+            func.date(Transaction.creation_date) == filter_date
+        ).scalar() or 0
+    
+    total_outbound_amount = float(total_outbound_from_subordinates) + float(total_outbound_from_coordinator)
+    
+    # Total de ingresos aprobados (INGRESOS del coordinador = RETIRO de subordinados + INGRESO del coordinador)
+    # Primero: RETIRO de subordinados (ingresos del coordinador)
+    total_inbound_from_subordinates = db.session.query(
         func.sum(Transaction.amount).label('total_amount')
     ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
         Transaction.transaction_types == 'RETIRO',
@@ -3051,6 +3097,20 @@ def calculate_daily_transaction_totals_history(manager_id, filter_date):
         Salesman.manager_id == manager_id,
         func.date(Transaction.creation_date) == filter_date
     ).scalar() or 0
+    
+    # Segundo: INGRESO directo del coordinador (si existe)
+    total_inbound_from_coordinator = 0
+    if coordinator_id:
+        total_inbound_from_coordinator = db.session.query(
+            func.sum(Transaction.amount).label('total_amount')
+        ).filter(
+            Transaction.employee_id == coordinator_id,
+            Transaction.transaction_types == 'INGRESO',
+            Transaction.approval_status == 'APROBADA',
+            func.date(Transaction.creation_date) == filter_date
+        ).scalar() or 0
+    
+    total_inbound_amount = float(total_inbound_from_subordinates) + float(total_inbound_from_coordinator)
     
     return total_outbound_amount, total_inbound_amount
 
@@ -3065,8 +3125,8 @@ def box():
         
         current_date = datetime.now().date()
         
-        # Calcular totales de transacciones del coordinador
-        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals(manager_id, current_date)
+        # Calcular totales de transacciones del coordinador (incluyendo transacciones directas del coordinador)
+        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals(manager_id, current_date, coordinator.id)
         
         # Inicializar lista para estadísticas de vendedores
         salesmen_stats = []
@@ -3103,8 +3163,8 @@ def box():
                 # Es un subcoordinador: usar fórmula de coordinador
                 subcoord_manager_id = db.session.query(Manager.id).filter_by(employee_id=employee_id).scalar()
                 if subcoord_manager_id:
-                    # Calcular totales de transacciones del subcoordinador
-                    subcoord_outbound, subcoord_inbound = calculate_daily_transaction_totals(subcoord_manager_id, current_date)
+                    # Calcular totales de transacciones del subcoordinador (incluyendo transacciones directas del subcoordinador)
+                    subcoord_outbound, subcoord_inbound = calculate_daily_transaction_totals(subcoord_manager_id, current_date, employee_id)
                     # Obtener gastos del subcoordinador
                     subcoord_expenses, subcoord_expense_details = get_coordinator_expenses(employee_id, current_date)
                     
@@ -3278,34 +3338,9 @@ def box_detail_admin(employee_id):
 
         salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
 
-        # Funciones para sumar el valor de todas las transacciones en estado: APROBADO y Tipo: INGRESO/RETIRO
+        # Calcular totales de transacciones del sub-administrador (incluyendo transacciones directas)
         current_date = datetime.now().date()
-
-        # Calcular la fecha de inicio y fin del día actual
-        start_of_day = datetime.combine(current_date, datetime.min.time())
-        end_of_day = datetime.combine(current_date, datetime.max.time())
-
-        # Filtrar las transacciones para el día actual del manager específico
-        total_outbound_amount = db.session.query(
-            func.sum(Transaction.amount).label('total_amount')
-        ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
-            Transaction.transaction_types == 'INGRESO',
-            Transaction.approval_status == 'APROBADA',
-            Salesman.manager_id == manager_id,  # Filtrar solo por el manager específico
-            Transaction.creation_date.between(
-                start_of_day, end_of_day)  # Filtrar por fecha actual
-        ).scalar() or 0
-
-        # Filtrar las transacciones para el día actual del manager específico
-        total_inbound_amount = db.session.query(
-            func.sum(Transaction.amount).label('total_amount')
-        ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
-            Transaction.transaction_types == 'RETIRO',
-            Transaction.approval_status == 'APROBADA',
-            Salesman.manager_id == manager_id,  # Filtrar solo por el manager específico
-            # Filtrar por fecha actual
-            func.date(Transaction.creation_date) == current_date
-        ).scalar() or 0
+        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals(manager_id, current_date, sub_admin_employee.id)
 
         # Inicializa la lista para almacenar las estadísticas de los vendedores
         salesmen_stats = []
@@ -3980,21 +4015,6 @@ def transactions():
 
         if request.method == 'POST':
             try:
-                # Validar token para prevenir duplicados
-                submitted_token = request.form.get('transaction_token')
-                current_token = session.get('current_transaction_token')
-                used_tokens = session.get('used_transaction_tokens', [])
-                
-                # Verificar que el token existe y no ha sido usado
-                if not submitted_token or not current_token:
-                    return "Token de transacción no válido. Por favor, recargue la página e intente nuevamente.", 400
-                
-                if submitted_token != current_token:
-                    return "Token de transacción no coincide. Por favor, recargue la página e intente nuevamente.", 400
-                
-                if submitted_token in used_tokens:
-                    return "Esta transacción ya fue procesada. Por favor, no recargue la página después de enviar.", 400
-                
                 # Manejar la creación de la transacción
                 transaction_type = request.form.get('transaction_type')
                 concept_id = request.form.get('concept_id')
@@ -4080,13 +4100,6 @@ def transactions():
                 # Guardar en la base de datos con manejo de errores
                 db.session.add(transaction)
                 db.session.commit()
-                
-                # Marcar token como usado para prevenir duplicados
-                used_tokens.append(submitted_token)
-                session['used_transaction_tokens'] = used_tokens
-                # Limpiar el token actual para forzar generar uno nuevo en el próximo GET
-                session.pop('current_transaction_token', None)
-                session.modified = True
 
                 # Redireccionar según el rol del usuario
                 if user_role == 'VENDEDOR':
@@ -4103,17 +4116,8 @@ def transactions():
         else:
             # Obtener todos los conceptos disponibles
             concepts = Concept.query.all()
-            
-            # Generar token único para prevenir duplicados
-            transaction_token = str(uuid.uuid4())
-            # Inicializar lista de tokens usados si no existe
-            if 'used_transaction_tokens' not in session:
-                session['used_transaction_tokens'] = []
-            # Almacenar el token actual en la sesión
-            session['current_transaction_token'] = transaction_token
-            session.modified = True
 
-            return render_template('transactions.html', concepts=concepts, user_role=user_role, user_id=user_id, transaction_token=transaction_token)
+            return render_template('transactions.html', concepts=concepts, user_role=user_role, user_id=user_id)
     else:
         return "Acceso no autorizado."
 
@@ -5419,8 +5423,8 @@ def history_box():
         else:
             coordinator_cash = coordinator.box_value
 
-        # Calcular totales de transacciones del coordinador para la fecha filtrada
-        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals_history(manager_id, filter_date)
+        # Calcular totales de transacciones del coordinador para la fecha filtrada (incluyendo transacciones directas del coordinador)
+        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals_history(manager_id, filter_date, coordinator.id)
 
         # Obtener los gastos del coordinador para la fecha filtrada
         expenses = Transaction.query.filter(
@@ -6602,30 +6606,8 @@ def history_box_detail_admin(employee_id):
 
         salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
 
-        # Funciones para sumar el valor de todas las transacciones en estado: APROBADO y Tipo: INGRESO/RETIRO
-        # Calcular la fecha de inicio y fin del día filtrado
-        start_of_day = datetime.combine(filter_date, datetime.min.time())
-        end_of_day = datetime.combine(filter_date, datetime.max.time())
-
-        # Filtrar las transacciones para el día filtrado del manager
-        total_outbound_amount = db.session.query(
-            func.sum(Transaction.amount).label('total_amount')
-        ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
-            Transaction.transaction_types == 'INGRESO',
-            Transaction.approval_status == 'APROBADA',
-            Salesman.manager_id == manager_id,  # Filtrar solo por el manager
-            Transaction.creation_date.between(start_of_day, end_of_day)  # Filtrar por fecha filtrada
-        ).scalar() or 0
-
-        # Filtrar las transacciones para el día filtrado del manager
-        total_inbound_amount = db.session.query(
-            func.sum(Transaction.amount).label('total_amount')
-        ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
-            Transaction.transaction_types == 'RETIRO',
-            Transaction.approval_status == 'APROBADA',
-            Salesman.manager_id == manager_id,  # Filtrar solo por el manager
-            func.date(Transaction.creation_date) == filter_date  # Filtrar por fecha filtrada
-        ).scalar() or 0
+        # Calcular totales de transacciones del sub-administrador para la fecha filtrada (incluyendo transacciones directas)
+        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals_history(manager_id, filter_date, sub_admin_employee.id)
 
         # Inicializa la lista para almacenar las estadísticas de los vendedores
         salesmen_stats = []

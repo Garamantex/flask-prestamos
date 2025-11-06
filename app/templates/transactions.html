@@ -31,7 +31,6 @@
                     <h2 class="c-form__title">Registrar Transacción</h2>
                     
                     <form action="{{ url_for('routes.transactions') }}" method="POST" enctype="multipart/form-data" id="transactionForm">
-                        <input type="hidden" name="transaction_token" value="{{ transaction_token }}">
                         <fieldset>
                             <legend>Tipo de Transacción</legend>
                             
