@@ -5215,9 +5215,6 @@ def edit_payment(loan_id):
     installment_number = request.form.get('InstallmentId')
     custom_payment = float(request.form.get('customPayment'))
 
-    # Aumentar el valor en caja del empleado
-    employee.box_value += Decimal(custom_payment)
-
     # Buscar el préstamo asociado
     loan = Loan.query.get(loan_id)
     if not loan:
@@ -5234,6 +5231,21 @@ def edit_payment(loan_id):
         (func.date(LoanInstallment.payment_date) == current_date) | (LoanInstallment.payment_date == None),
         LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA])
     ).all()
+
+    # 💰 **Calcular el total de TODOS los pagos del día actual para este préstamo**
+    # Usar join para capturar todos los pagos del préstamo del día, no solo los de installments_paid_today
+    total_payments_to_revert = db.session.query(func.sum(Payment.amount)).join(
+        LoanInstallment, Payment.installment_id == LoanInstallment.id
+    ).filter(
+        LoanInstallment.loan_id == loan_id,
+        func.date(Payment.payment_date) == current_date
+    ).scalar() or Decimal('0')
+
+    # 🔄 **Revertir el valor anterior de la caja del empleado**
+    employee.box_value -= total_payments_to_revert
+
+    # ➕ **Agregar el nuevo valor a la caja del empleado**
+    employee.box_value += Decimal(custom_payment)
 
     # 📅 **Capturar el timestamp original del primer pago del día**
     original_payment_timestamp = None
@@ -5259,12 +5271,21 @@ def edit_payment(loan_id):
 
     db.session.commit()
 
-    # 🔥 **Eliminar pagos hechos hoy**
-    Payment.query.filter(
-        Payment.installment_id.in_([i.id for i in installments_paid_today]),
-        func.date(Payment.payment_date) == current_date,
-        loan_id == loan_id
-    ).delete(synchronize_session=False)
+    # 🔥 **Eliminar TODOS los pagos hechos hoy para este préstamo**
+    # Obtener los IDs de los pagos a eliminar
+    payment_ids_to_delete = db.session.query(Payment.id).join(
+        LoanInstallment, Payment.installment_id == LoanInstallment.id
+    ).filter(
+        LoanInstallment.loan_id == loan_id,
+        func.date(Payment.payment_date) == current_date
+    ).all()
+    
+    # Extraer los IDs de la lista de tuplas
+    payment_ids = [payment_id[0] for payment_id in payment_ids_to_delete]
+    
+    # Eliminar los pagos usando los IDs obtenidos
+    if payment_ids:
+        Payment.query.filter(Payment.id.in_(payment_ids)).delete(synchronize_session=False)
 
     db.session.commit()
 
