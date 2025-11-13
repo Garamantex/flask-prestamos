@@ -322,9 +322,6 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" id="exampleModalLabel">Gestión de Caja</h3>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
             </div>
             <div class="modal-body">
                 <h5 class="mb-4">Gastos Coordinador:</h5>
@@ -395,6 +392,9 @@
                     </table>
                 </div>
             </div>
+            <div class="modal-footer">
+                <button type="button" class="c-btn c-btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -405,9 +405,6 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" id="transactionModalLabel">Gestión de Transacciones</h3>
-                <button type="button" class="close" onclick="closeTransactionModal()" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
             </div>
             <div class="modal-body">
                 <div id="transactionModalLoading" class="text-center py-4">
@@ -438,7 +435,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="c-btn c-btn-secondary" onclick="closeTransactionModal()">Cerrar</button>
+                <button type="button" class="c-btn c-btn-secondary" data-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
@@ -824,38 +821,6 @@ function openTransactionModal(employeeId, transactionType) {
     
     // Cargar transacciones
     loadTransactions(employeeId, transactionType);
-}
-
-function closeTransactionModal() {
-    const modalElement = document.getElementById('transactionModal');
-    
-    // Intentar con Bootstrap 5 primero
-    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modalInstance = bootstrap.Modal.getInstance(modalElement);
-        if (modalInstance) {
-            modalInstance.hide();
-        } else {
-            // Si no existe instancia, crear una nueva y ocultarla
-            const modal = new bootstrap.Modal(modalElement);
-            modal.hide();
-        }
-        return;
-    }
-    
-    // Fallback para Bootstrap 4 con jQuery
-    if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
-        jQuery('#transactionModal').modal('hide');
-        return;
-    }
-    
-    // Fallback manual: ocultar el modal directamente
-    modalElement.style.display = 'none';
-    modalElement.classList.remove('show');
-    document.body.classList.remove('modal-open');
-    const backdrop = document.querySelector('.modal-backdrop');
-    if (backdrop) {
-        backdrop.remove();
-    }
 }
 
 function loadTransactions(employeeId, transactionType) {
