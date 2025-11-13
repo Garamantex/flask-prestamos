@@ -1921,7 +1921,8 @@ def calculate_daily_transaction_totals(manager_id, current_date, coordinator_id=
         Transaction.transaction_types == 'INGRESO',
         Transaction.approval_status == 'APROBADA',
         Salesman.manager_id == manager_id,
-        Transaction.creation_date.between(start_of_day, end_of_day)
+        Transaction.creation_date.between(start_of_day, end_of_day),
+        ~Transaction.description.like('[ELIMINADA]%')
     ).scalar() or 0
     
     # Segundo: RETIRO directo del coordinador (si existe)
@@ -1933,7 +1934,8 @@ def calculate_daily_transaction_totals(manager_id, current_date, coordinator_id=
             Transaction.employee_id == coordinator_id,
             Transaction.transaction_types == 'RETIRO',
             Transaction.approval_status == 'APROBADA',
-            func.date(Transaction.creation_date) == current_date
+            func.date(Transaction.creation_date) == current_date,
+            ~Transaction.description.like('[ELIMINADA]%')
         ).scalar() or 0
     
     total_outbound_amount = float(total_outbound_from_subordinates) + float(total_outbound_from_coordinator)
@@ -1946,7 +1948,8 @@ def calculate_daily_transaction_totals(manager_id, current_date, coordinator_id=
         Transaction.transaction_types == 'RETIRO',
         Transaction.approval_status == 'APROBADA',
         Salesman.manager_id == manager_id,
-        func.date(Transaction.creation_date) == current_date
+        func.date(Transaction.creation_date) == current_date,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).scalar() or 0
     
     # Segundo: INGRESO directo del coordinador (si existe)
@@ -1958,7 +1961,8 @@ def calculate_daily_transaction_totals(manager_id, current_date, coordinator_id=
             Transaction.employee_id == coordinator_id,
             Transaction.transaction_types == 'INGRESO',
             Transaction.approval_status == 'APROBADA',
-            func.date(Transaction.creation_date) == current_date
+            func.date(Transaction.creation_date) == current_date,
+            ~Transaction.description.like('[ELIMINADA]%')
         ).scalar() or 0
     
     total_inbound_amount = float(total_inbound_from_subordinates) + float(total_inbound_from_coordinator)
@@ -2028,14 +2032,16 @@ def get_salesman_transaction_data(salesman_employee_id, current_date):
         Transaction.employee_id == salesman_employee_id,
         Transaction.transaction_types == TransactionType.GASTO,
         Transaction.approval_status == ApprovalStatus.APROBADA,
-        func.date(Transaction.creation_date) == current_date
+        func.date(Transaction.creation_date) == current_date,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).with_entities(func.sum(Transaction.amount)).scalar() or 0
     
     daily_expenses_count = Transaction.query.filter(
         Transaction.employee_id == salesman_employee_id,
         Transaction.transaction_types == TransactionType.GASTO,
         Transaction.approval_status == ApprovalStatus.APROBADA,
-        func.date(Transaction.creation_date) == current_date
+        func.date(Transaction.creation_date) == current_date,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).count() or 0
     
     # Retiros diarios
@@ -2043,14 +2049,16 @@ def get_salesman_transaction_data(salesman_employee_id, current_date):
         Transaction.employee_id == salesman_employee_id,
         Transaction.transaction_types == TransactionType.RETIRO,
         Transaction.approval_status == ApprovalStatus.APROBADA,
-        func.date(Transaction.creation_date) == current_date
+        func.date(Transaction.creation_date) == current_date,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).with_entities(func.sum(Transaction.amount)).scalar() or 0
     
     daily_withdrawals_count = Transaction.query.filter(
         Transaction.employee_id == salesman_employee_id,
         Transaction.transaction_types == TransactionType.RETIRO,
         Transaction.approval_status == ApprovalStatus.APROBADA,
-        func.date(Transaction.creation_date) == current_date
+        func.date(Transaction.creation_date) == current_date,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).count() or 0
     
     # Ingresos diarios
@@ -2058,14 +2066,16 @@ def get_salesman_transaction_data(salesman_employee_id, current_date):
         Transaction.employee_id == salesman_employee_id,
         Transaction.transaction_types == TransactionType.INGRESO,
         Transaction.approval_status == ApprovalStatus.APROBADA,
-        func.date(Transaction.creation_date) == current_date
+        func.date(Transaction.creation_date) == current_date,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).with_entities(func.sum(Transaction.amount)).scalar() or 0
     
     daily_collection_count = Transaction.query.filter(
         Transaction.employee_id == salesman_employee_id,
         Transaction.transaction_types == TransactionType.INGRESO,
         Transaction.approval_status == ApprovalStatus.APROBADA,
-        func.date(Transaction.creation_date) == current_date
+        func.date(Transaction.creation_date) == current_date,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).count() or 0
     
     return {
@@ -2177,8 +2187,9 @@ def calculate_box_value(initial_box_value, total_collections_today, daily_withdr
 @safe_cache(timeout=180)  # 3 minutos de caché
 def get_salesman_transaction_details(salesman_employee_id, current_date):
     """Obtiene detalles de transacciones del vendedor"""
-    transactions = Transaction.query.filter_by(
-        employee_id=salesman_employee_id
+    transactions = Transaction.query.filter(
+        Transaction.employee_id == salesman_employee_id,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).order_by(Transaction.creation_date.desc()).all()
     
     today = current_date
@@ -2249,7 +2260,8 @@ def get_coordinator_expenses(coordinator_id, current_date):
     expenses = Transaction.query.filter(
         Transaction.employee_id == coordinator_id,
         Transaction.transaction_types == 'GASTO',
-        func.date(Transaction.creation_date) == current_date
+        func.date(Transaction.creation_date) == current_date,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).all()
     
     total_expenses = sum(expense.amount for expense in expenses)
@@ -2302,7 +2314,8 @@ def get_all_salesmen_data_optimized(salesmen, current_date):
     ).filter(
         Transaction.employee_id.in_(employee_ids),
         func.date(Transaction.creation_date) == current_date,
-        Transaction.approval_status == ApprovalStatus.APROBADA
+        Transaction.approval_status == ApprovalStatus.APROBADA,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).group_by(
         Transaction.employee_id, Transaction.transaction_types
     ).all()
@@ -2579,7 +2592,8 @@ def get_all_salesmen_additional_data_optimized(employee_ids, current_date):
     ).filter(
         Transaction.employee_id.in_(employee_ids),
         func.date(Transaction.creation_date) == current_date,
-        Transaction.approval_status == ApprovalStatus.APROBADA
+        Transaction.approval_status == ApprovalStatus.APROBADA,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).order_by(Transaction.creation_date.desc()).all()
     
     transaction_details_data = {}
@@ -3070,7 +3084,8 @@ def calculate_daily_transaction_totals_history(manager_id, filter_date, coordina
         Transaction.transaction_types == 'INGRESO',
         Transaction.approval_status == 'APROBADA',
         Salesman.manager_id == manager_id,
-        func.date(Transaction.creation_date) == filter_date
+        func.date(Transaction.creation_date) == filter_date,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).scalar() or 0
     
     # Segundo: RETIRO directo del coordinador (si existe)
@@ -3082,7 +3097,8 @@ def calculate_daily_transaction_totals_history(manager_id, filter_date, coordina
             Transaction.employee_id == coordinator_id,
             Transaction.transaction_types == 'RETIRO',
             Transaction.approval_status == 'APROBADA',
-            func.date(Transaction.creation_date) == filter_date
+            func.date(Transaction.creation_date) == filter_date,
+            ~Transaction.description.like('[ELIMINADA]%')
         ).scalar() or 0
     
     total_outbound_amount = float(total_outbound_from_subordinates) + float(total_outbound_from_coordinator)
@@ -3095,7 +3111,8 @@ def calculate_daily_transaction_totals_history(manager_id, filter_date, coordina
         Transaction.transaction_types == 'RETIRO',
         Transaction.approval_status == 'APROBADA',
         Salesman.manager_id == manager_id,
-        func.date(Transaction.creation_date) == filter_date
+        func.date(Transaction.creation_date) == filter_date,
+        ~Transaction.description.like('[ELIMINADA]%')
     ).scalar() or 0
     
     # Segundo: INGRESO directo del coordinador (si existe)
@@ -3107,7 +3124,8 @@ def calculate_daily_transaction_totals_history(manager_id, filter_date, coordina
             Transaction.employee_id == coordinator_id,
             Transaction.transaction_types == 'INGRESO',
             Transaction.approval_status == 'APROBADA',
-            func.date(Transaction.creation_date) == filter_date
+            func.date(Transaction.creation_date) == filter_date,
+            ~Transaction.description.like('[ELIMINADA]%')
         ).scalar() or 0
     
     total_inbound_amount = float(total_inbound_from_subordinates) + float(total_inbound_from_coordinator)
@@ -3291,6 +3309,7 @@ def box():
                              search_term=search_term, 
                              all_boxes_closed=all_boxes_closed,
                              coordinator_name=coordinator_name, 
+                             coordinator_id=coordinator.id,
                              user_id=user_id, 
                              expense_details=coordinator_expense_details, 
                              total_expenses=total_expenses)
@@ -3516,8 +3535,10 @@ def box_detail_admin(employee_id):
             ).count() or 0
 
             # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de creación descendente
-            transactions = Transaction.query.filter_by(
-                employee_id=employee_id).order_by(Transaction.creation_date.desc()).all()
+            transactions = Transaction.query.filter(
+                Transaction.employee_id == employee_id,
+                ~Transaction.description.like('[ELIMINADA]%')
+            ).order_by(Transaction.creation_date.desc()).all()
 
             # Filtrar transacciones por tipo y fecha
             today = datetime.today().date()
@@ -4261,6 +4282,219 @@ def modify_transaction(transaction_id):
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
 
+def validate_coordinator_employee_access(coordinator_user_id, employee_id):
+    """Valida que el coordinador tiene acceso al empleado (es su subordinado o es él mismo)"""
+    try:
+        coordinator_employee = Employee.query.filter_by(user_id=coordinator_user_id).first()
+        if not coordinator_employee:
+            return False, None
+        
+        # Si es el mismo empleado, tiene acceso
+        if coordinator_employee.id == employee_id:
+            return True, coordinator_employee
+        
+        # Obtener el manager_id del coordinador
+        manager_id = db.session.query(Manager.id).filter_by(employee_id=coordinator_employee.id).scalar()
+        if not manager_id:
+            return False, None
+        
+        # Verificar si el empleado es un subordinado del coordinador
+        salesman = Salesman.query.filter_by(employee_id=employee_id, manager_id=manager_id).first()
+        if salesman:
+            return True, coordinator_employee
+        
+        return False, None
+    except Exception:
+        return False, None
+
+
+@routes.route('/api/transactions/<int:employee_id>/<transaction_type>', methods=['GET'])
+def get_transactions_by_type(employee_id, transaction_type):
+    """Obtener transacciones aprobadas por tipo y empleado"""
+    try:
+        # Validar usuario autenticado y coordinador
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'message': 'Usuario no autenticado'}), 401
+        
+        user = User.query.get(user_id)
+        if not user or user.role != Role.COORDINADOR:
+            return jsonify({'message': 'Acceso denegado. Solo coordinadores pueden acceder'}), 403
+        
+        # Validar acceso al empleado
+        has_access, coordinator_employee = validate_coordinator_employee_access(user_id, employee_id)
+        if not has_access:
+            return jsonify({'message': 'No tiene acceso a las transacciones de este empleado'}), 403
+        
+        # Validar tipo de transacción
+        if transaction_type not in ['GASTO', 'RETIRO', 'INGRESO']:
+            return jsonify({'message': 'Tipo de transacción inválido'}), 400
+        
+        # Obtener transacciones aprobadas del día actual
+        current_date = datetime.now().date()
+        transactions = Transaction.query.filter(
+            Transaction.employee_id == employee_id,
+            Transaction.transaction_types == transaction_type,
+            Transaction.approval_status == ApprovalStatus.APROBADA,
+            func.date(Transaction.creation_date) == current_date,
+            ~Transaction.description.like('[ELIMINADA]%')
+        ).order_by(Transaction.creation_date.desc()).all()
+        
+        # Formatear respuesta
+        transactions_data = []
+        for trans in transactions:
+            # Remover prefijo [ELIMINADA] si existe (por si acaso)
+            description = trans.description
+            if description.startswith('[ELIMINADA]'):
+                description = description[11:].strip()
+            
+            transactions_data.append({
+                'id': trans.id,
+                'description': description,
+                'amount': float(trans.amount),
+                'approval_status': trans.approval_status.name,
+                'creation_date': trans.creation_date.isoformat(),
+                'employee_id': trans.employee_id
+            })
+        
+        return jsonify({'transactions': transactions_data}), 200
+        
+    except Exception as e:
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+
+
+@routes.route('/api/transactions/<int:transaction_id>', methods=['PUT'])
+def update_transaction(transaction_id):
+    """Editar transacción"""
+    try:
+        # Validar usuario autenticado y coordinador
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'message': 'Usuario no autenticado'}), 401
+        
+        user = User.query.get(user_id)
+        if not user or user.role != Role.COORDINADOR:
+            return jsonify({'message': 'Acceso denegado. Solo coordinadores pueden editar'}), 403
+        
+        # Obtener la transacción
+        transaction = Transaction.query.get(transaction_id)
+        if not transaction:
+            return jsonify({'message': 'Transacción no encontrada'}), 404
+        
+        # Validar acceso al empleado de la transacción
+        has_access, coordinator_employee = validate_coordinator_employee_access(user_id, transaction.employee_id)
+        if not has_access:
+            return jsonify({'message': 'No tiene acceso a esta transacción'}), 403
+        
+        # Validar que la transacción no esté eliminada
+        if transaction.description.startswith('[ELIMINADA]'):
+            return jsonify({'message': 'No se puede editar una transacción eliminada'}), 400
+        
+        # Obtener datos del request
+        data = request.get_json()
+        if not data:
+            return jsonify({'message': 'Datos no proporcionados'}), 400
+        
+        # Validar y actualizar monto
+        if 'amount' in data:
+            try:
+                new_amount = Decimal(str(data['amount']))
+                if new_amount <= 0:
+                    return jsonify({'message': 'El monto debe ser mayor a cero'}), 400
+                transaction.amount = new_amount
+            except (ValueError, TypeError):
+                return jsonify({'message': 'Monto inválido'}), 400
+        
+        # Validar y actualizar estado
+        if 'approval_status' in data:
+            new_status = data['approval_status']
+            if new_status not in ['APROBADA', 'RECHAZADA']:
+                return jsonify({'message': 'Estado inválido'}), 400
+            transaction.approval_status = ApprovalStatus(new_status)
+        
+        # Actualizar descripción (remover prefijo [ELIMINADA] si existe)
+        if 'description' in data:
+            new_description = data['description'].strip()
+            if new_description:
+                # Si tenía prefijo [ELIMINADA], removerlo
+                if transaction.description.startswith('[ELIMINADA]'):
+                    transaction.description = new_description
+                else:
+                    transaction.description = new_description
+        
+        # Actualizar fecha de modificación
+        transaction.modification_date = datetime.now()
+        
+        db.session.commit()
+        
+        # Preparar respuesta (remover prefijo si existe)
+        description = transaction.description
+        if description.startswith('[ELIMINADA]'):
+            description = description[11:].strip()
+        
+        return jsonify({
+            'message': 'Transacción actualizada exitosamente',
+            'transaction': {
+                'id': transaction.id,
+                'description': description,
+                'amount': float(transaction.amount),
+                'approval_status': transaction.approval_status.name,
+                'creation_date': transaction.creation_date.isoformat(),
+                'employee_id': transaction.employee_id
+            }
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+
+
+@routes.route('/api/transactions/<int:transaction_id>', methods=['DELETE'])
+def delete_transaction(transaction_id):
+    """Eliminar transacción (soft delete)"""
+    try:
+        # Validar usuario autenticado y coordinador
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'message': 'Usuario no autenticado'}), 401
+        
+        user = User.query.get(user_id)
+        if not user or user.role != Role.COORDINADOR:
+            return jsonify({'message': 'Acceso denegado. Solo coordinadores pueden eliminar'}), 403
+        
+        # Obtener la transacción
+        transaction = Transaction.query.get(transaction_id)
+        if not transaction:
+            return jsonify({'message': 'Transacción no encontrada'}), 404
+        
+        # Validar acceso al empleado de la transacción
+        has_access, coordinator_employee = validate_coordinator_employee_access(user_id, transaction.employee_id)
+        if not has_access:
+            return jsonify({'message': 'No tiene acceso a esta transacción'}), 403
+        
+        # Validar que la transacción no esté ya eliminada
+        if transaction.description.startswith('[ELIMINADA]'):
+            return jsonify({'message': 'La transacción ya está eliminada'}), 400
+        
+        # Soft delete: agregar prefijo [ELIMINADA] y cambiar estado a RECHAZADA
+        if not transaction.description.startswith('[ELIMINADA]'):
+            transaction.description = f'[ELIMINADA] {transaction.description}'
+        
+        transaction.approval_status = ApprovalStatus.RECHAZADA
+        transaction.modification_date = datetime.now()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Transacción eliminada exitosamente',
+            'transaction_id': transaction_id
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+
+
 @routes.route('/wallet')
 def wallet():
     try:
@@ -4598,7 +4832,8 @@ def list_expenses():
         transacciones_con_conceptos = db.session.query(Transaction, Concept).outerjoin(
             Concept, Transaction.concept_id == Concept.id
         ).filter(
-            Transaction.employee_id == empleado.id
+            Transaction.employee_id == empleado.id,
+            ~Transaction.description.like('[ELIMINADA]%')
         ).order_by(Transaction.creation_date.desc()).paginate(
             page=page, per_page=per_page, error_out=False
         )
@@ -4705,8 +4940,10 @@ def box_detail():
             (loan_amount * loan_interest / 100)
 
     # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de creación descendente
-    transactions = Transaction.query.filter_by(
-        employee_id=employee_id).order_by(Transaction.creation_date.desc()).all()
+    transactions = Transaction.query.filter(
+        Transaction.employee_id == employee_id,
+        ~Transaction.description.like('[ELIMINADA]%')
+    ).order_by(Transaction.creation_date.desc()).all()
 
     # Filtrar transacciones por tipo y fecha
     today = datetime.today().date()
@@ -6123,8 +6360,10 @@ def history_box_detail(employee_id):
             (loan_amount * loan_interest / 100)
 
     # Obtener detalles de gastos, ingresos y retiros asociados a ese vendedor y ordenar por fecha de creación descendente
-    transactions = Transaction.query.filter_by(
-        employee_id=employee_id).order_by(Transaction.creation_date.desc()).all()
+    transactions = Transaction.query.filter(
+        Transaction.employee_id == employee_id,
+        ~Transaction.description.like('[ELIMINADA]%')
+    ).order_by(Transaction.creation_date.desc()).all()
 
     # Filtrar transacciones por tipo y fecha
     expenses = [trans for trans in transactions if

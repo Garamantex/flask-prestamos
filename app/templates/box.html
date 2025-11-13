@@ -78,7 +78,10 @@
                                         </div>
                                     </div>
                                     <div class="col-lg-2 col-md-4 col-sm-6">
-                                        <div class="metric-item">
+                                        <div class="metric-item clickable-metric" 
+                                             data-employee-id="{{ coordinator_id }}" 
+                                             data-transaction-type="GASTO"
+                                             style="cursor: pointer;">
                                             <div class="metric-label">Total Gastos</div>
                                             <div class="metric-value text-danger">
                                                 <i class="bi bi-arrow-down-circle me-1"></i>
@@ -87,7 +90,10 @@
                                         </div>
                                     </div>
                                     <div class="col-lg-2 col-md-4 col-sm-6">
-                                        <div class="metric-item">
+                                        <div class="metric-item clickable-metric" 
+                                             data-employee-id="{{ coordinator_id }}" 
+                                             data-transaction-type="INGRESO"
+                                             style="cursor: pointer;">
                                             <div class="metric-label">Total Ingresos</div>
                                             <div class="metric-value text-success">
                                                 <i class="bi bi-arrow-up-circle me-1"></i>
@@ -96,7 +102,10 @@
                                         </div>
                                     </div>
                                     <div class="col-lg-2 col-md-4 col-sm-6">
-                                        <div class="metric-item">
+                                        <div class="metric-item clickable-metric" 
+                                             data-employee-id="{{ coordinator_id }}" 
+                                             data-transaction-type="RETIRO"
+                                             style="cursor: pointer;">
                                             <div class="metric-label">Total Retiros</div>
                                             <div class="metric-value text-warning">
                                                 <i class="bi bi-arrow-down-circle me-1"></i>
@@ -244,7 +253,10 @@
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="metric-item">
+                                            <div class="metric-item clickable-metric" 
+                                                 data-employee-id="{{ salesman['employee_id'] }}" 
+                                                 data-transaction-type="GASTO"
+                                                 style="cursor: pointer;">
                                                 <div class="metric-label">Gastos</div>
                                                 <div class="metric-value text-danger">
                                                     <i class="bi bi-arrow-down-circle me-1"></i>
@@ -254,7 +266,10 @@
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="metric-item">
+                                            <div class="metric-item clickable-metric" 
+                                                 data-employee-id="{{ salesman['employee_id'] }}" 
+                                                 data-transaction-type="RETIRO"
+                                                 style="cursor: pointer;">
                                                 <div class="metric-label">Retiros</div>
                                                 <div class="metric-value text-warning">
                                                     <i class="bi bi-arrow-down-circle me-1"></i>
@@ -264,7 +279,10 @@
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="metric-item">
+                                            <div class="metric-item clickable-metric" 
+                                                 data-employee-id="{{ salesman['employee_id'] }}" 
+                                                 data-transaction-type="INGRESO"
+                                                 style="cursor: pointer;">
                                                 <div class="metric-label">Ingresos</div>
                                                 <div class="metric-value text-success">
                                                     <i class="bi bi-arrow-up-circle me-1"></i>
@@ -378,6 +396,51 @@
     </div>
 </div>
 
+<!-- Modal de Transacciones -->
+<div class="modal fade" id="transactionModal" tabindex="-1" role="dialog" aria-labelledby="transactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="transactionModalLabel">Gestión de Transacciones</h3>
+                <button type="button" class="close" onclick="closeTransactionModal()" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="transactionModalLoading" class="text-center py-4">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Cargando...</span>
+                    </div>
+                </div>
+                <div id="transactionModalContent" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="c-table" id="transactionsTable">
+                            <thead>
+                                <tr>
+                                    <th class="c-table__box">Descripción</th>
+                                    <th class="c-table__box text-center">Monto</th>
+                                    <th class="c-table__box text-center">Estado</th>
+                                    <th class="c-table__box text-center d-none d-md-table-cell">Fecha</th>
+                                    <th class="c-table__box text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionsTableBody">
+                                <!-- Las transacciones se cargarán aquí dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="noTransactionsMessage" class="text-center py-4" style="display: none;">
+                        <p class="text-muted">No hay transacciones para mostrar</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="c-btn c-btn-secondary" onclick="closeTransactionModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Overlay -->
 <div class="modal-overlay"></div>
 
@@ -423,6 +486,65 @@
      .metric-item:hover {
          background: #e9ecef;
          transform: translateY(-1px);
+     }
+     
+     .clickable-metric:hover {
+         background: #e3f2fd !important;
+         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+     }
+     
+     /* Estilos para modal responsive mobile */
+     @media (max-width: 768px) {
+         #transactionModal .modal-dialog {
+             margin: 0.5rem;
+             max-width: calc(100% - 1rem);
+         }
+         
+         #transactionModal .modal-content {
+             border-radius: 0.5rem;
+         }
+         
+         #transactionsTable {
+             font-size: 0.85rem;
+         }
+         
+         #transactionsTable th,
+         #transactionsTable td {
+             padding: 0.5rem 0.25rem;
+             white-space: nowrap;
+         }
+         
+         #transactionsTable .c-table__box {
+             font-size: 0.8rem;
+         }
+         
+         .transaction-actions-container {
+             display: flex;
+             flex-direction: column;
+             gap: 0.25rem;
+         }
+         
+         .transaction-actions-container .c-btn {
+             width: 100%;
+             font-size: 0.75rem;
+             padding: 0.25rem 0.5rem;
+         }
+     }
+     
+     /* Asegurar que las acciones siempre sean visibles */
+     #transactionsTable tbody td:last-child {
+         position: sticky;
+         right: 0;
+         background-color: #fff;
+         z-index: 10;
+         min-width: 120px;
+     }
+     
+     @media (max-width: 768px) {
+         #transactionsTable tbody td:last-child {
+             position: relative;
+             min-width: auto;
+         }
      }
      
      .metric-label {
@@ -651,6 +773,323 @@ function initializeBoxCards() {
 // Solo ejecutar si estamos en la página box
 if (window.location.pathname.includes('/box') || window.location.pathname === '/') {
     document.addEventListener('DOMContentLoaded', initializeBoxCards);
+}
+
+// Funcionalidad para modal de transacciones
+let currentEmployeeId = null;
+let currentTransactionType = null;
+
+// Event listeners para métricas clicables
+document.addEventListener('DOMContentLoaded', function() {
+    const clickableMetrics = document.querySelectorAll('.clickable-metric');
+    clickableMetrics.forEach(metric => {
+        metric.addEventListener('click', function() {
+            const employeeId = this.getAttribute('data-employee-id');
+            const transactionType = this.getAttribute('data-transaction-type');
+            openTransactionModal(employeeId, transactionType);
+        });
+    });
+});
+
+function openTransactionModal(employeeId, transactionType) {
+    currentEmployeeId = employeeId;
+    currentTransactionType = transactionType;
+    
+    // Actualizar título del modal según el tipo
+    const typeLabels = {
+        'GASTO': 'Gastos',
+        'RETIRO': 'Retiros',
+        'INGRESO': 'Ingresos'
+    };
+    document.getElementById('transactionModalLabel').textContent = `Gestión de ${typeLabels[transactionType]}`;
+    
+    // Mostrar loading y ocultar contenido
+    document.getElementById('transactionModalLoading').style.display = 'block';
+    document.getElementById('transactionModalContent').style.display = 'none';
+    document.getElementById('noTransactionsMessage').style.display = 'none';
+    
+    // Mostrar modal (compatible con Bootstrap 4 y 5)
+    const modalElement = document.getElementById('transactionModal');
+    if (typeof bootstrap !== 'undefined') {
+        // Bootstrap 5
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else {
+        // Bootstrap 4 o jQuery
+        $('#transactionModal').modal('show');
+    }
+    
+    // Cargar transacciones
+    loadTransactions(employeeId, transactionType);
+}
+
+function closeTransactionModal() {
+    const modalElement = document.getElementById('transactionModal');
+    
+    // Intentar con Bootstrap 5 primero
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+        if (modalInstance) {
+            modalInstance.hide();
+        } else {
+            // Si no existe instancia, crear una nueva y ocultarla
+            const modal = new bootstrap.Modal(modalElement);
+            modal.hide();
+        }
+        return;
+    }
+    
+    // Fallback para Bootstrap 4 con jQuery
+    if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+        jQuery('#transactionModal').modal('hide');
+        return;
+    }
+    
+    // Fallback manual: ocultar el modal directamente
+    modalElement.style.display = 'none';
+    modalElement.classList.remove('show');
+    document.body.classList.remove('modal-open');
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) {
+        backdrop.remove();
+    }
+}
+
+function loadTransactions(employeeId, transactionType) {
+    fetch(`/api/transactions/${employeeId}/${transactionType}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('transactionModalLoading').style.display = 'none';
+            
+            if (data.transactions && data.transactions.length > 0) {
+                document.getElementById('transactionModalContent').style.display = 'block';
+                document.getElementById('noTransactionsMessage').style.display = 'none';
+                populateTransactionsTable(data.transactions);
+            } else {
+                document.getElementById('transactionModalContent').style.display = 'none';
+                document.getElementById('noTransactionsMessage').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar transacciones:', error);
+            document.getElementById('transactionModalLoading').style.display = 'none';
+            alert('Error al cargar las transacciones. Por favor, intente nuevamente.');
+        });
+}
+
+function populateTransactionsTable(transactions) {
+    const tbody = document.getElementById('transactionsTableBody');
+    tbody.innerHTML = '';
+    
+    transactions.forEach(transaction => {
+        const row = document.createElement('tr');
+        row.id = `transaction-row-${transaction.id}`;
+        
+        const date = new Date(transaction.creation_date);
+        const formattedDate = date.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        row.innerHTML = `
+            <td class="c-table__box">
+                <span class="transaction-description-${transaction.id}">${escapeHtml(transaction.description)}</span>
+                <div class="transaction-edit-form-${transaction.id}" style="display: none;">
+                    <input type="text" class="form-control form-control-sm" 
+                           id="edit-description-${transaction.id}" 
+                           value="${escapeHtml(transaction.description)}">
+                </div>
+            </td>
+            <td class="c-table__box text-center">
+                <span class="transaction-amount-${transaction.id}">$ ${formatNumber(transaction.amount)}</span>
+                <div class="transaction-edit-form-${transaction.id}" style="display: none;">
+                    <input type="number" class="form-control form-control-sm" 
+                           id="edit-amount-${transaction.id}" 
+                           value="${transaction.amount}" 
+                           step="0.01" min="0.01">
+                </div>
+            </td>
+            <td class="c-table__box text-center">
+                <span class="badge badge-${transaction.approval_status === 'APROBADA' ? 'success' : 'danger'} transaction-status-${transaction.id}">
+                    ${transaction.approval_status}
+                </span>
+                <div class="transaction-edit-form-${transaction.id}" style="display: none;">
+                    <select class="form-control form-control-sm" id="edit-status-${transaction.id}">
+                        <option value="APROBADA" ${transaction.approval_status === 'APROBADA' ? 'selected' : ''}>APROBADA</option>
+                        <option value="RECHAZADA" ${transaction.approval_status === 'RECHAZADA' ? 'selected' : ''}>RECHAZADA</option>
+                    </select>
+                </div>
+            </td>
+            <td class="c-table__box text-center d-none d-md-table-cell">
+                <span class="transaction-date-${transaction.id}">${formattedDate}</span>
+            </td>
+            <td class="c-table__box text-center">
+                <div class="transaction-actions-${transaction.id} transaction-actions-container">
+                    <button class="c-btn c-btn-primary c-btn-sm" 
+                            onclick="editTransaction(${transaction.id})"
+                            style="white-space: nowrap;">
+                        <i class="bi bi-pencil"></i> <span class="d-none d-sm-inline">Editar</span>
+                    </button>
+                    <button class="c-btn c-btn-danger c-btn-sm" 
+                            onclick="deleteTransaction(${transaction.id})"
+                            style="white-space: nowrap;">
+                        <i class="bi bi-trash"></i> <span class="d-none d-sm-inline">Eliminar</span>
+                    </button>
+                </div>
+                <div class="transaction-edit-buttons-${transaction.id} transaction-actions-container" style="display: none;">
+                    <button class="c-btn c-btn-success c-btn-sm" 
+                            onclick="saveTransaction(${transaction.id})"
+                            style="white-space: nowrap;">
+                        <i class="bi bi-check"></i> <span class="d-none d-sm-inline">Guardar</span>
+                    </button>
+                    <button class="c-btn c-btn-secondary c-btn-sm" 
+                            onclick="cancelEditTransaction(${transaction.id})"
+                            style="white-space: nowrap;">
+                        <i class="bi bi-x"></i> <span class="d-none d-sm-inline">Cancelar</span>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+function editTransaction(transactionId) {
+    // Ocultar acciones y mostrar formulario
+    document.querySelector(`.transaction-actions-${transactionId}`).style.display = 'none';
+    document.querySelector(`.transaction-edit-buttons-${transactionId}`).style.display = 'block';
+    
+    // Ocultar valores y mostrar inputs
+    document.querySelector(`.transaction-description-${transactionId}`).style.display = 'none';
+    document.querySelector(`.transaction-amount-${transactionId}`).style.display = 'none';
+    document.querySelector(`.transaction-status-${transactionId}`).style.display = 'none';
+    
+    // Mostrar TODOS los formularios de edición (descripción, monto, estado)
+    const editForms = document.querySelectorAll(`.transaction-edit-form-${transactionId}`);
+    editForms.forEach(form => {
+        form.style.display = 'block';
+    });
+}
+
+function cancelEditTransaction(transactionId) {
+    // Mostrar acciones y ocultar formulario
+    document.querySelector(`.transaction-actions-${transactionId}`).style.display = 'block';
+    document.querySelector(`.transaction-edit-buttons-${transactionId}`).style.display = 'none';
+    
+    // Mostrar valores y ocultar inputs
+    document.querySelector(`.transaction-description-${transactionId}`).style.display = 'inline';
+    document.querySelector(`.transaction-amount-${transactionId}`).style.display = 'inline';
+    document.querySelector(`.transaction-status-${transactionId}`).style.display = 'inline';
+    
+    // Ocultar TODOS los formularios de edición
+    const editForms = document.querySelectorAll(`.transaction-edit-form-${transactionId}`);
+    editForms.forEach(form => {
+        form.style.display = 'none';
+    });
+}
+
+function saveTransaction(transactionId) {
+    const description = document.getElementById(`edit-description-${transactionId}`).value.trim();
+    const amount = parseFloat(document.getElementById(`edit-amount-${transactionId}`).value);
+    const status = document.getElementById(`edit-status-${transactionId}`).value;
+    
+    // Validaciones
+    if (!description) {
+        alert('La descripción no puede estar vacía');
+        return;
+    }
+    
+    if (isNaN(amount) || amount <= 0) {
+        alert('El monto debe ser un número mayor a cero');
+        return;
+    }
+    
+    // Preparar datos
+    const data = {
+        description: description,
+        amount: amount,
+        approval_status: status
+    };
+    
+    // Enviar petición PUT
+    fetch(`/api/transactions/${transactionId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message && data.message.includes('exitosamente')) {
+            // Recargar transacciones
+            loadTransactions(currentEmployeeId, currentTransactionType);
+            alert('Transacción actualizada exitosamente');
+        } else {
+            alert('Error: ' + (data.message || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Error al guardar transacción:', error);
+        alert('Error al guardar la transacción. Por favor, intente nuevamente.');
+    });
+}
+
+function deleteTransaction(transactionId) {
+    if (!confirm('¿Está seguro de que desea eliminar esta transacción? Esta acción no se puede deshacer.')) {
+        return;
+    }
+    
+    fetch(`/api/transactions/${transactionId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message && data.message.includes('exitosamente')) {
+            // Remover fila de la tabla
+            const row = document.getElementById(`transaction-row-${transactionId}`);
+            if (row) {
+                row.remove();
+            }
+            
+            // Verificar si quedan transacciones
+            const tbody = document.getElementById('transactionsTableBody');
+            if (tbody.children.length === 0) {
+                document.getElementById('transactionModalContent').style.display = 'none';
+                document.getElementById('noTransactionsMessage').style.display = 'block';
+            }
+            
+            alert('Transacción eliminada exitosamente');
+            
+            // Recargar la página para actualizar los contadores
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            alert('Error: ' + (data.message || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Error al eliminar transacción:', error);
+        alert('Error al eliminar la transacción. Por favor, intente nuevamente.');
+    });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatNumber(number) {
+    return new Intl.NumberFormat('es-ES', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(number);
 }
 </script>
 
