@@ -1,4 +1,10 @@
 {% extends "base.html" %} {% block content %}
+<style>
+  .c-table__box {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+</style>
 <div class="c-form">
   <div class="container pt-5">
     <div class="row">
@@ -21,6 +27,14 @@
       }} {{ salesman.employee.user.last_name }}
     </h2>
     <hr class="mb-3">
+
+    <!-- Buscador Global -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <input type="text" id="globalSearchInput" class="form-control" placeholder="Buscar en todas las tablas...">
+      </div>
+    </div>
+
     <table class="c-table">
       <thead>
         <tr>
@@ -349,6 +363,31 @@
     document.querySelectorAll('[data-dismiss="modal"]').forEach(button => {
       button.addEventListener('click', () => {
         $('#editPaymentModal').modal('hide');
+      });
+    });
+
+    // Buscador Global
+    document.getElementById('globalSearchInput').addEventListener('keyup', function() {
+      const searchTerm = this.value.toLowerCase();
+      const tables = document.querySelectorAll('.c-table');
+
+      tables.forEach(table => {
+        const rows = table.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          let rowText = '';
+          
+          cells.forEach(cell => {
+            rowText += cell.textContent.toLowerCase() + ' ';
+          });
+
+          if (rowText.includes(searchTerm)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
       });
     });
 </script>

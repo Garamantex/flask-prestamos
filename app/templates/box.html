@@ -170,7 +170,7 @@
                                         aria-controls="salesmanCollapse{{ loop.index }}">
                                     <i class="bi bi-chevron-down"></i>
                                 </button>
-                                <a href="./box-detail?employee_id={{ salesman['employee_id'] }}"
+                                <a href="{{ url_for('routes.box_detail', employee_id=salesman['employee_id']) }}"
                                    class="c-btn c-btn-primary c-btn-sm">
                                     <i class="bi bi-inboxes me-1"></i>Detalle
                                 </a>
