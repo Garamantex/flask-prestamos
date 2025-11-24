@@ -1142,7 +1142,7 @@ def mark_overdue():
     # Buscar la primera cuota pendiente del préstamo específico
     pending_installment = LoanInstallment.query.filter(
         LoanInstallment.loan_id == loan_id,
-        LoanInstallment.status == InstallmentStatus.PENDIENTE
+         LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA])
     ).order_by(LoanInstallment.due_date.asc()).first()
 
     if pending_installment:
@@ -4992,14 +4992,18 @@ def box_detail():
                             'arrears_count': 1,
                             'overdue_balance': installment.amount,
                             'total_loan_amount': loan.amount,
-                            'loan_id': loan.id
+                            'loan_id': loan.id,
+                            '_sort_time': payment_today.payment_date
                         }
                         clients_in_arrears.append(client_arrears)
+
+    # Ordenar lista de mora por fecha de procesamiento
+    clients_in_arrears.sort(key=lambda x: x['_sort_time'])
 
     # Obtener todos los pagos realizados hoy
     payments_today = Payment.query.join(LoanInstallment).join(Loan).join(Employee).filter(Employee.id == employee_id,
                                                                                           func.date(
-                                                                                              Payment.payment_date) == today).all()
+                                                                                              Payment.payment_date) == today).order_by(Payment.payment_date.asc()).all()
 
     # Recopilar detalles de los pagos realizados hoy
     payment_details = []
