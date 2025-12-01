@@ -54,13 +54,14 @@
                             </div>
                             
                             <div class="c-form__group">
-                                <label for="document" class="c-form__label c-form__label--required">DNI</label>
+                                <label for="document" class="c-form__label c-form__label--required">DNI / Documento</label>
                                 <input type="text" 
                                        class="c-form__input" 
                                        name="document" 
                                        id="document" 
                                        placeholder="Número de documento"
                                        required>
+                                <small id="document-feedback" class="form-text"></small>
                             </div>
                             
                             <div class="c-form__group">
@@ -130,7 +131,7 @@
                         </fieldset>
                         
                         <div class="c-form__actions">
-                            <button class="c-btn c-btn-primary" type="submit">Crear Cliente</button>
+                            <button id="submit-btn" class="c-btn c-btn-primary" type="submit" disabled>Crear Cliente</button>
                         </div>
                     </form>
                 </div>
@@ -138,4 +139,171 @@
         </div>
     </div>
 </div>
+
+<style>
+    .dni-valid {
+        color: #28a745;
+        font-weight: bold;
+    }
+    .dni-invalid {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .dni-checking {
+        color: #6c757d;
+        font-style: italic;
+    }
+    .input-valid {
+        border-color: #28a745 !important;
+    }
+    .input-invalid {
+        border-color: #dc3545 !important;
+    }
+    .c-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #6c757d !important;
+    }
+</style>
+
+<script>
+    let checkDniTimeout;
+    let lastCheckedDni = '';
+    let isDniValid = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const documentInput = document.getElementById('document');
+        const feedbackElement = document.getElementById('document-feedback');
+        const form = document.querySelector('form');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        // Obtener referencias a todos los campos obligatorios
+        const firstNameInput = document.getElementById('first_name');
+        const lastNameInput = document.getElementById('last_name');
+        const cellphoneInput = document.getElementById('cellphone');
+        
+        // Función para validar si todos los campos obligatorios están completos
+        function validateForm() {
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            const document = documentInput.value.trim();
+            const cellphone = cellphoneInput.value.trim();
+            
+            // Verificar que todos los campos obligatorios estén llenos
+            const allFieldsFilled = firstName && lastName && document && cellphone;
+            
+            // Habilitar el botón solo si todos los campos están llenos y el DNI es válido
+            if (allFieldsFilled && isDniValid) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+
+        // Función para verificar DNI
+        function checkDni(dni) {
+            // Limpiar espacios
+            dni = dni.trim();
+
+            // Si el DNI está vacío, limpiar feedback
+            if (!dni) {
+                feedbackElement.textContent = '';
+                feedbackElement.className = 'form-text';
+                documentInput.classList.remove('input-valid', 'input-invalid');
+                isDniValid = false;
+                validateForm();
+                return;
+            }
+
+            // Si es el mismo DNI que ya verificamos, no hacer nada
+            if (dni === lastCheckedDni) {
+                return;
+            }
+
+            // Mostrar mensaje de verificación
+            feedbackElement.textContent = 'Verificando DNI...';
+            feedbackElement.className = 'form-text dni-checking';
+            documentInput.classList.remove('input-valid', 'input-invalid');
+
+            // Hacer la petición al API
+            fetch(`/api/check-dni/${encodeURIComponent(dni)}`)
+                .then(response => response.json())
+                .then(data => {
+                    lastCheckedDni = dni;
+                    
+                    if (data.exists) {
+                        feedbackElement.textContent = '❌ ' + data.message + '. Por favor, use un DNI diferente.';
+                        feedbackElement.className = 'form-text dni-invalid';
+                        documentInput.classList.remove('input-valid');
+                        documentInput.classList.add('input-invalid');
+                        isDniValid = false;
+                    } else {
+                        feedbackElement.textContent = '✓ ' + data.message;
+                        feedbackElement.className = 'form-text dni-valid';
+                        documentInput.classList.remove('input-invalid');
+                        documentInput.classList.add('input-valid');
+                        isDniValid = true;
+                    }
+                    validateForm();
+                })
+                .catch(error => {
+                    console.error('Error al verificar DNI:', error);
+                    feedbackElement.textContent = 'Error al verificar el DNI';
+                    feedbackElement.className = 'form-text dni-invalid';
+                    documentInput.classList.remove('input-valid', 'input-invalid');
+                    isDniValid = true; // Permitir envío si hay error de red
+                    validateForm();
+                });
+        }
+
+        // Evento cuando el usuario escribe en el campo DNI
+        documentInput.addEventListener('input', function() {
+            const dni = this.value;
+
+            // Cancelar timeout anterior
+            clearTimeout(checkDniTimeout);
+
+            // Esperar 500ms después de que el usuario deje de escribir
+            checkDniTimeout = setTimeout(function() {
+                checkDni(dni);
+            }, 500);
+        });
+
+        // Evento cuando el usuario sale del campo DNI
+        documentInput.addEventListener('blur', function() {
+            clearTimeout(checkDniTimeout);
+            checkDni(this.value);
+        });
+        
+        // Agregar event listeners a todos los campos obligatorios
+        firstNameInput.addEventListener('input', validateForm);
+        lastNameInput.addEventListener('input', validateForm);
+        cellphoneInput.addEventListener('input', validateForm);
+        documentInput.addEventListener('input', validateForm);
+        
+        // Validar al cargar la página
+        validateForm();
+
+        // Validar antes de enviar el formulario
+        form.addEventListener('submit', function(e) {
+            const dni = documentInput.value.trim();
+            
+            if (!isDniValid) {
+                e.preventDefault();
+                alert('Por favor, corrija el DNI antes de continuar. El DNI ingresado ya está registrado.');
+                documentInput.focus();
+                return false;
+            }
+
+            // Si no se ha verificado el DNI, no permitir envío
+            if (dni && lastCheckedDni !== dni) {
+                e.preventDefault();
+                alert('Por favor, espere mientras se verifica el DNI.');
+                checkDni(dni);
+                return false;
+            }
+        });
+    });
+</script>
+
 {% endblock %}

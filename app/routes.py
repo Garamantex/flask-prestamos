@@ -625,6 +625,12 @@ def create_client(user_id):
                 raise Exception(
                     "Error: Los campos obligatorios deben estar completos.")
 
+            # Verificar si el DNI ya existe
+            existing_client = Client.query.filter_by(document=document).first()
+            if existing_client:
+                flash('El DNI ingresado ya está registrado. Por favor, use un DNI diferente.', 'error')
+                return render_template('create-client.html', user_id=user_id)
+
             # Crear una instancia del cliente con los datos proporcionados
             client = Client(
                 first_name=first_name,
@@ -4306,6 +4312,30 @@ def validate_coordinator_employee_access(coordinator_user_id, employee_id):
         return False, None
     except Exception:
         return False, None
+
+
+@routes.route('/api/check-dni/<dni>', methods=['GET'])
+def check_dni(dni):
+    """Verificar si un DNI ya existe en la base de datos"""
+    try:
+        # Buscar si existe un cliente con ese DNI
+        existing_client = Client.query.filter_by(document=dni).first()
+        
+        if existing_client:
+            return jsonify({
+                'exists': True,
+                'message': 'Este DNI ya está registrado'
+            }), 200
+        else:
+            return jsonify({
+                'exists': False,
+                'message': 'DNI disponible'
+            }), 200
+    except Exception as e:
+        return jsonify({
+            'error': 'Error al verificar el DNI',
+            'message': str(e)
+        }), 500
 
 
 @routes.route('/api/transactions/<int:employee_id>/<transaction_type>', methods=['GET'])
