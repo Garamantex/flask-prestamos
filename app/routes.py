@@ -2002,7 +2002,8 @@ def get_salesman_new_clients_data(salesman_employee_id, current_date):
     new_clients_loan_amount = Loan.query.join(Client).filter(
         Client.employee_id == salesman_employee_id,
         Loan.creation_date >= start_of_day,
-        Loan.is_renewal == False
+        Loan.is_renewal == False,
+        Loan.status == True  # Solo préstamos activos
     ).with_entities(func.sum(Loan.amount)).scalar() or 0
     
     return new_clients, new_clients_loan_amount
@@ -2345,7 +2346,8 @@ def get_all_salesmen_data_optimized(salesmen, current_date):
     ).join(Loan, Client.id == Loan.client_id).filter(
         Client.employee_id.in_(employee_ids),
         Client.creation_date >= start_of_day,
-        Loan.is_renewal == False
+        Loan.is_renewal == False,
+        Loan.status == True  # Solo préstamos activos
     ).group_by(Client.employee_id).all()
     
     new_clients_data = {emp_id: {'count': 0, 'amount': 0} for emp_id in employee_ids}
@@ -2762,7 +2764,8 @@ def get_all_salesmen_data_optimized_history(salesmen, filter_date):
     ).join(Loan, Client.id == Loan.client_id).filter(
         Client.employee_id.in_(employee_ids),
         func.date(Client.creation_date) == filter_date,
-        Loan.is_renewal == False
+        Loan.is_renewal == False,
+        Loan.status == True  # Solo préstamos activos
     ).group_by(Client.employee_id).all()
     
     new_clients_data = {emp_id: {'count': 0, 'amount': 0} for emp_id in employee_ids}
@@ -3463,7 +3466,8 @@ def box_detail_admin(employee_id):
                 Client.employee_id == salesman.employee_id,
                 Loan.creation_date >= datetime.now().replace(
                     hour=0, minute=0, second=0, microsecond=0),
-                Loan.is_renewal == False  # Excluir renovaciones
+                Loan.is_renewal == False,  # Excluir renovaciones
+                Loan.status == True  # Solo préstamos activos
             ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
             # Calcula el total de renovaciones para el día actual para este vendedor
@@ -4929,7 +4933,7 @@ def box_detail():
 
     for loan in loans:
         loan_date = loan.creation_date.date() # Obtener solo la fecha del préstamo
-        if loan_date == datetime.today().date() and loan.is_renewal == 0:  # Verificar si el préstamo se realizó hoy
+        if loan_date == datetime.today().date() and loan.is_renewal == 0 and loan.status:  # Verificar si el préstamo se realizó hoy y está activo
             loan_detail = {
                 'client_name': loan.client.first_name + ' ' + loan.client.last_name,
                 'loan_amount': loan.amount,
@@ -5381,7 +5385,8 @@ def add_daily_collected(employee_id):
             Client.employee_id == employee_id,
             Loan.creation_date >= datetime.now().replace(
                 hour=0, minute=0, second=0, microsecond=0),
-            Loan.is_renewal == False  # Excluir renovaciones
+            Loan.is_renewal == False,  # Excluir renovaciones
+            Loan.status == True  # Solo préstamos activos
         ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
         # Calcula el monto total de las renovaciones de préstamos para este vendedor
@@ -5975,7 +5980,8 @@ def process_salesman_record(employee_id, current_date):
     new_clients_loan_amount = Loan.query.join(Client).filter(
         Client.employee_id == employee_id,
         func.date(Loan.creation_date) >= current_date,
-        Loan.is_renewal == False  # Excluir renovaciones
+        Loan.is_renewal == False,  # Excluir renovaciones
+        Loan.status == True  # Solo préstamos activos
     ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
     # Calcula el monto total de las renovaciones de préstamos para este vendedor
@@ -6299,6 +6305,12 @@ def cancel_loan(loan_id):
     client = Client.query.get(loan.client_id)
     client_name = f"{client.first_name} {client.last_name}"
 
+    # Obtener el empleado asociado al préstamo
+    employee = Employee.query.get(loan.employee_id)
+    
+    # Reintegrar el monto del préstamo al box_value del empleado
+    employee.box_value += Decimal(str(loan.amount))
+
     # Actualizar cada cuota a 0
     for installment in installments:
         installment.amount = 0
@@ -6353,7 +6365,7 @@ def history_box_detail(employee_id):
     for loan in loans:
         loan_date = loan.creation_date.date() # Obtener solo la fecha del préstamo
         
-        if loan_date == filter_date and loan.is_renewal == 0:  # Verificar si el préstamo se realizó en la fecha filtrada
+        if loan_date == filter_date and loan.is_renewal == 0 and loan.status:  # Verificar si el préstamo se realizó en la fecha filtrada y está activo
             loan_detail = {
                 'client_name': loan.client.first_name + ' ' + loan.client.last_name,
                 'loan_amount': loan.amount,
@@ -6602,6 +6614,7 @@ def reports():
                 daily_sales = float(Loan.query.filter(
                     Loan.client.has(employee_id=salesman.employee_id),
                     Loan.is_renewal == False,
+                    Loan.status == True,  # Solo préstamos activos
                     func.date(Loan.creation_date) == current_date
                 ).with_entities(func.sum(Loan.amount)).scalar() or 0)
 
@@ -6750,6 +6763,7 @@ def download_report():
                 daily_sales = float(Loan.query.filter(
                     Loan.client.has(employee_id=salesman.employee_id),
                     Loan.is_renewal == False,
+                    Loan.status == True,  # Solo préstamos activos
                     func.date(Loan.creation_date) == current_date
                 ).with_entities(func.sum(Loan.amount)).scalar() or 0)
 
@@ -7061,7 +7075,8 @@ def history_box_detail_admin(employee_id):
                 new_clients_loan_amount = Loan.query.join(Client).filter(
                     Client.employee_id == salesman.employee_id,
                     func.date(Loan.creation_date) == filter_date,
-                    Loan.is_renewal == False  # Excluir renovaciones
+                    Loan.is_renewal == False,  # Excluir renovaciones
+                    Loan.status == True  # Solo préstamos activos
                 ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
                 # Calcula el total de renovaciones para la fecha filtrada para este vendedor
