@@ -1362,7 +1362,6 @@ def payments_list(user_id):
             LoanInstallment.loan_id,
             func.max(case((Payment.payment_date.isnot(None), Payment.payment_date), else_=None)).label('last_payment_date'),
             func.min(case((LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]), LoanInstallment.due_date), else_=None)).label('next_due_date'),
-            func.min(LoanInstallment.fixed_amount).label('fixed_amount'),
             func.max(case((LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.due_date), else_=None)).label('prev_due_date')
         ).outerjoin(Payment, Payment.installment_id == LoanInstallment.id) \
          .filter(LoanInstallment.loan_id.in_(loan_ids)) \
@@ -1371,7 +1370,6 @@ def payments_list(user_id):
         # Convertir a diccionarios
         last_payment_by_loan = {row.loan_id: row.last_payment_date for row in loan_additional_data if row.last_payment_date}
         next_due_by_loan = {row.loan_id: row.next_due_date for row in loan_additional_data if row.next_due_date}
-        fixed_amount_by_loan = {row.loan_id: row.fixed_amount for row in loan_additional_data if row.fixed_amount}
         prev_due_by_loan = {row.loan_id: row.prev_due_date for row in loan_additional_data if row.prev_due_date}
 
         # Obtener estado de cuota previa y actual
@@ -1431,7 +1429,7 @@ def payments_list(user_id):
             if not client:
                 continue
 
-            installment_value = fixed_amount_by_loan.get(loan.id, 0) or 0
+            installment_value = int((loan.amount + (loan.amount * loan.interest / 100)) / loan.dues) if loan.dues > 0 else 0
             total_paid_amount = float(total_paid_amount_by_loan.get(loan.id, 0) or 0)
             paid_installments = int(paid_installments_by_loan.get(loan.id, 0) or 0)
             cuota_number_with_decimal = (total_paid_amount / float(installment_value)) if installment_value else paid_installments
@@ -1567,7 +1565,6 @@ def payments_list(user_id):
             LoanInstallment.loan_id,
             db.func.max(db.case((Payment.payment_date.isnot(None), Payment.payment_date), else_=None)).label('last_payment_date'),
             db.func.min(db.case((LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]), LoanInstallment.due_date), else_=None)).label('next_due_date'),
-            db.func.min(LoanInstallment.fixed_amount).label('fixed_amount'),
             db.func.max(db.case((LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.due_date), else_=None)).label('prev_due_date')
         ).outerjoin(Payment, Payment.installment_id == LoanInstallment.id) \
          .filter(LoanInstallment.loan_id.in_(processed_loan_ids)) \
@@ -1576,7 +1573,6 @@ def payments_list(user_id):
         # Convertir a diccionarios
         processed_last_payment_by_loan = {row.loan_id: row.last_payment_date for row in processed_loan_additional_data if row.last_payment_date}
         processed_next_due_by_loan = {row.loan_id: row.next_due_date for row in processed_loan_additional_data if row.next_due_date}
-        processed_fixed_amount_by_loan = {row.loan_id: row.fixed_amount for row in processed_loan_additional_data if row.fixed_amount}
         processed_prev_due_by_loan = {row.loan_id: row.prev_due_date for row in processed_loan_additional_data if row.prev_due_date}
 
         # Obtener estado de la última cuota procesada para préstamos procesados
@@ -1602,7 +1598,7 @@ def payments_list(user_id):
             if not client:
                 continue
 
-            installment_value = processed_fixed_amount_by_loan.get(loan.id, 0) or 0
+            installment_value = int((loan.amount + (loan.amount * loan.interest / 100)) / loan.dues) if loan.dues > 0 else 0
             total_paid_amount = float(processed_total_paid_amount_by_loan.get(loan.id, 0) or 0)
             paid_installments = int(processed_paid_installments_by_loan.get(loan.id, 0) or 0)
             cuota_number_with_decimal = (total_paid_amount / float(installment_value)) if installment_value else paid_installments
