@@ -16,9 +16,9 @@
                 <h2 class="c-cajas__item__title c-headings c-headings__h2 text-center mb-2">Cartera {{ wallet_data['main_admin']['name'] }}</h2>
                 <div class="c-card c-card--summary mb-3 p-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span><b>Créditos</b></span>
+                        <span><b>Rutas</b></span>
                         <span><b>#</b> {{ wallet_data['Total Sellers with Active Loans'] }}</span>
-                        <span><b>$</b> {{ wallet_data['Total Cash Value']|moneda_cl }}</span>
+                        <span><b>Debido Cobrar Total:</b> {{ wallet_data['Total Cash Value']|moneda_cl }}</span>
                     </div>
                 </div>
             </div>

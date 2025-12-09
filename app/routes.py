@@ -4545,7 +4545,13 @@ def wallet():
 
         # Obtener el administrador principal (usuario logueado)
         main_admin = Manager.query.filter_by(employee_id=employee.id).first()
-        subadmins = Manager.query.filter(Manager.employee_id != employee.id).all()
+        # Obtener sub-administradores activos (con employee.status = True)
+        subadmins = Manager.query.join(
+            Employee, Manager.employee_id == Employee.id
+        ).filter(
+            Manager.employee_id != employee.id,
+            Employee.status == True
+        ).all()
 
         def get_wallet_data_optimized(employee_ids):
             """Obtiene datos de cartera optimizados en consultas bulk para evitar N+1"""
@@ -4553,6 +4559,7 @@ def wallet():
                 return {}
             
             # 1. Obtener todos los clientes con préstamos activos en una sola consulta
+            # Solo incluir clientes de empleados activos
             clients_with_loans = db.session.query(
                 Client.employee_id,
                 Client.id.label('client_id'),
@@ -4561,9 +4568,12 @@ def wallet():
                 Loan.interest.label('loan_interest')
             ).join(
                 Loan, Loan.client_id == Client.id
+            ).join(
+                Employee, Client.employee_id == Employee.id
             ).filter(
                 Client.employee_id.in_(employee_ids),
-                Loan.status == True
+                Employee.status == True,  # Solo empleados activos
+                Loan.status == True  # Solo préstamos activos
             ).all()
             
             # 2. Obtener todas las primeras cuotas en una sola consulta
@@ -4636,6 +4646,7 @@ def wallet():
                     overdue_installments[installment.loan_id] += float(installment.amount or 0)
             
             # 5. Obtener pagos realizados hoy para calcular porcentaje de recaudación
+            # Solo de empleados activos
             collections_today = {}
             collections_query = db.session.query(
                 Client.employee_id,
@@ -4646,8 +4657,11 @@ def wallet():
                 LoanInstallment, LoanInstallment.loan_id == Loan.id
             ).join(
                 Payment, Payment.installment_id == LoanInstallment.id
+            ).join(
+                Employee, Client.employee_id == Employee.id
             ).filter(
                 Client.employee_id.in_(employee_ids),
+                Employee.status == True,  # Solo empleados activos
                 func.date(Payment.payment_date) == today
             ).group_by(Client.employee_id).all()
             
@@ -4700,13 +4714,15 @@ def wallet():
                 sellers = Salesman.query.filter_by(manager_id=manager.id).all()
                 
                 # Obtener employee_ids y pre-cargar datos si no se proporcionaron
-                employee_ids = [s.employee_id for s in sellers if s.employee]
+                # Solo incluir empleados activos (status = True)
+                employee_ids = [s.employee_id for s in sellers if s.employee and s.employee.status]
                 if wallet_data is None and employee_ids:
                     wallet_data = get_wallet_data_optimized(employee_ids)
                 
                 boxes = []
                 for seller in sellers:
-                    if not seller.employee or not seller.employee.user:
+                    # Excluir empleados inactivos (status = False/0)
+                    if not seller.employee or not seller.employee.user or not seller.employee.status:
                         continue
                     
                     emp_id = seller.employee.id
@@ -4740,13 +4756,15 @@ def wallet():
                 all_sellers = Salesman.query.all()
                 
                 # Obtener employee_ids y pre-cargar datos si no se proporcionaron
-                employee_ids = [s.employee_id for s in all_sellers if s.employee]
+                # Solo incluir empleados activos (status = True)
+                employee_ids = [s.employee_id for s in all_sellers if s.employee and s.employee.status]
                 if wallet_data is None and employee_ids:
                     wallet_data = get_wallet_data_optimized(employee_ids)
                 
                 boxes = []
                 for seller in all_sellers:
-                    if not seller.employee or not seller.employee.user:
+                    # Excluir empleados inactivos (status = False/0)
+                    if not seller.employee or not seller.employee.user or not seller.employee.status:
                         continue
                     manager_name = 'Sin administrador'
                     if seller.manager and seller.manager.employee and seller.manager.employee.user:
@@ -4786,9 +4804,10 @@ def wallet():
                 all_sellers = Salesman.query.all()
                 
                 # Obtener employee_ids relevantes
+                # Solo incluir empleados activos (status = True)
                 relevant_employee_ids = []
                 for seller in all_sellers:
-                    if seller.employee:
+                    if seller.employee and seller.employee.status:
                         is_manager = Manager.query.filter_by(employee_id=seller.employee.id).first()
                         if not is_manager and seller.manager_id == main_admin.id:
                             relevant_employee_ids.append(seller.employee_id)
@@ -4804,7 +4823,8 @@ def wallet():
                     if not is_manager:  # Solo incluir si NO es un manager
                         # Verificar que el vendedor pertenezca directamente al administrador principal
                         if seller.manager_id == main_admin.id:
-                            if not seller.employee or not seller.employee.user:
+                            # Excluir empleados inactivos (status = False/0)
+                            if not seller.employee or not seller.employee.user or not seller.employee.status:
                                 continue
                             manager_name = 'Sin administrador'
                             if seller.manager and seller.manager.employee and seller.manager.employee.user:
@@ -4837,8 +4857,9 @@ def wallet():
                 return []
 
         # Pre-cargar todos los datos de cartera en una sola vez (optimización)
+        # Solo incluir empleados con status activo (status = True / 1)
         all_sellers = Salesman.query.all()
-        all_employee_ids = [s.employee_id for s in all_sellers if s.employee]
+        all_employee_ids = [s.employee_id for s in all_sellers if s.employee and s.employee.status]
         wallet_data_cache = get_wallet_data_optimized(all_employee_ids) if all_employee_ids else {}
         
         # Obtener todas las cajas de todos los vendedores
@@ -4851,19 +4872,32 @@ def wallet():
         else:
             main_admin_boxes = []
         
-        # Cajas de subadmins
+        # Cajas de subadmins (solo activos y con cajas)
         subadmins_list = []
         for subadmin in subadmins:
-            if subadmin.employee and subadmin.employee.user:
-                subadmins_list.append({
-                    'name': f"{subadmin.employee.user.first_name or ''} {subadmin.employee.user.last_name or ''}",
-                    'boxes': get_boxes_for_manager(subadmin, wallet_data_cache)
-                })
+            if subadmin.employee and subadmin.employee.user and subadmin.employee.status:
+                boxes = get_boxes_for_manager(subadmin, wallet_data_cache)
+                # Solo agregar si tiene cajas
+                if boxes:
+                    subadmins_list.append({
+                        'name': f"{subadmin.employee.user.first_name or ''} {subadmin.employee.user.last_name or ''}",
+                        'boxes': boxes
+                    })
 
-        # Totales generales usando solo las cajas de vendedores (no sub-administradores)
+        # Totales generales del header:
+        # 1. Contar vendedores directos + sub-administradores directos
         only_sellers_boxes = get_only_sellers_boxes(wallet_data_cache)
-        total_cash = sum([b.get('Total Portfolio Value', 0) for b in only_sellers_boxes])
-        total_active_sellers = len(only_sellers_boxes)
+        num_direct_sellers = len(only_sellers_boxes)
+        num_direct_subadmins = len(subadmins_list)
+        total_active_sellers = num_direct_sellers + num_direct_subadmins
+        
+        # 2. Sumar "Debido Cobrar" de cajas propias + cajas de subadministradores
+        # Cajas propias (vendedores directos)
+        total_cash = sum([b.get('Total Amount of Pending Installments', 0) for b in only_sellers_boxes])
+        
+        # Cajas de subadministradores (usar los datos ya calculados)
+        for subadmin_data in subadmins_list:
+            total_cash += sum([b.get('Total Amount of Pending Installments', 0) for b in subadmin_data['boxes']])
 
         # Porcentaje de recaudación del día - Monto cobrado HOY vs Monto esperado HOY
         try:
@@ -4909,10 +4943,10 @@ def wallet():
             },
             'subadmins': subadmins_list,
             'all_sellers': all_sellers_boxes,  # Agregar todas las cajas de vendedores
-            'Total Cash Value': str(total_cash),
+            'Total Cash Value': total_cash,  # Mantener como número para que el filtro moneda_cl funcione
             'Total Sellers with Active Loans': total_active_sellers,
             'Percentage of Day Collection': f'{day_collection:.2f}%',
-            'Debt Balance': str(debt_balance)
+            'Debt Balance': debt_balance  # Mantener como número
         }
 
         return render_template('wallet.html', wallet_data=wallet_data, user_id=user_id)
