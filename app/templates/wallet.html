@@ -37,13 +37,13 @@
                                 <h5>Debido Cobrar</h5>
                                 <p>Cantidad: {{ box['Number of Active Loans'] }}</p>
                                 <p>Valor: ${{ box['Total Amount of Pending Installments'] }}</p>
-                                <p>Porcentaje: 0 %</p>
+                                <p>Porcentaje: {{ "%.0f"|format(box['Collection Percentage']) }} %</p>
                             </div>
                             <div class="c-card__internal flex-fill">
                                 <h5>Cartera</h5>
                                 <p>Vencido: ${{ box['Total Amount of Overdue Loans'] }}</p>
-                                <p>Valor: ${{ box['Total Amount of Pending Installments'] }}</p>
-                                <p>Saldo: ${{ box['Total Amount of Pending Installments'] }}</p>
+                                <p>Valor: ${{ box['Total Portfolio Value'] }}</p>
+                                <p>Saldo: ${{ box['Balance'] }}</p>
                             </div>
                             <div class="d-flex align-items-center flex-fill justify-content-end">
                                 <a href="/wallet-detail/{{ box['Employee ID'] }}" class="c-btn c-btn-primary btn-pagar w-100">Ir al Detalle</a>
@@ -82,13 +82,13 @@
                                                 <h5>Debido Cobrar</h5>
                                                 <p>Cantidad: {{ box['Number of Active Loans'] }}</p>
                                                 <p>Valor: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
-                                                <p>Porcentaje: 0 %</p>
+                                                <p>Porcentaje: {{ "%.0f"|format(box['Collection Percentage']) }} %</p>
                                             </div>
                                             <div class="c-card__internal col-12 col-md-6">
                                                 <h5>Cartera</h5>
                                                 <p>Vencido: {{ box['Total Amount of Overdue Loans']|moneda_cl }}</p>
-                                                <p>Valor: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
-                                                <p>Saldo: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
+                                                <p>Valor: {{ box['Total Portfolio Value']|moneda_cl }}</p>
+                                                <p>Saldo: {{ box['Balance']|moneda_cl }}</p>
                                             </div>
                                         </div>
                                         <div class="row mt-2">
@@ -134,13 +134,13 @@
                                                 <h5>Debido Cobrar</h5>
                                                 <p>Cantidad: {{ box['Number of Active Loans'] }}</p>
                                                 <p>Valor: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
-                                                <p>Porcentaje: 0 %</p>
+                                                <p>Porcentaje: {{ "%.0f"|format(box['Collection Percentage']) }} %</p>
                                             </div>
                                             <div class="c-card__internal col-12 col-md-6">
                                                 <h5>Cartera</h5>
                                                 <p>Vencido: {{ box['Total Amount of Overdue Loans']|moneda_cl }}</p>
-                                                <p>Valor: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
-                                                <p>Saldo: {{ box['Total Amount of Pending Installments']|moneda_cl }}</p>
+                                                <p>Valor: {{ box['Total Portfolio Value']|moneda_cl }}</p>
+                                                <p>Saldo: {{ box['Balance']|moneda_cl }}</p>
                                             </div>
                                         </div>
                                         <div class="row mt-2">

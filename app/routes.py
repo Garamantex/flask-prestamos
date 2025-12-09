@@ -4547,43 +4547,203 @@ def wallet():
         main_admin = Manager.query.filter_by(employee_id=employee.id).first()
         subadmins = Manager.query.filter(Manager.employee_id != employee.id).all()
 
-        def get_boxes_for_manager(manager):
+        def get_wallet_data_optimized(employee_ids):
+            """Obtiene datos de cartera optimizados en consultas bulk para evitar N+1"""
+            if not employee_ids:
+                return {}
+            
+            # 1. Obtener todos los clientes con préstamos activos en una sola consulta
+            clients_with_loans = db.session.query(
+                Client.employee_id,
+                Client.id.label('client_id'),
+                Loan.id.label('loan_id'),
+                Loan.amount.label('loan_amount'),
+                Loan.interest.label('loan_interest')
+            ).join(
+                Loan, Loan.client_id == Client.id
+            ).filter(
+                Client.employee_id.in_(employee_ids),
+                Loan.status == True
+            ).all()
+            
+            # 2. Obtener todas las primeras cuotas en una sola consulta
+            loan_ids = [row.loan_id for row in clients_with_loans]
+            first_installments = {}
+            if loan_ids:
+                # Subconsulta para obtener el ID de la primera cuota de cada préstamo
+                subquery = db.session.query(
+                    LoanInstallment.loan_id,
+                    func.min(LoanInstallment.due_date).label('min_due_date')
+                ).filter(
+                    LoanInstallment.loan_id.in_(loan_ids)
+                ).group_by(LoanInstallment.loan_id).subquery()
+                
+                # Obtener las primeras cuotas
+                first_inst_query = db.session.query(
+                    LoanInstallment.loan_id,
+                    LoanInstallment.fixed_amount
+                ).join(
+                    subquery,
+                    and_(
+                        LoanInstallment.loan_id == subquery.c.loan_id,
+                        LoanInstallment.due_date == subquery.c.min_due_date
+                    )
+                ).all()
+                
+                first_installments = {row.loan_id: row.fixed_amount for row in first_inst_query}
+            
+            # 3. Obtener todas las cuotas pendientes y en mora para calcular balance
+            installments_data = {}
+            if loan_ids:
+                installments_query = db.session.query(
+                    LoanInstallment.loan_id,
+                    LoanInstallment.status,
+                    func.sum(LoanInstallment.amount).label('total_amount')
+                ).filter(
+                    LoanInstallment.loan_id.in_(loan_ids),
+                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
+                ).group_by(
+                    LoanInstallment.loan_id,
+                    LoanInstallment.status
+                ).all()
+                
+                for row in installments_query:
+                    if row.loan_id not in installments_data:
+                        installments_data[row.loan_id] = {'PENDIENTE': 0, 'MORA': 0}
+                    installments_data[row.loan_id][row.status.value] = float(row.total_amount or 0)
+            
+            # 4. Obtener cuotas vencidas (due_date < hoy y estado PENDIENTE o MORA) para calcular "Vencido"
+            # Solo de préstamos activos
+            today = date.today()
+            overdue_installments = {}
+            if loan_ids:
+                # Obtener todas las cuotas vencidas con estado PENDIENTE o MORA de préstamos activos
+                overdue_query = db.session.query(
+                    LoanInstallment
+                ).join(
+                    Loan, Loan.id == LoanInstallment.loan_id
+                ).filter(
+                    LoanInstallment.loan_id.in_(loan_ids),
+                    Loan.status == True,  # Verificar explícitamente que el préstamo esté activo
+                    LoanInstallment.due_date < today,
+                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
+                ).all()
+                
+                # Sumar el monto completo de cada cuota vencida
+                for installment in overdue_query:
+                    if installment.loan_id not in overdue_installments:
+                        overdue_installments[installment.loan_id] = 0
+                    overdue_installments[installment.loan_id] += float(installment.amount or 0)
+            
+            # 5. Obtener pagos realizados hoy para calcular porcentaje de recaudación
+            collections_today = {}
+            collections_query = db.session.query(
+                Client.employee_id,
+                func.sum(Payment.amount).label('total_collected')
+            ).join(
+                Loan, Loan.client_id == Client.id
+            ).join(
+                LoanInstallment, LoanInstallment.loan_id == Loan.id
+            ).join(
+                Payment, Payment.installment_id == LoanInstallment.id
+            ).filter(
+                Client.employee_id.in_(employee_ids),
+                func.date(Payment.payment_date) == today
+            ).group_by(Client.employee_id).all()
+            
+            for row in collections_query:
+                collections_today[row.employee_id] = float(row.total_collected or 0)
+            
+            # 6. Organizar datos por employee_id
+            result = {}
+            for emp_id in employee_ids:
+                result[emp_id] = {
+                    'active_clients': set(),
+                    'total_portfolio_value': 0,
+                    'total_pending_installments': 0,
+                    'balance': 0,
+                    'total_overdue_installments': 0,  # Total de cuotas vencidas
+                    'collected_today': collections_today.get(emp_id, 0)
+                }
+            
+            # 7. Procesar los datos
+            for row in clients_with_loans:
+                emp_id = row.employee_id
+                loan_id = row.loan_id
+                
+                # Sumar cuotas en mora (independiente de si tiene primera cuota)
+                if loan_id in overdue_installments:
+                    result[emp_id]['total_overdue_installments'] += overdue_installments[loan_id]
+                
+                # Solo contar si tiene primera cuota
+                if loan_id in first_installments:
+                    result[emp_id]['active_clients'].add(row.client_id)
+                    # Calcular el valor total con intereses: amount + (amount * interest / 100)
+                    loan_amount = float(row.loan_amount or 0)
+                    loan_interest = float(row.loan_interest or 0)
+                    total_with_interest = loan_amount + (loan_amount * loan_interest / 100)
+                    result[emp_id]['total_portfolio_value'] += total_with_interest
+                    result[emp_id]['total_pending_installments'] += float(first_installments[loan_id] or 0)
+                    
+                    # Calcular balance (cuotas pendientes + cuotas en mora)
+                    if loan_id in installments_data:
+                        loan_inst_data = installments_data[loan_id]
+                        result[emp_id]['balance'] += loan_inst_data.get('PENDIENTE', 0)
+                        result[emp_id]['balance'] += loan_inst_data.get('MORA', 0)
+            
+            return result
+        
+        def get_boxes_for_manager(manager, wallet_data=None):
             if not manager:
                 return []
             try:
                 sellers = Salesman.query.filter_by(manager_id=manager.id).all()
+                
+                # Obtener employee_ids y pre-cargar datos si no se proporcionaron
+                employee_ids = [s.employee_id for s in sellers if s.employee]
+                if wallet_data is None and employee_ids:
+                    wallet_data = get_wallet_data_optimized(employee_ids)
+                
                 boxes = []
                 for seller in sellers:
                     if not seller.employee or not seller.employee.user:
                         continue
+                    
+                    emp_id = seller.employee.id
+                    emp_data = wallet_data.get(emp_id, {})
+                    
+                    # Calcular porcentaje de recaudación
+                    projected_value = emp_data.get('total_pending_installments', 0)
+                    collected_today = emp_data.get('collected_today', 0)
+                    collection_percentage = (collected_today / projected_value * 100) if projected_value > 0 else 0
+                    
                     seller_info = {
-                        'Employee ID': seller.employee.id,
+                        'Employee ID': emp_id,
                         'First Name': seller.employee.user.first_name or '',
                         'Last Name': seller.employee.user.last_name or '',
-                        'Number of Active Loans': 0,
-                        'Total Amount of Overdue Loans': 0,
-                        'Total Amount of Pending Installments': 0,
+                        'Number of Active Loans': len(emp_data.get('active_clients', set())),
+                        'Total Amount of Overdue Loans': emp_data.get('total_overdue_installments', 0),
+                        'Total Amount of Pending Installments': projected_value,
+                        'Total Portfolio Value': emp_data.get('total_portfolio_value', 0),
+                        'Balance': emp_data.get('balance', 0),
+                        'Collection Percentage': collection_percentage,
                     }
-                    clients = seller.employee.clients
-                    for client in clients:
-                        active_loans = Loan.query.filter_by(client_id=client.id, status=True).count()
-                        seller_info['Number of Active Loans'] += active_loans
-                        for loan in client.loans:
-                            for installment in loan.installments:
-                                if installment.status == InstallmentStatus.MORA:
-                                    seller_info['Total Amount of Overdue Loans'] += float(loan.amount or 0)
-                                elif installment.status == InstallmentStatus.PENDIENTE:
-                                    seller_info['Total Amount of Pending Installments'] += float(installment.amount or 0)
                     boxes.append(seller_info)
                 return boxes
             except Exception as e:
         
                 return []
 
-        def get_all_sellers_boxes():
+        def get_all_sellers_boxes(wallet_data=None):
             """Obtiene todas las cajas de todos los vendedores"""
             try:
                 all_sellers = Salesman.query.all()
+                
+                # Obtener employee_ids y pre-cargar datos si no se proporcionaron
+                employee_ids = [s.employee_id for s in all_sellers if s.employee]
+                if wallet_data is None and employee_ids:
+                    wallet_data = get_wallet_data_optimized(employee_ids)
+                
                 boxes = []
                 for seller in all_sellers:
                     if not seller.employee or not seller.employee.user:
@@ -4592,37 +4752,51 @@ def wallet():
                     if seller.manager and seller.manager.employee and seller.manager.employee.user:
                         manager_name = f"{seller.manager.employee.user.first_name or ''} {seller.manager.employee.user.last_name or ''}"
                     
+                    emp_id = seller.employee.id
+                    emp_data = wallet_data.get(emp_id, {})
+                    
+                    # Calcular porcentaje de recaudación
+                    projected_value = emp_data.get('total_pending_installments', 0)
+                    collected_today = emp_data.get('collected_today', 0)
+                    collection_percentage = (collected_today / projected_value * 100) if projected_value > 0 else 0
+                    
                     seller_info = {
-                        'Employee ID': seller.employee.id,
+                        'Employee ID': emp_id,
                         'First Name': seller.employee.user.first_name or '',
                         'Last Name': seller.employee.user.last_name or '',
                         'Manager Name': manager_name,
-                        'Number of Active Loans': 0,
-                        'Total Amount of Overdue Loans': 0,
-                        'Total Amount of Pending Installments': 0,
+                        'Number of Active Loans': len(emp_data.get('active_clients', set())),
+                        'Total Amount of Overdue Loans': emp_data.get('total_overdue_installments', 0),
+                        'Total Amount of Pending Installments': projected_value,
+                        'Total Portfolio Value': emp_data.get('total_portfolio_value', 0),
+                        'Balance': emp_data.get('balance', 0),
+                        'Collection Percentage': collection_percentage,
                     }
-                    clients = seller.employee.clients
-                    for client in clients:
-                        active_loans = Loan.query.filter_by(client_id=client.id, status=True).count()
-                        seller_info['Number of Active Loans'] += active_loans
-                        for loan in client.loans:
-                            for installment in loan.installments:
-                                if installment.status == InstallmentStatus.MORA:
-                                    seller_info['Total Amount of Overdue Loans'] += float(loan.amount or 0)
-                                elif installment.status == InstallmentStatus.PENDIENTE:
-                                    seller_info['Total Amount of Pending Installments'] += float(installment.amount or 0)
                     boxes.append(seller_info)
                 return boxes
             except Exception as e:
         
                 return []
 
-        def get_only_sellers_boxes():
+        def get_only_sellers_boxes(wallet_data=None):
             """Obtiene solo las cajas de vendedores que pertenecen directamente al administrador principal"""
             try:
                 if not main_admin:
                     return []
                 all_sellers = Salesman.query.all()
+                
+                # Obtener employee_ids relevantes
+                relevant_employee_ids = []
+                for seller in all_sellers:
+                    if seller.employee:
+                        is_manager = Manager.query.filter_by(employee_id=seller.employee.id).first()
+                        if not is_manager and seller.manager_id == main_admin.id:
+                            relevant_employee_ids.append(seller.employee_id)
+                
+                # Pre-cargar datos si no se proporcionaron
+                if wallet_data is None and relevant_employee_ids:
+                    wallet_data = get_wallet_data_optimized(relevant_employee_ids)
+                
                 boxes = []
                 for seller in all_sellers:
                     # Verificar que el vendedor no sea un manager (sub-administrador)
@@ -4636,38 +4810,44 @@ def wallet():
                             if seller.manager and seller.manager.employee and seller.manager.employee.user:
                                 manager_name = f"{seller.manager.employee.user.first_name or ''} {seller.manager.employee.user.last_name or ''}"
                             
+                            emp_id = seller.employee.id
+                            emp_data = wallet_data.get(emp_id, {})
+                            
+                            # Calcular porcentaje de recaudación
+                            projected_value = emp_data.get('total_pending_installments', 0)
+                            collected_today = emp_data.get('collected_today', 0)
+                            collection_percentage = (collected_today / projected_value * 100) if projected_value > 0 else 0
+                            
                             seller_info = {
-                                'Employee ID': seller.employee.id,
+                                'Employee ID': emp_id,
                                 'First Name': seller.employee.user.first_name or '',
                                 'Last Name': seller.employee.user.last_name or '',
                                 'Manager Name': manager_name,
-                                'Number of Active Loans': 0,
-                                'Total Amount of Overdue Loans': 0,
-                                'Total Amount of Pending Installments': 0,
+                                'Number of Active Loans': len(emp_data.get('active_clients', set())),
+                                'Total Amount of Overdue Loans': emp_data.get('total_overdue_installments', 0),
+                                'Total Amount of Pending Installments': projected_value,
+                                'Total Portfolio Value': emp_data.get('total_portfolio_value', 0),
+                                'Balance': emp_data.get('balance', 0),
+                                'Collection Percentage': collection_percentage,
                             }
-                            clients = seller.employee.clients
-                            for client in clients:
-                                active_loans = Loan.query.filter_by(client_id=client.id, status=True).count()
-                                seller_info['Number of Active Loans'] += active_loans
-                                for loan in client.loans:
-                                    for installment in loan.installments:
-                                        if installment.status == InstallmentStatus.MORA:
-                                            seller_info['Total Amount of Overdue Loans'] += float(loan.amount or 0)
-                                        elif installment.status == InstallmentStatus.PENDIENTE:
-                                            seller_info['Total Amount of Pending Installments'] += float(installment.amount or 0)
                             boxes.append(seller_info)
                 return boxes
             except Exception as e:
         
                 return []
 
+        # Pre-cargar todos los datos de cartera en una sola vez (optimización)
+        all_sellers = Salesman.query.all()
+        all_employee_ids = [s.employee_id for s in all_sellers if s.employee]
+        wallet_data_cache = get_wallet_data_optimized(all_employee_ids) if all_employee_ids else {}
+        
         # Obtener todas las cajas de todos los vendedores
-        all_sellers_boxes = get_all_sellers_boxes()
+        all_sellers_boxes = get_all_sellers_boxes(wallet_data_cache)
         
         # Cajas del admin principal - incluir solo las cajas de vendedores (no sub-administradores)
         if main_admin:
             # Si es el administrador principal, mostrar solo las cajas de vendedores
-            main_admin_boxes = get_only_sellers_boxes()
+            main_admin_boxes = get_only_sellers_boxes(wallet_data_cache)
         else:
             main_admin_boxes = []
         
@@ -4677,22 +4857,43 @@ def wallet():
             if subadmin.employee and subadmin.employee.user:
                 subadmins_list.append({
                     'name': f"{subadmin.employee.user.first_name or ''} {subadmin.employee.user.last_name or ''}",
-                    'boxes': get_boxes_for_manager(subadmin)
+                    'boxes': get_boxes_for_manager(subadmin, wallet_data_cache)
                 })
 
         # Totales generales usando solo las cajas de vendedores (no sub-administradores)
-        only_sellers_boxes = get_only_sellers_boxes()
-        total_cash = sum([b.get('Total Amount of Pending Installments', 0) for b in only_sellers_boxes])
+        only_sellers_boxes = get_only_sellers_boxes(wallet_data_cache)
+        total_cash = sum([b.get('Total Portfolio Value', 0) for b in only_sellers_boxes])
         total_active_sellers = len(only_sellers_boxes)
 
-        # Porcentaje de recaudación del día (puedes ajustar la lógica si es necesario)
+        # Porcentaje de recaudación del día - Monto cobrado HOY vs Monto esperado HOY
         try:
-            paid_installments = LoanInstallment.query.filter_by(status=InstallmentStatus.PAGADA).count()
-            debt_balance = total_cash
-            day_collection = (paid_installments / debt_balance) * 100 if debt_balance > 0 else 0
+            today = date.today()
+            
+            # Obtener pagos realizados el día de hoy
+            payments_today = Payment.query.filter(
+                func.date(Payment.payment_date) == today
+            ).all()
+            amount_collected_today = sum([float(p.amount or 0) for p in payments_today])
+            
+            # Obtener cuotas con vencimiento hoy (pendientes o en mora)
+            installments_due_today = LoanInstallment.query.filter(
+                func.date(LoanInstallment.due_date) == today,
+                LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
+            ).all()
+            amount_due_today = sum([float(i.amount or 0) for i in installments_due_today])
+            
+            # Calcular porcentaje de recaudación del día
+            day_collection = (amount_collected_today / amount_due_today * 100) if amount_due_today > 0 else 0
+            
+            # Calcular el saldo de deuda total (cuotas pendientes + cuotas en mora)
+            all_pending_installments = LoanInstallment.query.filter(
+                LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
+            ).all()
+            debt_balance = sum([float(i.amount or 0) for i in all_pending_installments])
         except Exception as e:
     
             day_collection = 0
+            debt_balance = 0
 
         # Construir el nombre del administrador principal de forma segura
         main_admin_name = 'Sin administrador'
