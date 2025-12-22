@@ -5171,7 +5171,8 @@ def box_detail():
                 'loan_dues': loan.dues,
                 'loan_interest': loan.interest,
                 # Agregar la fecha del préstamo
-                'loan_date': loan_date.strftime('%d/%m/%Y')
+                'loan_date': loan_date.strftime('%d/%m/%Y'),
+                'loan_id': loan.id
             }
             loan_details.append(loan_detail)
 
@@ -5186,7 +5187,8 @@ def box_detail():
                     'loan_dues': loan.dues,
                     'loan_interest': loan.interest,
                     # Agregar la fecha de la renovación
-                    'renewal_date': renewal_date.strftime('%d/%m/%Y')
+                    'renewal_date': renewal_date.strftime('%d/%m/%Y'),
+                    'loan_id': loan.id
                 }
                 renewal_loan_details.append(renewal_loan_detail)
 
@@ -5256,7 +5258,7 @@ def box_detail():
                             'client_name': loan.client.first_name + ' ' + loan.client.last_name,
                             'arrears_count': 1,
                             'overdue_balance': installment.amount,
-                            'total_loan_amount': loan.amount,
+                            'total_loan_amount': loan.amount + (loan.amount * loan.interest / 100),
                             'loan_id': loan.id,
                             '_sort_time': payment_today.payment_date
                         }
@@ -5272,33 +5274,54 @@ def box_detail():
 
     # Recopilar detalles de los pagos realizados hoy
     payment_details = []
-    payment_summary = {}  # Dictionary to store payment summary for each client and date
+    payment_summary = {}  # Dictionary to store payment summary for each client, date, and loan
 
     for payment in payments_today:
         client_name = payment.installment.loan.client.first_name + \
             ' ' + payment.installment.loan.client.last_name
         payment_date = payment.payment_date.date()
+        loan_id = payment.installment.loan.id
 
-        # Check if payment summary already exists for the client and date
-        if (client_name, payment_date) in payment_summary:
+        # Calculate expected installment amount dynamically
+        # loan = payment.installment.loan
+        # expected_installment_amount = int((loan.amount + (loan.amount * loan.interest / 100)) / loan.dues) if loan.dues > 0 else 0
+        expected_installment_amount = payment.installment.fixed_amount
+
+        # Check if payment summary already exists for the client, date, and loan
+        if (client_name, payment_date, loan_id) in payment_summary:
+            summary = payment_summary[(client_name, payment_date, loan_id)]
             # Update the existing payment summary with the payment amount
-            payment_summary[(client_name, payment_date)
-                            ]['payment_amount'] += payment.amount
+            summary['payment_amount'] += payment.amount
+            
+            if payment.installment.id not in summary['_processed_installments']:
+                 summary['expected_amount'] += expected_installment_amount
+                 summary['_processed_installments'].add(payment.installment.id)
+            else:
+                 # Check if this is a different payment transaction for the same installment
+                 # If we are processing multiple payments for the same installment in the loop,
+                 # we should NOT add expected_amount again.
+                 # The current logic handles "multiple installments" correctly by checking ID.
+                 # However, if 'payments_today' contains multiple entries for the same installment 
+                 # (e.g. partial payments), the 'else' block ensures we don't add expected_amount again.
+                 pass
+
         else:
-            # Create a new payment summary for the client and date
+            # Create a new payment summary for the client, date, and loan
             remaining_balance = sum(inst.amount for inst in payment.installment.loan.installments if inst.status in (
                 InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA))
             total_credit = payment.installment.loan.amount  # Total credit from the loan model
             if payment.amount > 0:  # Only include payments greater than 0
-                payment_summary[(client_name, payment_date)] = {
+                payment_summary[(client_name, payment_date, loan_id)] = {
                     'loan_id': payment.installment.loan.id,  # Add loan_id to the payment details
                     # Add installment_id to the payment details
                     'installment_id': payment.installment.id,
                     'client_name': client_name,
                     'payment_amount': payment.amount,
+                    'expected_amount': expected_installment_amount,
                     'remaining_balance': remaining_balance,
                     'total_credit': total_credit,  # Add total credit to the payment details
-                    'payment_date': payment_date.strftime('%d/%m/%Y'),
+                    'payment_date': payment_date.strftime('%d/%m/%y'),
+                    '_processed_installments': {payment.installment.id}
                 }
 
     # Convert payment summary dictionary to a list of payment details

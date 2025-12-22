@@ -196,11 +196,9 @@
         <tr>
           <th class="c-table__box">Cliente</th>
           <th class="c-table__box">C. MORA</th>
-          <th class="c-table__box">Saldo</th>
+          <th class="c-table__box">Saldo en Mora</th>
           <th class="c-table__box">Valor Total</th>
-                        {% if user_role == 'VENDEDOR' %}
-              <th class="c-table__box">Acción</th>
-              {% endif %}
+          <th class="c-table__box">Acción</th>
         </tr>
       </thead>
       <tbody>
@@ -210,10 +208,11 @@
           <td class="c-table__box">{{ client_in_arrears.arrears_count }}</td>
           <td class="c-table__box">$ {{ '{:,.0f}'.format(client_in_arrears.overdue_balance) }}</td>
           <td class="c-table__box">$ {{ '{:,.0f}'.format(client_in_arrears.total_loan_amount) }}</td>
-          {% if user_role == 'VENDEDOR' %}
           <td class="c-table__box">
+            <div class="d-flex" style="gap: 5px;">
+            {% if user_role == 'VENDEDOR' %}
             <a class="c-btn c-btn-primary js-btn-editar-pago cuota-label"
-              style="width: 60%; padding: 0.4rem 0;"
+              style="width: 45%; padding: 0.4rem 0;"
               data-id="{{ client_in_arrears.loan_id }}"
               data-installment-value="{{ client_in_arrears.installment_value }}"
               data-overdue-amount="{{ client_in_arrears.overdue_balance }}"
@@ -221,8 +220,14 @@
               data-target="#editPaymentModal">
               <i class="bi bi-pencil"></i>            
             </a>
+            {% endif %}
+            <a class="c-btn c-btn-primary cuota-label"
+               style="width: 45%; padding: 0.4rem 0;"
+               href="{{ url_for('routes.credit_detail', id=client_in_arrears.loan_id) }}">
+               <i class="bi bi-eye"></i>
+            </a>
+            </div>
            </td>
-           {% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -235,11 +240,9 @@
             <tr>
               <th class="c-table__box">Cliente</th>
               <th class="c-table__box">Vr. Pago</th>
-              <th class="c-table__box">Fecha de Pago</th>
+              <th class="c-table__box">Vr. Cuota</th>
               <th class="c-table__box">Saldo</th>
-              {% if user_role == 'VENDEDOR' %}
               <th class="c-table__box">Acción</th>
-              {% endif %}
             </tr>
           </thead>
           <tbody>
@@ -247,12 +250,13 @@
             <tr>
               <td class="c-table__box">{{ payment_detail.client_name }}</td>
               <td class="c-table__box">$ {{ '{:,.0f}'.format(payment_detail.payment_amount) }}</td>
-              <td class="c-table__box"> {{ payment_detail.payment_date }}</td>
+              <td class="c-table__box">$ {{ '{:,.0f}'.format(payment_detail.expected_amount) }}</td>
               <td class="c-table__box">$ {{ '{:,.0f}'.format(payment_detail.remaining_balance) }}</td>
-              {% if user_role == 'VENDEDOR' %}
               <td class="c-table__box">
+                <div class="d-flex" style="gap: 5px;">
+                {% if user_role == 'VENDEDOR' %}
                 <a type="button" class="c-btn c-btn-primary js-btn-editar-pago cuota-label"
-                style="width: 60%; padding: 0.4rem 0;"
+                style="width: 45%; padding: 0.4rem 0;"
                 data-id="{{ payment_detail.loan_id }}"
                 data-installment-id="{{ payment_detail.installment_id }}"
                 data-overdue-amount="{{ payment_detail.total_credit }}"
@@ -260,8 +264,14 @@
                 data-target="#editPaymentModal">
                 <i class="bi bi-pencil"></i>
              </a>             
+                {% endif %}
+                <a class="c-btn c-btn-primary cuota-label"
+                   style="width: 45%; padding: 0.4rem 0;"
+                   href="{{ url_for('routes.credit_detail', id=payment_detail.loan_id) }}">
+                   <i class="bi bi-eye"></i>
+                </a>
+                </div>
               </td>
-              {% endif %}
             </tr>
 
             {% endfor %}
