@@ -6211,14 +6211,12 @@ def history_box():
 def process_salesman_record(employee_id, current_date):
     """
     Procesa el registro de cierre de caja para un vendedor.
-    Retorna True si se procesó correctamente, False si ya existía registro.
+    Si ya existe un registro para el día, lo actualiza en lugar de crear uno nuevo.
+    Retorna True si se procesó correctamente.
     """
     # Verificar si ya existe un registro para este empleado en la fecha actual
     existing_record = EmployeeRecord.query.filter_by(employee_id=employee_id) \
         .filter(func.date(EmployeeRecord.creation_date) == current_date).first()
-    
-    if existing_record:
-        return False
     
     employee = Employee.query.get(employee_id)
     if not employee:
@@ -6386,35 +6384,64 @@ def process_salesman_record(employee_id, current_date):
     if last_record:
         initial_state = float(last_record.closing_total)
 
-    employee_record = EmployeeRecord(
-        employee_id=employee_id,
-        initial_state=initial_state,
-        incomings=daily_incomes_amount,
-        expenses=daily_expenses_amount,
-        withdrawals=daily_withdrawals_amount,
-        closing_total=int(initial_state) + int(paid_installments_amount)
-        + int(partial_installments) + int(daily_incomes_amount)
-        - int(new_clients_loan_amount)
-        - int(total_renewal_loans_amount)
-        - int(daily_withdrawals_amount)
-        - int(daily_expenses_amount),  # Calcular el cierre de caja
-        creation_date=datetime.now(),
-        loans_to_collect=loans_to_collect,
-        paid_installments=paid_installments_amount,
-        partial_installments=partial_installments,
-        overdue_installments=overdue_installments_total,
-        sales=new_clients_loan_amount,
-        renewals=total_renewal_loans_amount,
-        due_to_collect_tomorrow=total_pending_installments_amount,
-        total_collected=total_collected,
-        due_to_charge=total_pending_installments_loan_close_amount+total_pending_installments_amount
-    )
-    employee.status = 0
-    employee.box_value = employee_record.closing_total
+    # Calcular closing_total
+    closing_total = int(initial_state) + int(paid_installments_amount) \
+        + int(partial_installments) + int(daily_incomes_amount) \
+        - int(new_clients_loan_amount) \
+        - int(total_renewal_loans_amount) \
+        - int(daily_withdrawals_amount) \
+        - int(daily_expenses_amount)
 
-    db.session.add(employee)
-    db.session.add(employee_record)
-    db.session.commit()
+    # Si existe un registro, actualizarlo; si no, crear uno nuevo
+    if existing_record:
+        # Actualizar registro existente
+        existing_record.initial_state = initial_state
+        existing_record.incomings = daily_incomes_amount
+        existing_record.expenses = daily_expenses_amount
+        existing_record.withdrawals = daily_withdrawals_amount
+        existing_record.closing_total = closing_total
+        existing_record.loans_to_collect = loans_to_collect
+        existing_record.paid_installments = paid_installments_amount
+        existing_record.partial_installments = partial_installments
+        existing_record.overdue_installments = overdue_installments_total
+        existing_record.sales = new_clients_loan_amount
+        existing_record.renewals = total_renewal_loans_amount
+        existing_record.due_to_collect_tomorrow = total_pending_installments_amount
+        existing_record.total_collected = total_collected
+        existing_record.due_to_charge = total_pending_installments_loan_close_amount + total_pending_installments_amount
+        
+        employee.status = 0
+        employee.box_value = closing_total
+        
+        db.session.add(employee)
+        db.session.add(existing_record)
+        db.session.commit()
+    else:
+        # Crear nuevo registro
+        employee_record = EmployeeRecord(
+            employee_id=employee_id,
+            initial_state=initial_state,
+            incomings=daily_incomes_amount,
+            expenses=daily_expenses_amount,
+            withdrawals=daily_withdrawals_amount,
+            closing_total=closing_total,
+            creation_date=datetime.now(),
+            loans_to_collect=loans_to_collect,
+            paid_installments=paid_installments_amount,
+            partial_installments=partial_installments,
+            overdue_installments=overdue_installments_total,
+            sales=new_clients_loan_amount,
+            renewals=total_renewal_loans_amount,
+            due_to_collect_tomorrow=total_pending_installments_amount,
+            total_collected=total_collected,
+            due_to_charge=total_pending_installments_loan_close_amount+total_pending_installments_amount
+        )
+        employee.status = 0
+        employee.box_value = closing_total
+
+        db.session.add(employee)
+        db.session.add(employee_record)
+        db.session.commit()
     
     return True
 
@@ -6437,9 +6464,6 @@ def process_coordinator_hierarchy(manager_id, current_date):
     # Verificar si ya existe un registro para este coordinador en la fecha actual
     existing_record = EmployeeRecord.query.filter_by(employee_id=employee_id) \
         .filter(func.date(EmployeeRecord.creation_date) == current_date).first()
-    
-    if existing_record:
-        return  # Ya procesado
     
     manager_array = Employee.query.get(employee_id)
     if not manager_array:
@@ -6566,30 +6590,55 @@ def process_coordinator_hierarchy(manager_id, current_date):
     # Fórmula: box_value + inbound (subordinados) - outbound (subordinados) - expenses
     closing_total_calculated = float(manager_array.box_value) + float(total_employee_incomes_amount) - float(total_employee_withdrawals_amount) - float(daily_expenses_amount)
 
-    employee_record = EmployeeRecord(
-        employee_id=employee_id,
-        initial_state=initial_state,
-        incomings=daily_incomes_amount,
-        expenses=daily_expenses_amount,
-        withdrawals=daily_withdrawals_amount,
-        closing_total=closing_total_calculated,  # Usar el valor calculado como en la interfaz
-        creation_date=datetime.now(),
-        loans_to_collect=loans_to_collect,  # NO SE USA
-        paid_installments=paid_installments,  # NO SE USA
-        partial_installments=partial_installments,  # NO SE USA
-        overdue_installments=overdue_installments_total,  # NO SE USA
-        sales=new_clients_loan_amount,  # NO SE USA
-        renewals=total_renewal_loans_amount,  # NO SE USA
-        due_to_collect_tomorrow=total_pending_installments_amount,  # NO SE USA
-        total_collected=total_collected  # NO SE USA
-    )
-    
-    # Actualizar el valor de box_value del modelo Employee
-    manager_array.box_value = employee_record.closing_total
-
-    db.session.add(manager_array)
-    db.session.add(employee_record)
-    db.session.commit()
+    # Si existe un registro, actualizarlo; si no, crear uno nuevo
+    if existing_record:
+        # Actualizar registro existente
+        existing_record.initial_state = initial_state
+        existing_record.incomings = daily_incomes_amount
+        existing_record.expenses = daily_expenses_amount
+        existing_record.withdrawals = daily_withdrawals_amount
+        existing_record.closing_total = closing_total_calculated
+        existing_record.loans_to_collect = loans_to_collect
+        existing_record.paid_installments = paid_installments
+        existing_record.partial_installments = partial_installments
+        existing_record.overdue_installments = overdue_installments_total
+        existing_record.sales = new_clients_loan_amount
+        existing_record.renewals = total_renewal_loans_amount
+        existing_record.due_to_collect_tomorrow = total_pending_installments_amount
+        existing_record.total_collected = total_collected
+        
+        # Actualizar el valor de box_value del modelo Employee
+        manager_array.box_value = closing_total_calculated
+        
+        db.session.add(manager_array)
+        db.session.add(existing_record)
+        db.session.commit()
+    else:
+        # Crear nuevo registro
+        employee_record = EmployeeRecord(
+            employee_id=employee_id,
+            initial_state=initial_state,
+            incomings=daily_incomes_amount,
+            expenses=daily_expenses_amount,
+            withdrawals=daily_withdrawals_amount,
+            closing_total=closing_total_calculated,  # Usar el valor calculado como en la interfaz
+            creation_date=datetime.now(),
+            loans_to_collect=loans_to_collect,  # NO SE USA
+            paid_installments=paid_installments,  # NO SE USA
+            partial_installments=partial_installments,  # NO SE USA
+            overdue_installments=overdue_installments_total,  # NO SE USA
+            sales=new_clients_loan_amount,  # NO SE USA
+            renewals=total_renewal_loans_amount,  # NO SE USA
+            due_to_collect_tomorrow=total_pending_installments_amount,  # NO SE USA
+            total_collected=total_collected  # NO SE USA
+        )
+        
+        # Actualizar el valor de box_value del modelo Employee
+        manager_array.box_value = closing_total_calculated
+        
+        db.session.add(manager_array)
+        db.session.add(employee_record)
+        db.session.commit()
 
 
 @routes.route('/add-manager-record')
