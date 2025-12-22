@@ -1910,54 +1910,77 @@ def get_coordinator_data(user_id):
     
     return coordinator, coordinator_cash, coordinator_name, manager_id, salesmen
 
+def get_pure_salesmen_ids(manager_id):
+    """
+    Obtiene los IDs de empleados de vendedores puros (excluyendo subcoordinadores).
+    Un subcoordinador es un Salesman que también tiene registro en Manager.
+    """
+    # Obtener todos los Salesman bajo este manager
+    all_salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
+    
+    # Obtener todos los employee_id que son Managers (subcoordinadores)
+    subcoordinator_ids = db.session.query(Manager.employee_id).all()
+    subcoordinator_ids_set = {subcoord[0] for subcoord in subcoordinator_ids}
+    
+    # Filtrar para obtener solo vendedores puros (que NO son Managers)
+    pure_salesmen_ids = [
+        salesman.employee_id 
+        for salesman in all_salesmen 
+        if salesman.employee_id not in subcoordinator_ids_set
+    ]
+    
+    return pure_salesmen_ids
+
 def calculate_daily_transaction_totals(manager_id, current_date, coordinator_id=None):
-    """Calcula los totales de transacciones diarias para el coordinador"""
+    """
+    Calcula los totales de transacciones diarias para el coordinador.
+    Excluye subcoordinadores de los cálculos.
+    
+    Retorna una tupla con:
+    (salesman_incomes, salesman_withdrawals, coordinator_incomes, coordinator_withdrawals)
+    
+    Donde:
+    - salesman_incomes: INGRESOS de vendedores puros aprobados (deben RESTAR de la caja del coordinador)
+    - salesman_withdrawals: RETIROS de vendedores puros aprobados (deben SUMAR a la caja del coordinador)
+    - coordinator_incomes: INGRESOS del coordinador (deben SUMAR a la caja del coordinador)
+    - coordinator_withdrawals: RETIROS del coordinador (deben RESTAR de la caja del coordinador)
+    """
     start_of_day = datetime.combine(current_date, datetime.min.time())
     end_of_day = datetime.combine(current_date, datetime.max.time())
     
-    # Total de retiros aprobados (RETIROS del coordinador = INGRESO de subordinados + RETIRO del coordinador)
-    # Primero: INGRESO de subordinados (retiros del coordinador)
-    total_outbound_from_subordinates = db.session.query(
-        func.sum(Transaction.amount).label('total_amount')
-    ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
-        Transaction.transaction_types == 'INGRESO',
-        Transaction.approval_status == 'APROBADA',
-        Salesman.manager_id == manager_id,
-        Transaction.creation_date.between(start_of_day, end_of_day),
-        ~Transaction.description.like('[ELIMINADA]%')
-    ).scalar() or 0
+    # Obtener IDs de vendedores puros (excluyendo subcoordinadores)
+    pure_salesmen_ids = get_pure_salesmen_ids(manager_id)
     
-    # Segundo: RETIRO directo del coordinador (si existe)
-    total_outbound_from_coordinator = 0
-    if coordinator_id:
-        total_outbound_from_coordinator = db.session.query(
+    # INGRESOS de vendedores puros aprobados (RESTAR de la caja del coordinador)
+    salesman_incomes = 0
+    if pure_salesmen_ids:
+        salesman_incomes = db.session.query(
             func.sum(Transaction.amount).label('total_amount')
         ).filter(
-            Transaction.employee_id == coordinator_id,
+            Transaction.employee_id.in_(pure_salesmen_ids),
+            Transaction.transaction_types == 'INGRESO',
+            Transaction.approval_status == 'APROBADA',
+            Transaction.creation_date.between(start_of_day, end_of_day),
+            ~Transaction.description.like('[ELIMINADA]%')
+        ).scalar() or 0
+    
+    # RETIROS de vendedores puros aprobados (SUMAR a la caja del coordinador)
+    salesman_withdrawals = 0
+    if pure_salesmen_ids:
+        salesman_withdrawals = db.session.query(
+            func.sum(Transaction.amount).label('total_amount')
+        ).filter(
+            Transaction.employee_id.in_(pure_salesmen_ids),
             Transaction.transaction_types == 'RETIRO',
             Transaction.approval_status == 'APROBADA',
             func.date(Transaction.creation_date) == current_date,
             ~Transaction.description.like('[ELIMINADA]%')
         ).scalar() or 0
     
-    total_outbound_amount = float(total_outbound_from_subordinates) + float(total_outbound_from_coordinator)
-    
-    # Total de ingresos aprobados (INGRESOS del coordinador = RETIRO de subordinados + INGRESO del coordinador)
-    # Primero: RETIRO de subordinados (ingresos del coordinador)
-    total_inbound_from_subordinates = db.session.query(
-        func.sum(Transaction.amount).label('total_amount')
-    ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
-        Transaction.transaction_types == 'RETIRO',
-        Transaction.approval_status == 'APROBADA',
-        Salesman.manager_id == manager_id,
-        func.date(Transaction.creation_date) == current_date,
-        ~Transaction.description.like('[ELIMINADA]%')
-    ).scalar() or 0
-    
-    # Segundo: INGRESO directo del coordinador (si existe)
-    total_inbound_from_coordinator = 0
+    # INGRESOS del coordinador (SUMAR a la caja del coordinador)
+    coordinator_incomes = 0
     if coordinator_id:
-        total_inbound_from_coordinator = db.session.query(
+        coordinator_incomes = db.session.query(
             func.sum(Transaction.amount).label('total_amount')
         ).filter(
             Transaction.employee_id == coordinator_id,
@@ -1967,9 +1990,25 @@ def calculate_daily_transaction_totals(manager_id, current_date, coordinator_id=
             ~Transaction.description.like('[ELIMINADA]%')
         ).scalar() or 0
     
-    total_inbound_amount = float(total_inbound_from_subordinates) + float(total_inbound_from_coordinator)
+    # RETIROS del coordinador (RESTAR de la caja del coordinador)
+    coordinator_withdrawals = 0
+    if coordinator_id:
+        coordinator_withdrawals = db.session.query(
+            func.sum(Transaction.amount).label('total_amount')
+        ).filter(
+            Transaction.employee_id == coordinator_id,
+            Transaction.transaction_types == 'RETIRO',
+            Transaction.approval_status == 'APROBADA',
+            func.date(Transaction.creation_date) == current_date,
+            ~Transaction.description.like('[ELIMINADA]%')
+        ).scalar() or 0
     
-    return total_outbound_amount, total_inbound_amount
+    return (
+        float(salesman_incomes),
+        float(salesman_withdrawals),
+        float(coordinator_incomes),
+        float(coordinator_withdrawals)
+    )
 
 def get_salesman_daily_collections(salesman_employee_id, current_date):
     """Obtiene el total de cobros diarios de un vendedor"""
@@ -3077,53 +3116,55 @@ def get_all_salesmen_additional_data_optimized_history(employee_ids, filter_date
     return result
 
 def calculate_daily_transaction_totals_history(manager_id, filter_date, coordinator_id=None):
-    """Calcula los totales de transacciones diarias para el coordinador en history-box"""
+    """
+    Calcula los totales de transacciones diarias para el coordinador en history-box.
+    Excluye subcoordinadores de los cálculos.
+    
+    Retorna una tupla con:
+    (salesman_incomes, salesman_withdrawals, coordinator_incomes, coordinator_withdrawals)
+    
+    Donde:
+    - salesman_incomes: INGRESOS de vendedores puros aprobados (deben RESTAR de la caja del coordinador)
+    - salesman_withdrawals: RETIROS de vendedores puros aprobados (deben SUMAR a la caja del coordinador)
+    - coordinator_incomes: INGRESOS del coordinador (deben SUMAR a la caja del coordinador)
+    - coordinator_withdrawals: RETIROS del coordinador (deben RESTAR de la caja del coordinador)
+    """
     start_of_day = datetime.combine(filter_date, datetime.min.time())
     end_of_day = datetime.combine(filter_date, datetime.max.time())
     
-    # Total de retiros aprobados (RETIROS del coordinador = INGRESO de subordinados + RETIRO del coordinador)
-    # Primero: INGRESO de subordinados (retiros del coordinador)
-    total_outbound_from_subordinates = db.session.query(
-        func.sum(Transaction.amount).label('total_amount')
-    ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
-        Transaction.transaction_types == 'INGRESO',
-        Transaction.approval_status == 'APROBADA',
-        Salesman.manager_id == manager_id,
-        func.date(Transaction.creation_date) == filter_date,
-        ~Transaction.description.like('[ELIMINADA]%')
-    ).scalar() or 0
+    # Obtener IDs de vendedores puros (excluyendo subcoordinadores)
+    pure_salesmen_ids = get_pure_salesmen_ids(manager_id)
     
-    # Segundo: RETIRO directo del coordinador (si existe)
-    total_outbound_from_coordinator = 0
-    if coordinator_id:
-        total_outbound_from_coordinator = db.session.query(
+    # INGRESOS de vendedores puros aprobados (RESTAR de la caja del coordinador)
+    salesman_incomes = 0
+    if pure_salesmen_ids:
+        salesman_incomes = db.session.query(
             func.sum(Transaction.amount).label('total_amount')
         ).filter(
-            Transaction.employee_id == coordinator_id,
+            Transaction.employee_id.in_(pure_salesmen_ids),
+            Transaction.transaction_types == 'INGRESO',
+            Transaction.approval_status == 'APROBADA',
+            Transaction.creation_date.between(start_of_day, end_of_day),
+            ~Transaction.description.like('[ELIMINADA]%')
+        ).scalar() or 0
+    
+    # RETIROS de vendedores puros aprobados (SUMAR a la caja del coordinador)
+    salesman_withdrawals = 0
+    if pure_salesmen_ids:
+        salesman_withdrawals = db.session.query(
+            func.sum(Transaction.amount).label('total_amount')
+        ).filter(
+            Transaction.employee_id.in_(pure_salesmen_ids),
             Transaction.transaction_types == 'RETIRO',
             Transaction.approval_status == 'APROBADA',
             func.date(Transaction.creation_date) == filter_date,
             ~Transaction.description.like('[ELIMINADA]%')
         ).scalar() or 0
     
-    total_outbound_amount = float(total_outbound_from_subordinates) + float(total_outbound_from_coordinator)
-    
-    # Total de ingresos aprobados (INGRESOS del coordinador = RETIRO de subordinados + INGRESO del coordinador)
-    # Primero: RETIRO de subordinados (ingresos del coordinador)
-    total_inbound_from_subordinates = db.session.query(
-        func.sum(Transaction.amount).label('total_amount')
-    ).join(Salesman, Transaction.employee_id == Salesman.employee_id).filter(
-        Transaction.transaction_types == 'RETIRO',
-        Transaction.approval_status == 'APROBADA',
-        Salesman.manager_id == manager_id,
-        func.date(Transaction.creation_date) == filter_date,
-        ~Transaction.description.like('[ELIMINADA]%')
-    ).scalar() or 0
-    
-    # Segundo: INGRESO directo del coordinador (si existe)
-    total_inbound_from_coordinator = 0
+    # INGRESOS del coordinador (SUMAR a la caja del coordinador)
+    coordinator_incomes = 0
     if coordinator_id:
-        total_inbound_from_coordinator = db.session.query(
+        coordinator_incomes = db.session.query(
             func.sum(Transaction.amount).label('total_amount')
         ).filter(
             Transaction.employee_id == coordinator_id,
@@ -3133,9 +3174,25 @@ def calculate_daily_transaction_totals_history(manager_id, filter_date, coordina
             ~Transaction.description.like('[ELIMINADA]%')
         ).scalar() or 0
     
-    total_inbound_amount = float(total_inbound_from_subordinates) + float(total_inbound_from_coordinator)
+    # RETIROS del coordinador (RESTAR de la caja del coordinador)
+    coordinator_withdrawals = 0
+    if coordinator_id:
+        coordinator_withdrawals = db.session.query(
+            func.sum(Transaction.amount).label('total_amount')
+        ).filter(
+            Transaction.employee_id == coordinator_id,
+            Transaction.transaction_types == 'RETIRO',
+            Transaction.approval_status == 'APROBADA',
+            func.date(Transaction.creation_date) == filter_date,
+            ~Transaction.description.like('[ELIMINADA]%')
+        ).scalar() or 0
     
-    return total_outbound_amount, total_inbound_amount
+    return (
+        float(salesman_incomes),
+        float(salesman_withdrawals),
+        float(coordinator_incomes),
+        float(coordinator_withdrawals)
+    )
 
 @routes.route('/box', methods=['GET'])
 def box():
@@ -3148,8 +3205,8 @@ def box():
         
         current_date = datetime.now().date()
         
-        # Calcular totales de transacciones del coordinador (incluyendo transacciones directas del coordinador)
-        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals(manager_id, current_date, coordinator.id)
+        # Calcular totales de transacciones del coordinador (excluyendo subcoordinadores)
+        salesman_incomes, salesman_withdrawals, coordinator_incomes, coordinator_withdrawals = calculate_daily_transaction_totals(manager_id, current_date, coordinator.id)
         
         # Inicializar lista para estadísticas de vendedores
         salesmen_stats = []
@@ -3186,14 +3243,14 @@ def box():
                 # Es un subcoordinador: usar fórmula de coordinador
                 subcoord_manager_id = db.session.query(Manager.id).filter_by(employee_id=employee_id).scalar()
                 if subcoord_manager_id:
-                    # Calcular totales de transacciones del subcoordinador (incluyendo transacciones directas del subcoordinador)
-                    subcoord_outbound, subcoord_inbound = calculate_daily_transaction_totals(subcoord_manager_id, current_date, employee_id)
+                    # Calcular totales de transacciones del subcoordinador (excluyendo subcoordinadores de nivel inferior)
+                    subcoord_salesman_incomes, subcoord_salesman_withdrawals, subcoord_incomes, subcoord_withdrawals = calculate_daily_transaction_totals(subcoord_manager_id, current_date, employee_id)
                     # Obtener gastos del subcoordinador
                     subcoord_expenses, subcoord_expense_details = get_coordinator_expenses(employee_id, current_date)
                     
-                    # Usar valores de coordinador para mostrar en la card
-                    daily_withdrawals = float(subcoord_outbound)  # Retiros = transacciones INGRESO de subordinados
-                    daily_collections_made = float(subcoord_inbound)  # Ingresos = transacciones RETIRO de subordinados
+                    # Calcular valores para mostrar en la card (suma de todos los movimientos)
+                    daily_withdrawals = float(subcoord_salesman_incomes + subcoord_withdrawals)  # Ingresos de vendedores + retiros del subcoordinador
+                    daily_collections_made = float(subcoord_salesman_withdrawals + subcoord_incomes)  # Retiros de vendedores + ingresos del subcoordinador
                     daily_expenses_amount = float(subcoord_expenses)
                     
                     # Contar transacciones para mostrar en la card
@@ -3224,7 +3281,13 @@ def box():
                     daily_expenses_count = len(subcoord_expense_details)
                     
                     # Calcular valor de caja usando fórmula de coordinador
-                    box_value = float(employee.box_value) + float(subcoord_inbound) - float(subcoord_outbound) - float(subcoord_expenses)
+                    # Valor inicial - ingresos vendedores + retiros vendedores - gastos + ingresos coordinador - retiros coordinador
+                    box_value = float(employee.box_value) \
+                               - float(subcoord_salesman_incomes) \
+                               + float(subcoord_salesman_withdrawals) \
+                               - float(subcoord_expenses) \
+                               + float(subcoord_incomes) \
+                               - float(subcoord_withdrawals)
                 else:
                     # Si no se encuentra manager_id, usar fórmula de vendedor como fallback
                     box_value = calculate_box_value(
@@ -3298,13 +3361,21 @@ def box():
         # Obtener gastos del coordinador
         total_expenses, coordinator_expense_details = get_coordinator_expenses(coordinator.id, current_date)
         
+        # Calcular valor final de la caja del coordinador según las reglas de negocio:
+        # Valor inicial - ingresos vendedores + retiros vendedores - gastos coordinador + ingresos coordinador - retiros coordinador
+        final_box_value = float(coordinator_cash) \
+                         - float(salesman_incomes) \
+                         + float(salesman_withdrawals) \
+                         - float(total_expenses) \
+                         + float(coordinator_incomes) \
+                         - float(coordinator_withdrawals)
+        
         # Crear datos de la caja del coordinador
         coordinator_box = {
             'maximum_cash': float(coordinator_cash),
-            'total_outbound_amount': float(total_outbound_amount),
-            'total_inbound_amount': float(total_inbound_amount),
-            'final_box_value': float(coordinator_cash) + float(total_inbound_amount) - 
-                             float(total_outbound_amount) - float(total_expenses),
+            'total_outbound_amount': float(salesman_incomes + coordinator_withdrawals),  # Para compatibilidad con template
+            'total_inbound_amount': float(salesman_withdrawals + coordinator_incomes),  # Para compatibilidad con template
+            'final_box_value': final_box_value,
         }
         
         # Renderizar la plantilla
@@ -3362,9 +3433,9 @@ def box_detail_admin(employee_id):
 
         salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
 
-        # Calcular totales de transacciones del sub-administrador (incluyendo transacciones directas)
+        # Calcular totales de transacciones del sub-administrador (excluyendo subcoordinadores)
         current_date = datetime.now().date()
-        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals(manager_id, current_date, sub_admin_employee.id)
+        salesman_incomes, salesman_withdrawals, coordinator_incomes, coordinator_withdrawals = calculate_daily_transaction_totals(manager_id, current_date, sub_admin_employee.id)
 
         # Inicializa la lista para almacenar las estadísticas de los vendedores
         salesmen_stats = []
@@ -3699,14 +3770,19 @@ def box_detail_admin(employee_id):
             {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
              'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
 
+        # Calcular valor final de la caja del sub-administrador según las reglas de negocio
+        final_box_value = float(sub_admin_cash) \
+                         - float(salesman_incomes) \
+                         + float(salesman_withdrawals) \
+                         - float(total_expenses) \
+                         + float(coordinator_incomes) \
+                         - float(coordinator_withdrawals)
+
         sub_admin_box = {
             'maximum_cash': float(sub_admin_cash),
-            'total_outbound_amount': float(total_outbound_amount),
-            'total_inbound_amount': float(total_inbound_amount),
-            'final_box_value': float(sub_admin_cash) +
-                            float(total_inbound_amount) -
-                            float(total_outbound_amount) -
-                            float(total_expenses),
+            'total_outbound_amount': float(salesman_incomes + coordinator_withdrawals),  # Para compatibilidad con template
+            'total_inbound_amount': float(salesman_withdrawals + coordinator_incomes),  # Para compatibilidad con template
+            'final_box_value': final_box_value,
         }
 
         # Renderizar la plantilla con las variables
@@ -5983,8 +6059,8 @@ def history_box():
         else:
             coordinator_cash = coordinator.box_value
 
-        # Calcular totales de transacciones del coordinador para la fecha filtrada (incluyendo transacciones directas del coordinador)
-        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals_history(manager_id, filter_date, coordinator.id)
+        # Calcular totales de transacciones del coordinador para la fecha filtrada (excluyendo subcoordinadores)
+        salesman_incomes, salesman_withdrawals, coordinator_incomes, coordinator_withdrawals = calculate_daily_transaction_totals_history(manager_id, filter_date, coordinator.id)
 
         # Obtener los gastos del coordinador para la fecha filtrada
         expenses = Transaction.query.filter(
@@ -6000,12 +6076,21 @@ def history_box():
             {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
                 'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
 
+        # Calcular valor final de la caja del coordinador según las reglas de negocio
+        final_box_value = float(coordinator_cash) \
+                         - float(salesman_incomes) \
+                         + float(salesman_withdrawals) \
+                         - float(total_expenses) \
+                         + float(coordinator_incomes) \
+                         - float(coordinator_withdrawals)
+
         # Construir la respuesta como variables separadas
         coordinator_box = {
             'maximum_cash': coordinator_cash,
-            'total_outbound_amount': float(total_outbound_amount) if total_outbound_amount else 0,
-            'total_inbound_amount': float(total_inbound_amount) if total_inbound_amount else 0,
+            'total_outbound_amount': float(salesman_incomes + coordinator_withdrawals),  # Para compatibilidad con template
+            'total_inbound_amount': float(salesman_withdrawals + coordinator_incomes),  # Para compatibilidad con template
             'total_expenses': float(total_expenses),
+            'final_box_value': final_box_value,
             'expense_details': manager_expense_details
         }
 
@@ -7177,8 +7262,8 @@ def history_box_detail_admin(employee_id):
 
         salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
 
-        # Calcular totales de transacciones del sub-administrador para la fecha filtrada (incluyendo transacciones directas)
-        total_outbound_amount, total_inbound_amount = calculate_daily_transaction_totals_history(manager_id, filter_date, sub_admin_employee.id)
+        # Calcular totales de transacciones del sub-administrador para la fecha filtrada (excluyendo subcoordinadores)
+        salesman_incomes, salesman_withdrawals, coordinator_incomes, coordinator_withdrawals = calculate_daily_transaction_totals_history(manager_id, filter_date, sub_admin_employee.id)
 
         # Inicializa la lista para almacenar las estadísticas de los vendedores
         salesmen_stats = []
@@ -7555,14 +7640,19 @@ def history_box_detail_admin(employee_id):
             {'description': trans.description, 'amount': trans.amount, 'approval_status': trans.approval_status.name,
              'attachment': trans.attachment, 'date': trans.creation_date.strftime('%d/%m/%Y')} for trans in expenses]
 
+        # Calcular valor final de la caja del sub-administrador según las reglas de negocio
+        final_box_value = float(sub_admin_cash) \
+                         - float(salesman_incomes) \
+                         + float(salesman_withdrawals) \
+                         - float(total_expenses) \
+                         + float(coordinator_incomes) \
+                         - float(coordinator_withdrawals)
+
         sub_admin_box = {
             'maximum_cash': float(sub_admin_cash),
-            'total_outbound_amount': float(total_outbound_amount),
-            'total_inbound_amount': float(total_inbound_amount),
-            'final_box_value': float(sub_admin_cash) +
-                            float(total_inbound_amount) -
-                            float(total_outbound_amount) -
-                            float(total_expenses),
+            'total_outbound_amount': float(salesman_incomes + coordinator_withdrawals),  # Para compatibilidad con template
+            'total_inbound_amount': float(salesman_withdrawals + coordinator_incomes),  # Para compatibilidad con template
+            'final_box_value': final_box_value,
         }
 
         # Renderizar la plantilla con las variables
