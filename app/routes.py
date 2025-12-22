@@ -2327,23 +2327,25 @@ def get_all_salesmen_data_optimized(salesmen, current_date):
     if not employee_ids:
         return {}
     
-    # 1. Obtener todos los EmployeeRecord en una sola consulta
-    employee_records = db.session.query(EmployeeRecord).filter(
-        EmployeeRecord.employee_id.in_(employee_ids)
-    ).order_by(EmployeeRecord.employee_id, EmployeeRecord.id.desc()).all()
-    
-    # Agrupar por employee_id y tomar el más reciente
-    latest_records = {}
-    for record in employee_records:
-        if record.employee_id not in latest_records:
-            latest_records[record.employee_id] = record
-    
-    # 2. Obtener registros del día actual
+    # 1. Obtener registros del día actual
     today_records = db.session.query(EmployeeRecord).filter(
         EmployeeRecord.employee_id.in_(employee_ids),
         func.date(EmployeeRecord.creation_date) == current_date
     ).all()
     today_records_dict = {record.employee_id: record for record in today_records}
+    
+    # 2. Obtener el último registro del día anterior para cada empleado
+    # Esto es importante para obtener el valor inicial correcto
+    previous_day_records = db.session.query(EmployeeRecord).filter(
+        EmployeeRecord.employee_id.in_(employee_ids),
+        func.date(EmployeeRecord.creation_date) < current_date
+    ).order_by(EmployeeRecord.employee_id, EmployeeRecord.creation_date.desc()).all()
+    
+    # Agrupar por employee_id y tomar el más reciente del día anterior
+    latest_records = {}
+    for record in previous_day_records:
+        if record.employee_id not in latest_records:
+            latest_records[record.employee_id] = record
     
     # 3. Obtener todas las transacciones del día en una sola consulta
     start_of_day = datetime.combine(current_date, datetime.min.time())
@@ -2464,9 +2466,15 @@ def get_all_salesmen_data_optimized(salesmen, current_date):
         emp_id = salesman.employee_id
         
         # Obtener valor inicial de caja de forma segura
+        # Siempre usar el último registro del día anterior (misma lógica que box_detail_admin)
+        # Si hay registro del día anterior, usar su closing_total; si no, usar box_value
         initial_box_value = 0
         if emp_id in latest_records:
+            # Usar closing_total del último registro del día anterior
             initial_box_value = latest_records[emp_id].closing_total
+        else:
+            # Si no hay registro previo, usar box_value actual
+            initial_box_value = float(employee.box_value)
         
         # Datos básicos
         result[emp_id] = {
@@ -2717,23 +2725,25 @@ def get_all_salesmen_data_optimized_history(salesmen, filter_date):
     is_current_day = filter_date == current_date
     
     if is_current_day:
-        # 1. Obtener todos los EmployeeRecord en una sola consulta (último de cualquier día)
-        employee_records = db.session.query(EmployeeRecord).filter(
-            EmployeeRecord.employee_id.in_(employee_ids)
-        ).order_by(EmployeeRecord.employee_id, EmployeeRecord.id.desc()).all()
-        
-        # Agrupar por employee_id y tomar el más reciente
-        latest_records = {}
-        for record in employee_records:
-            if record.employee_id not in latest_records:
-                latest_records[record.employee_id] = record
-        
-        # 2. Obtener registros del día actual
+        # 1. Obtener registros del día actual
         today_records = db.session.query(EmployeeRecord).filter(
             EmployeeRecord.employee_id.in_(employee_ids),
             func.date(EmployeeRecord.creation_date) == current_date
         ).all()
         today_records_dict = {record.employee_id: record for record in today_records}
+        
+        # 2. Obtener el último registro del día anterior para cada empleado
+        # Esto es importante para obtener el valor inicial correcto
+        previous_day_records = db.session.query(EmployeeRecord).filter(
+            EmployeeRecord.employee_id.in_(employee_ids),
+            func.date(EmployeeRecord.creation_date) < current_date
+        ).order_by(EmployeeRecord.employee_id, EmployeeRecord.creation_date.desc()).all()
+        
+        # Agrupar por employee_id y tomar el más reciente del día anterior
+        latest_records = {}
+        for record in previous_day_records:
+            if record.employee_id not in latest_records:
+                latest_records[record.employee_id] = record
         
         # Inicializar variables para fechas históricas (no se usan en día actual)
         filter_date_records_dict = {}
@@ -2861,9 +2871,15 @@ def get_all_salesmen_data_optimized_history(salesmen, filter_date):
         # Obtener valor inicial de caja según el tipo de fecha
         initial_box_value = 0
         if is_current_day:
-            # Para día actual, usar la misma lógica que box
+            # Para día actual, usar la misma lógica que box_detail_admin
+            # Siempre usar el último registro del día anterior (misma lógica que box_detail_admin)
+            # Si hay registro del día anterior, usar su closing_total; si no, usar box_value
             if emp_id in latest_records:
+                # Usar closing_total del último registro del día anterior
                 initial_box_value = latest_records[emp_id].closing_total
+            else:
+                # Si no hay registro previo, usar box_value actual
+                initial_box_value = float(employee.box_value)
         else:
             # Para fechas históricas
             if emp_id in filter_date_records_dict:
@@ -3280,9 +3296,15 @@ def box():
                     # Contar gastos
                     daily_expenses_count = len(subcoord_expense_details)
                     
+                    # Obtener valor inicial de caja (del último registro del día anterior o box_value actual)
+                    initial_box_value = data.get('initial_box_value', 0)
+                    if initial_box_value == 0:
+                        # Si no hay registro previo, usar box_value actual
+                        initial_box_value = float(employee.box_value)
+                    
                     # Calcular valor de caja usando fórmula de coordinador
                     # Valor inicial - ingresos vendedores + retiros vendedores - gastos + ingresos coordinador - retiros coordinador
-                    box_value = float(employee.box_value) \
+                    box_value = float(initial_box_value) \
                                - float(subcoord_salesman_incomes) \
                                + float(subcoord_salesman_withdrawals) \
                                - float(subcoord_expenses) \
@@ -3420,8 +3442,20 @@ def box_detail_admin(employee_id):
         if not sub_admin_user:
             return jsonify({'message': 'Usuario del sub-administrador no encontrado'}), 404
 
+        # Obtener la fecha actual
+        current_date = datetime.now().date()
+
         # Obtener la información de la caja del sub-administrador
-        sub_admin_cash = sub_admin_employee.box_value
+        # Obtener el valor inicial del último registro del día anterior, o usar box_value si no hay registro
+        last_record = EmployeeRecord.query.filter_by(employee_id=sub_admin_employee.id) \
+            .filter(func.date(EmployeeRecord.creation_date) < current_date) \
+            .order_by(EmployeeRecord.creation_date.desc()).first()
+        
+        if last_record:
+            sub_admin_cash = float(last_record.closing_total)
+        else:
+            sub_admin_cash = sub_admin_employee.box_value
+        
         sub_admin_name = f"{sub_admin_user.first_name} {sub_admin_user.last_name}"
 
         # Obtener el ID del manager del sub-administrador
@@ -3434,7 +3468,6 @@ def box_detail_admin(employee_id):
         salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
 
         # Calcular totales de transacciones del sub-administrador (excluyendo subcoordinadores)
-        current_date = datetime.now().date()
         salesman_incomes, salesman_withdrawals, coordinator_incomes, coordinator_withdrawals = calculate_daily_transaction_totals(manager_id, current_date, sub_admin_employee.id)
 
         # Inicializa la lista para almacenar las estadísticas de los vendedores
