@@ -190,7 +190,7 @@
       </tbody>
     </table>
     <!-- Agregar esta tabla para los clientes con cuotas en mora -->
-    <h2 class="c-headings c-headings__h3 mt-4">No Pago</h2>
+    <h2 class="c-headings c-headings__h3 mt-4">No Pago <span class="badge badge-secondary">({{ unpaid_loans_count }})</span></h2>
     <table class="c-table">
       <thead>
         <tr>
@@ -234,7 +234,7 @@
     </table>
     <div class="row">
       <div class="col">
-        <h2 class="c-headings c-headings__h3 mt-4">Pago</h2>
+        <h2 class="c-headings c-headings__h3 mt-4">Pago <span class="badge badge-secondary">({{ paid_loans_count }})</span></h2>
         <table class="c-table mb-4">
           <thead>
             <tr>

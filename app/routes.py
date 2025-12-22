@@ -5356,6 +5356,13 @@ def box_detail():
     
     total_final = total_movimientos + total_ingresos - total_egresos
 
+    # Calcular contadores de créditos únicos
+    # Contador de créditos que han pagado (área de Pago)
+    paid_loans_count = len(set(payment['loan_id'] for payment in payment_details))
+    
+    # Contador de créditos que no han pagado (área de No Pago)
+    unpaid_loans_count = len(set(client['loan_id'] for client in clients_in_arrears))
+
     
     # Renderizar la plantilla HTML con los datos recopilados
     return render_template('box-detail.html',
@@ -5371,6 +5378,8 @@ def box_detail():
                            total_movimientos=total_movimientos,
                            total_egresos=total_egresos,
                            payment_details=payment_details,
+                           paid_loans_count=paid_loans_count,
+                           unpaid_loans_count=unpaid_loans_count,
                            user_role=user_role,
                            loan_id=loan_id,
                            installment_id=installment_id,
