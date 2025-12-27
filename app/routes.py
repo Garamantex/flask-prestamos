@@ -1893,7 +1893,17 @@ def get_coordinator_data(user_id):
     if not coordinator:
         raise ValueError('No se encontró el empleado coordinador')
     
-    coordinator_cash = coordinator.box_value
+    # Obtener el valor inicial del último registro del día anterior, o usar box_value si no hay registro
+    current_date = datetime.now().date()
+    last_record = EmployeeRecord.query.filter_by(employee_id=coordinator.id) \
+        .filter(func.date(EmployeeRecord.creation_date) < current_date) \
+        .order_by(EmployeeRecord.creation_date.desc()).first()
+    
+    if last_record:
+        coordinator_cash = float(last_record.closing_total)
+    else:
+        coordinator_cash = coordinator.box_value
+    
     coordinator_name = f"{coordinator.user.first_name} {coordinator.user.last_name}"
     
     # Obtener el ID del manager del coordinador
@@ -6549,9 +6559,15 @@ def process_coordinator_hierarchy(manager_id, current_date):
         .filter(func.date(EmployeeRecord.creation_date) < current_date) \
         .order_by(EmployeeRecord.creation_date.desc()).first()
 
-    # Usar el último registro como estado inicial, si existe
+    # Usar el initial_state del último registro como estado inicial para hoy
+    # Si el último registro tiene un initial_state correcto, lo usamos
+    # Si no hay registro previo, usar box_value
     if last_record:
-        initial_state = float(last_record.closing_total)
+        # Usar el initial_state del último registro (que es el valor inicial correcto de ese día)
+        # y sumarle los movimientos de ese día para obtener el valor inicial de hoy
+        # Fórmula: initial_state_ayer + incomings_ayer - withdrawals_ayer - expenses_ayer = closing_total_ayer
+        # Pero como el closing_total puede estar mal, usamos: initial_state_ayer + movimientos_ayer
+        initial_state = float(last_record.initial_state) + float(last_record.incomings) - float(last_record.withdrawals) - float(last_record.expenses)
     else:
         # Solo usar box_value si no hay registros previos
         initial_state = float(manager_array.box_value)
@@ -6618,10 +6634,11 @@ def process_coordinator_hierarchy(manager_id, current_date):
         sum(transaction.amount for transaction in transaction_expenses_today))
 
     # Calcular closing_total usando la misma fórmula que la interfaz
-    # Usar box_value actual como base (ya incluye transacciones del coordinador)
-    # Solo sumar/restar transacciones de subordinados y gastos
-    # Fórmula: box_value + inbound (subordinados) - outbound (subordinados) - expenses
-    closing_total_calculated = float(manager_array.box_value) + float(total_employee_incomes_amount) - float(total_employee_withdrawals_amount) - float(daily_expenses_amount)
+    # El closing_total es el valor inicial del día siguiente
+    # Fórmula: initial_state + ingresos - retiros - gastos
+    # donde ingresos = ingresos coordinador + retiros subordinados
+    # y retiros = retiros coordinador + ingresos subordinados
+    closing_total_calculated = float(initial_state) + float(daily_incomes_amount) - float(daily_withdrawals_amount) - float(daily_expenses_amount)
 
     # Si existe un registro, actualizarlo; si no, crear uno nuevo
     if existing_record:
@@ -6738,8 +6755,27 @@ def cancel_loan(loan_id):
     # Obtener el empleado asociado al préstamo
     employee = Employee.query.get(loan.employee_id)
     
-    # Reintegrar el monto del préstamo al box_value del empleado
-    employee.box_value += Decimal(str(loan.amount))
+    # Verificar si hay pagos registrados para este préstamo
+    has_payments = db.session.query(Payment.id).join(
+        LoanInstallment, Payment.installment_id == LoanInstallment.id
+    ).filter(
+        LoanInstallment.loan_id == loan_id
+    ).first() is not None
+    
+    # Reintegrar el monto del préstamo al box_value y crear registro de pago solo si NO hay pagos registrados
+    if not has_payments:
+        employee.box_value += Decimal(str(loan.amount))
+        
+        # Crear un registro de Payment para que se refleje en el recaudo
+        # Usar la primera cuota disponible para asociar el pago
+        if installments:
+            first_installment = installments[0]
+            cancellation_payment = Payment(
+                amount=Decimal(str(loan.amount)),
+                payment_date=datetime.now(),
+                installment_id=first_installment.id
+            )
+            db.session.add(cancellation_payment)
 
     # Actualizar cada cuota a 0
     for installment in installments:
