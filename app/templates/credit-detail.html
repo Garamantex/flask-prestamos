@@ -39,10 +39,12 @@
             </div>
         </div>
 
-        <!-- Botón para abrir la modal -->
+        <!-- Botón para abrir la modal - Solo mostrar si el préstamo NO tiene pagos registrados -->
+        {% if not has_payments %}
         <div>
             <button class="c-btn" onclick="openModal()">Eliminar Préstamo</button>
         </div>
+        {% endif %}
 
         <!-- MODAL DE CONFIRMACIÓN -->
         <div id="deleteModal" class="modal">

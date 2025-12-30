@@ -920,8 +920,16 @@ def credit_detail(id):
         # Ordenar por fecha y hora (más reciente primero)
         payments_by_datetime = dict(sorted(payments_by_datetime.items(), reverse=True))
 
+        # Verificar si el préstamo tiene pagos registrados para mostrar/ocultar el botón de eliminar
+        has_payments = db.session.query(Payment.id).join(
+            LoanInstallment, Payment.installment_id == LoanInstallment.id
+        ).filter(
+            LoanInstallment.loan_id == loan.id
+        ).first() is not None
+
         return render_template('credit-detail.html', loans=loans, loan=loan, client=client, installments=installments,
-                               loan_detail=loan_detail, payments=payments, payments_by_datetime=payments_by_datetime, user_id=session['user_id'])
+                               loan_detail=loan_detail, payments=payments, payments_by_datetime=payments_by_datetime, 
+                               user_id=session['user_id'], has_payments=has_payments)
     except Exception as e:
         # Manejo de excepciones: mostrar un mensaje de error y registrar la excepción
         flash(f'Error al cargar el detalle del préstamo: {str(e)}', 'error')
@@ -1773,6 +1781,180 @@ def generate_loan_installments(loan):
     db.session.commit()
 
 
+def distribute_advance_payment(loan, start_date, advance_amount, current_date):
+    """
+    Distribuye el monto abonado secuencialmente entre las cuotas desde la fecha de inicio hasta la fecha actual.
+    Usa la misma lógica del pago regular: cubre completamente las cuotas hasta donde alcance,
+    y si el restante no alcanza para una cuota completa, esa cuota queda abonada.
+    
+    Args:
+        loan: Objeto Loan
+        start_date: Fecha de inicio del préstamo (date)
+        advance_amount: Monto total abonado (Decimal)
+        current_date: Fecha actual (date)
+    
+    Returns:
+        Número de cuotas procesadas
+    """
+    if advance_amount <= 0:
+        return 0
+    
+    # Obtener todas las cuotas del préstamo ordenadas por fecha de vencimiento
+    installments = LoanInstallment.query.filter_by(loan_id=loan.id)\
+        .order_by(LoanInstallment.due_date.asc()).all()
+    
+    if not installments:
+        return 0
+    
+    # Filtrar cuotas que están entre start_date y current_date
+    # Las cuotas se generan desde la fecha de creación del préstamo (que es start_date)
+    # Necesitamos las cuotas cuya fecha de vencimiento esté entre start_date y current_date
+    installments_to_pay = [
+        inst for inst in installments 
+        if inst.due_date >= start_date and inst.due_date <= current_date
+    ]
+    
+    if not installments_to_pay:
+        return 0
+    
+    # Ordenar por fecha de vencimiento (ya deberían estar ordenadas, pero por seguridad)
+    installments_to_pay.sort(key=lambda x: x.due_date if x.due_date else datetime.max)
+    
+    # Crear timestamp para los pagos
+    payment_timestamp = datetime.combine(start_date, datetime.min.time())
+    
+    # Aplicar el monto secuencialmente (misma lógica que el pago regular)
+    remaining_payment = Decimal(str(advance_amount))
+    processed_count = 0
+    
+    for installment in installments_to_pay:
+        if remaining_payment <= 0:
+            break
+        
+        # Calcular cuánto se debe realmente de esta cuota
+        total_paid_before = db.session.query(func.sum(Payment.amount)).filter(
+            Payment.installment_id == installment.id
+        ).scalar() or Decimal('0')
+        
+        # El monto pendiente de esta cuota
+        amount_due = installment.fixed_amount - total_paid_before
+        
+        if amount_due <= 0:
+            # Esta cuota ya está completamente pagada, continuar con la siguiente
+            continue
+        
+        if remaining_payment >= amount_due:
+            # El monto abonado cubre completamente esta cuota
+            installment.status = InstallmentStatus.PAGADA
+            installment.amount = Decimal('0')
+            if not installment.payment_date:
+                installment.payment_date = start_date
+            
+            # Crear el pago por el monto completo de la cuota
+            payment = Payment(
+                amount=amount_due,
+                payment_date=payment_timestamp,
+                installment_id=installment.id
+            )
+            db.session.add(payment)
+            remaining_payment -= amount_due
+            processed_count += 1
+            
+            # Si el pago restante es exactamente 0, terminar
+            if remaining_payment == 0:
+                break
+        else:
+            # El monto abonado solo cubre parcialmente esta cuota
+            installment.status = InstallmentStatus.ABONADA
+            installment.amount = amount_due - remaining_payment
+            
+            # Crear el pago por el monto parcial
+            payment = Payment(
+                amount=remaining_payment,
+                payment_date=payment_timestamp,
+                installment_id=installment.id
+            )
+            db.session.add(payment)
+            remaining_payment = Decimal('0')
+            processed_count += 1
+            break
+    
+    db.session.commit()
+    return processed_count
+
+
+def recalculate_loan_installments(loan, new_amount, new_dues, new_interest):
+    """
+    Recalcula las cuotas del préstamo cuando se modifican parámetros.
+    
+    Args:
+        loan: Objeto Loan
+        new_amount: Nuevo monto del préstamo (Decimal)
+        new_dues: Nuevo número de cuotas (int)
+        new_interest: Nuevo interés (Decimal)
+    """
+    # Calcular nuevo monto de cuota
+    new_installment_amount = Decimal(str((float(new_amount) + (float(new_amount) * float(new_interest) / 100)) / float(new_dues)))
+    
+    # Obtener todas las cuotas del préstamo
+    installments = LoanInstallment.query.filter_by(loan_id=loan.id)\
+        .order_by(LoanInstallment.installment_number.asc()).all()
+    
+    # Si hay más cuotas que las nuevas, eliminar las extras
+    if len(installments) > new_dues:
+        for inst in installments[new_dues:]:
+            # Eliminar pagos asociados
+            Payment.query.filter_by(installment_id=inst.id).delete()
+            db.session.delete(inst)
+        installments = installments[:new_dues]
+    
+    # Actualizar cuotas existentes y crear nuevas si es necesario
+    for i in range(int(new_dues)):
+        if i < len(installments):
+            # Actualizar cuota existente
+            installment = installments[i]
+            
+            # Calcular pagos existentes
+            total_paid = db.session.query(func.sum(Payment.amount)).filter(
+                Payment.installment_id == installment.id
+            ).scalar() or Decimal('0')
+            
+            # Actualizar fixed_amount
+            installment.fixed_amount = new_installment_amount
+            
+            # Recalcular amount pendiente
+            installment.amount = new_installment_amount - total_paid
+            
+            # Actualizar estado
+            if installment.amount <= 0:
+                installment.status = InstallmentStatus.PAGADA
+                installment.amount = Decimal('0')
+            elif total_paid > 0:
+                installment.status = InstallmentStatus.ABONADA
+            else:
+                installment.status = InstallmentStatus.PENDIENTE
+        else:
+            # Crear nueva cuota
+            # Calcular fecha de vencimiento basada en la última cuota
+            if installments:
+                last_due_date = installments[-1].due_date
+                new_due_date = last_due_date + timedelta(days=1)
+            else:
+                new_due_date = loan.creation_date.date() + timedelta(days=1)
+            
+            new_installment = LoanInstallment(
+                installment_number=i + 1,
+                due_date=new_due_date,
+                fixed_amount=new_installment_amount,
+                amount=new_installment_amount,
+                status=InstallmentStatus.PENDIENTE,
+                loan_id=loan.id
+            )
+            db.session.add(new_installment)
+    
+    db.session.commit()
+
+
 def get_loan_details(loan_id):
     # Obtener el préstamo y el cliente asociado
     loan = Loan.query.get(loan_id)
@@ -1787,6 +1969,8 @@ def get_loan_details(loan_id):
     total_cuotas = len(installments)
     cuotas_pagadas = sum(
         1 for installment in installments if installment.status == InstallmentStatus.PAGADA)
+    cuotas_abonadas = sum(
+        1 for installment in installments if installment.status == InstallmentStatus.ABONADA)
     cuotas_vencidas = sum(
         1 for installment in installments if installment.status == InstallmentStatus.MORA)
     valor_total = loan.amount + (loan.amount * loan.interest / 100)
@@ -4186,9 +4370,15 @@ def transactions():
 
                 # Determinar estado de aprobación según el tipo de transacción
                 if transaction_type != 'GASTO':
+                    # INGRESO y RETIRO se aprueban automáticamente
                     approval_status = "APROBADA"
                 else:
-                    approval_status = request.form.get('status', 'PENDIENTE')
+                    # Para GASTOS: coordinadores se aprueban automáticamente, vendedores requieren aprobación
+                    if user_role == 'COORDINADOR':
+                        approval_status = "APROBADA"
+                    else:
+                        # VENDEDOR: requiere aprobación
+                        approval_status = request.form.get('status', 'PENDIENTE')
 
                 # Obtener el archivo de imagen
                 attachment = request.files.get('photo')
@@ -6896,20 +7086,11 @@ def cancel_loan(loan_id):
         LoanInstallment.loan_id == loan_id
     ).first() is not None
     
-    # Reintegrar el monto del préstamo al box_value y crear registro de pago solo si NO hay pagos registrados
+    # Reintegrar el monto del préstamo al box_value solo si NO hay pagos registrados
+    # NO se crea un registro de Payment para que NO aparezca en el recaudo del día
+    # Solo se actualiza el valor de la caja que se vio afectado por la creación del préstamo
     if not has_payments:
         employee.box_value += Decimal(str(loan.amount))
-        
-        # Crear un registro de Payment para que se refleje en el recaudo
-        # Usar la primera cuota disponible para asociar el pago
-        if installments:
-            first_installment = installments[0]
-            cancellation_payment = Payment(
-                amount=Decimal(str(loan.amount)),
-                payment_date=datetime.now(),
-                installment_id=first_installment.id
-            )
-            db.session.add(cancellation_payment)
 
     # Actualizar cada cuota a 0
     for installment in installments:
@@ -7914,3 +8095,415 @@ def history_box_detail_admin(employee_id):
                                total_expenses=total_expenses, filter_date=filter_date, manager_id=manager_id)
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+
+
+@routes.route('/loan-management', methods=['GET', 'POST'])
+def loan_management():
+    """Vista principal para gestión de préstamos por coordinadores"""
+    try:
+        # Validar acceso del coordinador
+        user_id, user = validate_coordinator_access()
+        
+        # Obtener datos del coordinador
+        coordinator, coordinator_cash, coordinator_name, manager_id, salesmen = get_coordinator_data(user_id)
+        
+        # Obtener employee_ids de todos los vendedores subordinados (incluyendo subcoordinadores)
+        all_salesmen_ids = []
+        for salesman_tuple in salesmen:
+            salesman_obj = salesman_tuple[0]
+            all_salesmen_ids.append(salesman_obj.employee_id)
+        
+        # Obtener todos los préstamos de los vendedores subordinados
+        loans_query = db.session.query(Loan, Client, Employee, User)\
+            .join(Client, Loan.client_id == Client.id)\
+            .join(Employee, Loan.employee_id == Employee.id)\
+            .join(User, Employee.user_id == User.id)\
+            .filter(Loan.employee_id.in_(all_salesmen_ids))
+        
+        # Búsqueda y filtros
+        search_term = request.args.get('search', '').strip()
+        filter_salesman = request.args.get('salesman', type=int)
+        filter_status = request.args.get('status', '')
+        
+        if search_term:
+            loans_query = loans_query.filter(
+                db.or_(
+                    Client.first_name.ilike(f'%{search_term}%'),
+                    Client.last_name.ilike(f'%{search_term}%'),
+                    Client.document.ilike(f'%{search_term}%')
+                )
+            )
+        
+        if filter_salesman:
+            loans_query = loans_query.filter(Loan.employee_id == filter_salesman)
+        
+        if filter_status == 'active':
+            loans_query = loans_query.filter(Loan.status == True)
+        elif filter_status == 'inactive':
+            loans_query = loans_query.filter(Loan.status == False)
+        
+        loans = loans_query.order_by(Loan.creation_date.desc()).all()
+        
+        # Preparar datos para la plantilla
+        loans_data = []
+        for loan, client, employee, user in loans:
+            # Calcular saldo pendiente
+            total_paid = db.session.query(func.sum(Payment.amount))\
+                .join(LoanInstallment, Payment.installment_id == LoanInstallment.id)\
+                .filter(LoanInstallment.loan_id == loan.id)\
+                .scalar() or Decimal('0')
+            
+            total_amount = loan.amount + (loan.amount * loan.interest / 100)
+            pending_balance = total_amount - total_paid
+            
+            loans_data.append({
+                'loan': loan,
+                'client': client,
+                'employee': employee,
+                'user': user,
+                'pending_balance': float(pending_balance),
+                'total_paid': float(total_paid)
+            })
+        
+        # Preparar lista de vendedores para el filtro
+        salesmen_list = [
+            {
+                'employee_id': salesman_tuple[0].employee_id,
+                'name': f"{salesman_tuple[2].first_name} {salesman_tuple[2].last_name}"
+            }
+            for salesman_tuple in salesmen
+        ]
+        
+        return render_template('loan-management.html',
+                             loans_data=loans_data,
+                             salesmen_list=salesmen_list,
+                             coordinator_name=coordinator_name,
+                             user_id=user_id,
+                             search_term=search_term,
+                             filter_salesman=filter_salesman,
+                             filter_status=filter_status)
+    
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 401 if 'Usuario no encontrado' in str(e) else 403
+    except Exception as e:
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+
+
+@routes.route('/edit-loan/<int:loan_id>', methods=['GET', 'POST'])
+def edit_loan(loan_id):
+    """Endpoint para editar préstamos existentes"""
+    try:
+        # Validar acceso del coordinador
+        user_id, user = validate_coordinator_access()
+        
+        # Obtener datos del coordinador
+        coordinator, coordinator_cash, coordinator_name, manager_id, salesmen = get_coordinator_data(user_id)
+        
+        # Obtener employee_ids de todos los vendedores subordinados
+        all_salesmen_ids = []
+        for salesman_tuple in salesmen:
+            salesman_obj = salesman_tuple[0]
+            all_salesmen_ids.append(salesman_obj.employee_id)
+        
+        # Obtener el préstamo
+        loan = Loan.query.get(loan_id)
+        if not loan:
+            flash('Préstamo no encontrado', 'error')
+            return redirect(url_for('routes.loan_management'))
+        
+        # Validar que el préstamo pertenezca a un vendedor del coordinador
+        if loan.employee_id not in all_salesmen_ids:
+            flash('No tiene permisos para editar este préstamo', 'error')
+            return redirect(url_for('routes.loan_management'))
+        
+        # Obtener cliente y empleado
+        client = Client.query.get(loan.client_id)
+        employee = Employee.query.get(loan.employee_id)
+        
+        if request.method == 'POST':
+            # Obtener datos del formulario
+            new_amount = Decimal(request.form.get('amount'))
+            new_dues = int(request.form.get('dues'))
+            new_interest = Decimal(request.form.get('interest'))
+            
+            # Calcular diferencia en el monto para actualizar box_value
+            amount_difference = new_amount - loan.amount
+            
+            # Actualizar box_value del vendedor
+            if amount_difference != 0:
+                employee.box_value -= amount_difference
+                db.session.add(employee)
+            
+            # Actualizar parámetros del préstamo
+            loan.amount = new_amount
+            loan.dues = new_dues
+            loan.interest = new_interest
+            loan.modification_date = datetime.now()
+            
+            # Recalcular cuotas
+            recalculate_loan_installments(loan, new_amount, new_dues, new_interest)
+            
+            # Actualizar cuotas individuales si se proporcionaron
+            installments = LoanInstallment.query.filter_by(loan_id=loan.id)\
+                .order_by(LoanInstallment.installment_number.asc()).all()
+            
+            for installment in installments:
+                installment_key = f'installment_{installment.id}'
+                new_amount_inst = request.form.get(f'{installment_key}_amount')
+                new_due_date = request.form.get(f'{installment_key}_due_date')
+                
+                if new_amount_inst:
+                    new_amount_value = Decimal(new_amount_inst)
+                    old_amount = installment.amount
+                    
+                    # Obtener el total pagado actual antes de la modificación
+                    total_paid_before = db.session.query(func.sum(Payment.amount)).filter(
+                        Payment.installment_id == installment.id
+                    ).scalar() or Decimal('0')
+                    
+                    # Calcular el nuevo total que debería estar pagado basado en el nuevo monto pendiente
+                    new_total_paid_expected = installment.fixed_amount - new_amount_value
+                    
+                    # Calcular la diferencia entre lo que debería estar pagado y lo que está pagado
+                    payment_difference = new_total_paid_expected - total_paid_before
+                    
+                    if payment_difference > 0:
+                        # Se necesita agregar un pago (el monto pendiente se redujo)
+                        # Crear un nuevo Payment con la diferencia
+                        payment = Payment(
+                            amount=payment_difference,
+                            payment_date=loan.modification_date,
+                            installment_id=installment.id
+                        )
+                        db.session.add(payment)
+                    elif payment_difference < 0:
+                        # El monto pendiente aumentó (ajuste manual hacia atrás)
+                        # Esto es raro pero podría pasar, no creamos un Payment negativo
+                        # Solo actualizamos el monto
+                        pass
+                    
+                    # Actualizar el monto pendiente de la cuota
+                    installment.amount = new_amount_value
+                    
+                    # Recalcular estado basado en el nuevo monto y pagos
+                    # Usar flush para asegurar que el Payment se guarde antes de consultar
+                    db.session.flush()
+                    total_paid_after = db.session.query(func.sum(Payment.amount)).filter(
+                        Payment.installment_id == installment.id
+                    ).scalar() or Decimal('0')
+                    
+                    if installment.amount <= 0:
+                        installment.status = InstallmentStatus.PAGADA
+                        installment.amount = Decimal('0')
+                        if not installment.payment_date:
+                            installment.payment_date = loan.modification_date.date()
+                    elif total_paid_after > 0 and total_paid_after < installment.fixed_amount:
+                        installment.status = InstallmentStatus.ABONADA
+                    else:
+                        installment.status = InstallmentStatus.PENDIENTE
+                
+                if new_due_date:
+                    installment.due_date = datetime.strptime(new_due_date, '%Y-%m-%d').date()
+            
+            # Actualizar el estado del préstamo después de los cambios
+            remaining_outstanding = sum(
+                inst.amount for inst in installments
+                if inst.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA]
+                and inst.amount > 0
+            )
+            
+            if remaining_outstanding == 0:
+                loan.status = False
+                loan.up_to_date = True
+            else:
+                loan.status = True
+                loan.up_to_date = False
+            
+            db.session.commit()
+            flash('Préstamo actualizado correctamente', 'success')
+            return redirect(url_for('routes.loan_management'))
+        
+        # GET: Mostrar formulario de edición
+        installments = LoanInstallment.query.filter_by(loan_id=loan.id)\
+            .order_by(LoanInstallment.installment_number.asc()).all()
+        
+        # Calcular información adicional
+        total_paid = db.session.query(func.sum(Payment.amount))\
+            .join(LoanInstallment, Payment.installment_id == LoanInstallment.id)\
+            .filter(LoanInstallment.loan_id == loan.id)\
+            .scalar() or Decimal('0')
+        
+        total_amount = loan.amount + (loan.amount * loan.interest / 100)
+        pending_balance = total_amount - total_paid
+        
+        return render_template('edit-loan.html',
+                             loan=loan,
+                             client=client,
+                             employee=employee,
+                             installments=installments,
+                             total_paid=float(total_paid),
+                             pending_balance=float(pending_balance),
+                             coordinator_name=coordinator_name,
+                             user_id=user_id)
+    
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 401 if 'Usuario no encontrado' in str(e) else 403
+    except Exception as e:
+        flash(f'Error al editar préstamo: {str(e)}', 'error')
+        return redirect(url_for('routes.loan_management'))
+
+
+@routes.route('/create-custom-loan', methods=['GET', 'POST'])
+def create_custom_loan():
+    """Endpoint para crear préstamos personalizados con fecha de inicio anterior"""
+    try:
+        # Validar acceso del coordinador
+        user_id, user = validate_coordinator_access()
+        
+        # Obtener datos del coordinador
+        coordinator, coordinator_cash, coordinator_name, manager_id, salesmen = get_coordinator_data(user_id)
+        
+        if request.method == 'POST':
+            # Obtener datos del formulario
+            employee_id = int(request.form.get('employee_id'))
+            amount = Decimal(request.form.get('amount'))
+            dues = int(request.form.get('dues'))
+            interest = Decimal(request.form.get('interest'))
+            payment = Decimal(request.form.get('payment', amount))
+            start_date_str = request.form.get('start_date')
+            advance_amount = Decimal(request.form.get('advance_amount', 0))
+            
+            # Validar que el empleado sea un vendedor subordinado
+            all_salesmen_ids = []
+            for salesman_tuple in salesmen:
+                salesman_obj = salesman_tuple[0]
+                all_salesmen_ids.append(salesman_obj.employee_id)
+            
+            if employee_id not in all_salesmen_ids:
+                flash('El empleado seleccionado no es un vendedor subordinado', 'error')
+                return redirect(url_for('routes.create_custom_loan'))
+            
+            # Verificar si se está creando un cliente nuevo o usando uno existente
+            create_new_client = request.form.get('create_new_client') == 'true'
+            
+            if create_new_client:
+                # Crear nuevo cliente
+                first_name = request.form.get('client_first_name')
+                last_name = request.form.get('client_last_name')
+                alias = request.form.get('client_alias', '')
+                document = request.form.get('client_document')
+                cellphone = request.form.get('client_cellphone')
+                address = request.form.get('client_address', '')
+                neighborhood = request.form.get('client_neighborhood', '')
+                
+                # Validar campos obligatorios
+                if not first_name or not last_name or not document or not cellphone:
+                    flash('Los campos obligatorios del cliente deben estar completos', 'error')
+                    return redirect(url_for('routes.create_custom_loan'))
+                
+                # Verificar si el DNI ya existe
+                existing_client = Client.query.filter_by(document=document).first()
+                if existing_client:
+                    flash('El DNI ingresado ya está registrado. Por favor, use un DNI diferente.', 'error')
+                    return redirect(url_for('routes.create_custom_loan'))
+                
+                # Crear el cliente
+                client = Client(
+                    first_name=first_name,
+                    last_name=last_name,
+                    alias=alias,
+                    document=document,
+                    cellphone=cellphone,
+                    address=address,
+                    neighborhood=neighborhood,
+                    employee_id=employee_id
+                )
+                
+                db.session.add(client)
+                db.session.commit()
+                client_id = client.id
+            else:
+                # Usar cliente existente
+                client_id = int(request.form.get('client_id'))
+                client = Client.query.get(client_id)
+                if not client:
+                    flash('Cliente no encontrado', 'error')
+                    return redirect(url_for('routes.create_custom_loan'))
+            
+            employee = Employee.query.get(employee_id)
+            if not employee:
+                flash('Empleado no encontrado', 'error')
+                return redirect(url_for('routes.create_custom_loan'))
+            
+            # Parsear fecha de inicio
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            current_date = datetime.now().date()
+            
+            # Validar que la fecha de inicio no sea futura
+            if start_date > current_date:
+                flash('La fecha de inicio no puede ser futura', 'error')
+                return redirect(url_for('routes.create_custom_loan'))
+            
+            # Crear el préstamo
+            loan = Loan(
+                amount=amount,
+                dues=dues,
+                interest=interest,
+                payment=payment,
+                status=True,
+                approved=True,
+                up_to_date=False,
+                client_id=client_id,
+                employee_id=employee_id,
+                creation_date=datetime.combine(start_date, datetime.min.time())
+            )
+            
+            db.session.add(loan)
+            db.session.commit()
+            
+            # Generar cuotas
+            generate_loan_installments(loan)
+            
+            # Si hay monto abonado, distribuirlo entre las cuotas
+            if advance_amount > 0:
+                distribute_advance_payment(loan, start_date, advance_amount, current_date)
+            
+            # Actualizar box_value del vendedor (descontar el monto del préstamo)
+            employee.box_value -= amount
+            db.session.add(employee)
+            db.session.commit()
+            
+            flash('Préstamo personalizado creado exitosamente', 'success')
+            return redirect(url_for('routes.loan_management'))
+        
+        # GET: Mostrar formulario de creación
+        # Obtener lista de vendedores subordinados
+        salesmen_list = []
+        for salesman_tuple in salesmen:
+            salesman_obj = salesman_tuple[0]
+            employee_obj = salesman_tuple[1]
+            user_obj = salesman_tuple[2]
+            salesmen_list.append({
+                'employee_id': salesman_obj.employee_id,
+                'name': f"{user_obj.first_name} {user_obj.last_name}",
+                'employee': employee_obj
+            })
+        
+        # Obtener todos los clientes de los vendedores subordinados
+        all_salesmen_ids = [s['employee_id'] for s in salesmen_list]
+        clients = Client.query.filter(Client.employee_id.in_(all_salesmen_ids)).all()
+        
+        current_date = datetime.now().date()
+        
+        return render_template('create-custom-loan.html',
+                             salesmen_list=salesmen_list,
+                             clients=clients,
+                             coordinator_name=coordinator_name,
+                             user_id=user_id,
+                             current_date=current_date)
+    
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 401 if 'Usuario no encontrado' in str(e) else 403
+    except Exception as e:
+        flash(f'Error al crear préstamo personalizado: {str(e)}', 'error')
+        return redirect(url_for('routes.create_custom_loan'))
