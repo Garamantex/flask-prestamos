@@ -2570,23 +2570,37 @@ def get_all_salesmen_data_optimized(salesmen, current_date):
         }
     
     # 4. Obtener datos de clientes nuevos en una sola consulta
+    # Separar el conteo de clientes nuevos del monto de préstamos nuevos
+    # Clientes nuevos: filtrado por Client.creation_date
     new_clients_query = db.session.query(
         Client.employee_id,
-        func.count(Client.id).label('new_clients_count'),
+        func.count(Client.id).label('new_clients_count')
+    ).filter(
+        Client.employee_id.in_(employee_ids),
+        Client.creation_date >= start_of_day
+    ).group_by(Client.employee_id).all()
+    
+    # Préstamos nuevos: filtrado por Loan.creation_date (no Client.creation_date)
+    # Esto es importante para préstamos personalizados con fecha de inicio anterior
+    new_loans_query = db.session.query(
+        Client.employee_id,
         func.sum(Loan.amount).label('new_loans_amount')
     ).join(Loan, Client.id == Loan.client_id).filter(
         Client.employee_id.in_(employee_ids),
-        Client.creation_date >= start_of_day,
+        Loan.creation_date >= start_of_day,  # Cambiar de Client.creation_date a Loan.creation_date
         Loan.is_renewal == False,
         Loan.status == True  # Solo préstamos activos
     ).group_by(Client.employee_id).all()
     
     new_clients_data = {emp_id: {'count': 0, 'amount': 0} for emp_id in employee_ids}
+    
+    # Procesar conteo de clientes nuevos
     for data in new_clients_query:
-        new_clients_data[data.employee_id] = {
-            'count': data.new_clients_count or 0,
-            'amount': data.new_loans_amount or 0
-        }
+        new_clients_data[data.employee_id]['count'] = data.new_clients_count or 0
+    
+    # Procesar monto de préstamos nuevos (solo los creados HOY)
+    for data in new_loans_query:
+        new_clients_data[data.employee_id]['amount'] = data.new_loans_amount or 0
     
     # 5. Obtener datos de renovaciones en una sola consulta optimizada
     renewals_query = db.session.query(
@@ -2996,23 +3010,37 @@ def get_all_salesmen_data_optimized_history(salesmen, filter_date):
         }
     
     # 3. Obtener datos de clientes nuevos en una sola consulta para la fecha filtrada
+    # Separar el conteo de clientes nuevos del monto de préstamos nuevos
+    # Clientes nuevos: filtrado por Client.creation_date
     new_clients_query = db.session.query(
         Client.employee_id,
-        func.count(Client.id).label('new_clients_count'),
+        func.count(Client.id).label('new_clients_count')
+    ).filter(
+        Client.employee_id.in_(employee_ids),
+        func.date(Client.creation_date) == filter_date
+    ).group_by(Client.employee_id).all()
+    
+    # Préstamos nuevos: filtrado por Loan.creation_date (no Client.creation_date)
+    # Esto es importante para préstamos personalizados con fecha de inicio anterior
+    new_loans_query = db.session.query(
+        Client.employee_id,
         func.sum(Loan.amount).label('new_loans_amount')
     ).join(Loan, Client.id == Loan.client_id).filter(
         Client.employee_id.in_(employee_ids),
-        func.date(Client.creation_date) == filter_date,
+        func.date(Loan.creation_date) == filter_date,  # Cambiar de Client.creation_date a Loan.creation_date
         Loan.is_renewal == False,
         Loan.status == True  # Solo préstamos activos
     ).group_by(Client.employee_id).all()
     
     new_clients_data = {emp_id: {'count': 0, 'amount': 0} for emp_id in employee_ids}
+    
+    # Procesar conteo de clientes nuevos
     for data in new_clients_query:
-        new_clients_data[data.employee_id] = {
-            'count': data.new_clients_count or 0,
-            'amount': data.new_loans_amount or 0
-        }
+        new_clients_data[data.employee_id]['count'] = data.new_clients_count or 0
+    
+    # Procesar monto de préstamos nuevos (solo los creados en la fecha filtrada)
+    for data in new_loans_query:
+        new_clients_data[data.employee_id]['amount'] = data.new_loans_amount or 0
     
     # 4. Obtener datos de renovaciones en una sola consulta optimizada para la fecha filtrada
     renewals_query = db.session.query(
