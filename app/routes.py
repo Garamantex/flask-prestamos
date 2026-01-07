@@ -5315,6 +5315,9 @@ def wallet_detail(employee_id):
         User, Employee.user_id == User.id
     )
 
+    # Filtrar por empleado/ruta específico
+    loans_query = loans_query.filter(Loan.employee_id == employee_id)
+
     # Filtrar por estado según el toggle
     if not show_all:
         loans_query = loans_query.filter(Loan.status == True)
@@ -5379,6 +5382,8 @@ def wallet_detail(employee_id):
     total_query = db.session.query(Loan).join(
         Client, Loan.client_id == Client.id
     )
+    # Filtrar por empleado/ruta específico
+    total_query = total_query.filter(Loan.employee_id == employee_id)
     if not show_all:
         total_query = total_query.filter(Loan.status == True)
     if search_term:
@@ -5388,10 +5393,46 @@ def wallet_detail(employee_id):
         )
     all_loans = total_query.all()
     
+    # Obtener IDs de préstamos para buscar primeras cuotas
+    loan_ids = [loan.id for loan in all_loans]
+    first_installments = {}
+    if loan_ids:
+        # Subconsulta para obtener la primera cuota de cada préstamo
+        subquery = db.session.query(
+            LoanInstallment.loan_id,
+            func.min(LoanInstallment.due_date).label('min_due_date')
+        ).filter(
+            LoanInstallment.loan_id.in_(loan_ids)
+        ).group_by(LoanInstallment.loan_id).subquery()
+        
+        # Obtener las primeras cuotas
+        first_inst_query = db.session.query(
+            LoanInstallment.loan_id,
+            LoanInstallment.fixed_amount
+        ).join(
+            subquery,
+            and_(
+                LoanInstallment.loan_id == subquery.c.loan_id,
+                LoanInstallment.due_date == subquery.c.min_due_date
+            )
+        ).all()
+        
+        first_installments = {row.loan_id: row.fixed_amount for row in first_inst_query}
+    
     total_all_loans = 0
     total_all_overdue = 0
+    total_portfolio_value = 0  # Valor de cartera usando la misma fórmula que wallet
     for loan in all_loans:
-        total_all_loans += 1
+        # Solo contar préstamos que tienen primera cuota (igual que en wallet)
+        if loan.id in first_installments:
+            total_all_loans += 1
+            # Calcular el valor total con intereses: amount + (amount * interest / 100)
+            loan_amount = float(loan.amount or 0)
+            loan_interest = float(loan.interest or 0)
+            total_with_interest = loan_amount + (loan_amount * loan_interest / 100)
+            total_portfolio_value += total_with_interest
+        
+        # Calcular monto vencido (cuotas en MORA)
         for installment in loan.installments:
             if installment.status == InstallmentStatus.MORA:
                 total_all_overdue += float(installment.amount)
@@ -5400,6 +5441,7 @@ def wallet_detail(employee_id):
     wallet_detail_data = {
         'Total Loans': total_all_loans,
         'Total Overdue Amount': str(int(total_all_overdue)),
+        'Total Portfolio Value': str(int(total_portfolio_value)),  # Valor de cartera usando la misma fórmula que wallet
         'Loans Detail': loans_detail,
     }
     return render_template('wallet-detail.html', 
@@ -6938,10 +6980,14 @@ def process_coordinator_hierarchy(manager_id, current_date):
     total_employee_incomes_amount = 0
     total_employee_withdrawals_amount = 0
 
-    # Obtener TODOS los subordinados (vendedores Y sub-coordinadores)
-    all_subordinates = Salesman.query.filter_by(manager_id=manager_id).all()
+    # Obtener SOLO los vendedores puros (excluyendo sub-coordinadores)
+    pure_salesmen_ids = get_pure_salesmen_ids(manager_id)
+    pure_salesmen = Salesman.query.filter(
+        Salesman.manager_id == manager_id,
+        Salesman.employee_id.in_(pure_salesmen_ids)
+    ).all() if pure_salesmen_ids else []
 
-    for subordinate in all_subordinates:
+    for subordinate in pure_salesmen:
         subordinate_employee_id = subordinate.employee_id
         employee = Employee.query.get(subordinate_employee_id)
         

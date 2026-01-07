@@ -17,7 +17,7 @@
                     <div class="d-flex justify-content-between align-items-center flex-wrap">
                         <span><b>Créditos</b></span>
                         <span><b>#</b> {{ wallet_detail_data['Total Loans'] }}</span>
-                        <span><b>$</b> {{ '{:,.0f}'.format(wallet_detail_data['Total Overdue Amount']|float|int) }}</span>
+                        <span><b>$</b> {{ '{:,.0f}'.format(wallet_detail_data['Total Portfolio Value']|float|int) }}</span>
                     </div>
                 </div>
             </div>
@@ -65,8 +65,7 @@
         </div>
         <div class="row mb-2">
             <div class="col-12">
-                <div class="c-overflow c-overflow--large">
-                    {% for loan_info in wallet_detail_data['Loans Detail'] %}
+                {% for loan_info in wallet_detail_data['Loans Detail'] %}
                     <div class="c-card c-card--content mb-3 p-2">
                         <!-- Fila 1: Vendedor y Cliente -->
                         <div class="row mb-1">
@@ -80,7 +79,7 @@
                         </div>
                         <hr class="my-3" />
                         <!-- Fila 2: Saldos y Cuotas -->
-                        <div class="row">
+                        <div class="row mb-2">
                             <div class="col-6 c-text c-text__small">
                                 <div>Saldo Inicial: <b>$ {{ '{:,.0f}'.format(loan_info['Loan Amount']|float|int) }}</b></div>
                                 <div>Saldo Vencido: <b>$ {{ '{:,.0f}'.format(loan_info['Total Overdue Amount']|float|int) }}</b></div>
@@ -90,64 +89,75 @@
                                 <div>Cuotas Pagas: <b>{{ loan_info['Paid Installments Count'] }}/{{ loan_info['Total Installments'] }}</b></div>
                             </div>
                         </div>
+                        <!-- Botón para ver detalle del crédito -->
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <a href="{{ url_for('routes.credit_detail', id=loan_info['Loan ID']) }}" class="c-btn c-btn-primary w-100">
+                                    <i class="bi bi-eye me-1"></i>Ver Detalle del Crédito
+                                </a>
+                            </div>
+                        </div>
                     </div>
                     {% endfor %}
-                </div>
             </div>
         </div>
 
         <!-- Paginación -->
         {% if pagination.pages > 1 %}
+        <!-- Primera fila: Todos los botones de paginación -->
         <div class="row mt-4">
             <div class="col-12">
-                <div class="c-form__container">
-                    <div class="c-pagination">
-                        <nav aria-label="Navegación de páginas">
-                            <ul class="pagination justify-content-center">
-                                {% if pagination.has_prev %}
-                                    <li class="page-item">
-                                        <a class="page-link c-btn c-btn-primary" href="?page={{ pagination.prev_num }}{% if search %}&search={{ search }}{% endif %}{% if show_all %}&show_all=1{% endif %}">
-                                            <i class="bi bi-chevron-left me-1"></i>Anterior
-                                        </a>
-                                    </li>
-                                {% endif %}
-                                
-                                {% for page_num in pagination.iter_pages() %}
-                                    {% if page_num %}
-                                        {% if page_num != pagination.page %}
-                                            <li class="page-item">
-                                                <a class="page-link c-btn c-btn-primary" href="?page={{ page_num }}{% if search %}&search={{ search }}{% endif %}{% if show_all %}&show_all=1{% endif %}">{{ page_num }}</a>
-                                            </li>
-                                        {% else %}
-                                            <li class="page-item active">
-                                                <span class="page-link c-btn c-btn-primary c-btn--completed">{{ page_num }}</span>
-                                            </li>
-                                        {% endif %}
+                <div class="c-pagination">
+                    <nav aria-label="Navegación de páginas">
+                        <ul class="pagination pagination-sm justify-content-center flex-wrap mb-0">
+                            {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link c-btn c-btn-primary" href="?page={{ pagination.prev_num }}{% if search %}&search={{ search }}{% endif %}{% if show_all %}&show_all=1{% endif %}">
+                                        <i class="bi bi-chevron-left"></i><span class="d-none d-sm-inline ms-1">Anterior</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                                {% if page_num %}
+                                    {% if page_num != pagination.page %}
+                                        <li class="page-item">
+                                            <a class="page-link c-btn c-btn-primary" href="?page={{ page_num }}{% if search %}&search={{ search }}{% endif %}{% if show_all %}&show_all=1{% endif %}">{{ page_num }}</a>
+                                        </li>
                                     {% else %}
-                                        <li class="page-item disabled">
-                                            <span class="page-link c-btn c-btn-primary pagination-disabled">...</span>
+                                        <li class="page-item active">
+                                            <span class="page-link c-btn c-btn-primary c-btn--completed">{{ page_num }}</span>
                                         </li>
                                     {% endif %}
-                                {% endfor %}
-                                
-                                {% if pagination.has_next %}
-                                    <li class="page-item">
-                                        <a class="page-link c-btn c-btn-primary" href="?page={{ pagination.next_num }}{% if search %}&search={{ search }}{% endif %}{% if show_all %}&show_all=1{% endif %}">
-                                            Siguiente<i class="bi bi-chevron-right ms-1"></i>
-                                        </a>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link c-btn c-btn-primary pagination-disabled">...</span>
                                     </li>
                                 {% endif %}
-                            </ul>
-                        </nav>
-                        
-                        <div class="text-center mt-3">
-                            <p class="c-text c-text__small text-muted">
-                                Mostrando {{ pagination.per_page * (pagination.page - 1) + 1 }} a 
-                                {{ pagination.per_page * (pagination.page - 1) + pagination.items|length }} 
-                                de {{ pagination.total }} préstamos
-                            </p>
-                        </div>
-                    </div>
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link c-btn c-btn-primary" href="?page={{ pagination.next_num }}{% if search %}&search={{ search }}{% endif %}{% if show_all %}&show_all=1{% endif %}">
+                                        <span class="d-none d-sm-inline me-1">Siguiente</span><i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Segunda fila: Texto informativo -->
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="text-center">
+                    <p class="c-text c-text__small text-muted mb-0">
+                        Mostrando {{ pagination.per_page * (pagination.page - 1) + 1 }} a 
+                        {{ pagination.per_page * (pagination.page - 1) + pagination.items|length }} 
+                        de {{ pagination.total }} préstamos
+                    </p>
                 </div>
             </div>
         </div>
