@@ -174,6 +174,13 @@
                                    class="c-btn c-btn-primary c-btn-sm">
                                     <i class="bi bi-inboxes me-1"></i>Detalle
                                 </a>
+                                {% if salesman['role_employee'] == 'VENDEDOR' %}
+                                <button type="button" class="c-btn c-btn-outline-secondary c-btn-sm js-open-change-pw"
+                                        data-user-id="{{ salesman['salesman_user_id'] }}"
+                                        title="Cambiar contraseña del vendedor">
+                                    <i class="bi bi-key"></i>
+                                </button>
+                                {% endif %}
                                 <form action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST" 
                                       class="js-cerrar-caja d-inline" data-employee-id="{{ salesman['employee_id'] }}" 
                                       data-status-box="{{ salesman['status_box'] }}">
@@ -394,6 +401,39 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="c-btn c-btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal cambio de contraseña vendedor -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="changePasswordModalLabel">Cambiar contraseña del vendedor</h3>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="c-form__group mb-2">
+                    <label class="c-form__label">Usuario</label>
+                    <input type="text" class="c-form__input" id="pwModalUsername" readonly>
+                </div>
+                <div class="c-form__group mb-2">
+                    <label class="c-form__label">Contraseña actual</label>
+                    <input type="text" class="c-form__input" id="pwModalCurrent" readonly>
+                </div>
+                <div class="c-form__group mb-2">
+                    <label class="c-form__label" for="pwModalNew">Nueva contraseña</label>
+                    <input type="password" class="c-form__input" id="pwModalNew" autocomplete="new-password" maxlength="100">
+                </div>
+                <div id="pwModalError" class="text-danger small" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="c-btn c-btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="c-btn c-btn-primary" id="pwModalSave">Guardar</button>
             </div>
         </div>
     </div>
@@ -710,6 +750,80 @@
 </style>
 
 <script>
+(function () {
+    var pwTargetUserId = null;
+    var modalSel = '#changePasswordModal';
+
+    document.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('.js-open-change-pw');
+        if (!btn) return;
+        pwTargetUserId = btn.getAttribute('data-user-id');
+        var errEl = document.getElementById('pwModalError');
+        errEl.style.display = 'none';
+        errEl.textContent = '';
+        document.getElementById('pwModalNew').value = '';
+        document.getElementById('pwModalUsername').value = 'Cargando…';
+        document.getElementById('pwModalCurrent').value = '';
+        $(modalSel).modal('show');
+        fetch('/team-member/' + pwTargetUserId + '/password-context')
+            .then(function (r) {
+                return r.json().then(function (data) {
+                    return { ok: r.ok, data: data };
+                });
+            })
+            .then(function (res) {
+                if (!res.ok) {
+                    errEl.textContent = res.data.message || 'Error al cargar';
+                    errEl.style.display = 'block';
+                    document.getElementById('pwModalUsername').value = '';
+                    return;
+                }
+                document.getElementById('pwModalUsername').value = res.data.username || '';
+                document.getElementById('pwModalCurrent').value = res.data.current_password || '';
+            })
+            .catch(function () {
+                errEl.textContent = 'Error de red';
+                errEl.style.display = 'block';
+            });
+    });
+
+    document.getElementById('pwModalSave').addEventListener('click', function () {
+        var errEl = document.getElementById('pwModalError');
+        errEl.style.display = 'none';
+        var newPw = document.getElementById('pwModalNew').value.trim();
+        if (!newPw) {
+            errEl.textContent = 'Ingrese la nueva contraseña';
+            errEl.style.display = 'block';
+            return;
+        }
+        if (!pwTargetUserId) return;
+        fetch('/team-member/' + pwTargetUserId + '/password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ new_password: newPw })
+        })
+            .then(function (r) {
+                return r.json().then(function (data) {
+                    return { ok: r.ok, data: data };
+                });
+            })
+            .then(function (res) {
+                if (!res.ok) {
+                    var detail = res.data && res.data.error ? ' — ' + res.data.error : '';
+                    errEl.textContent = (res.data && res.data.message ? res.data.message : 'Error al guardar') + detail;
+                    errEl.style.display = 'block';
+                    return;
+                }
+                $(modalSel).modal('hide');
+                alert(res.data.message || 'Contraseña actualizada');
+            })
+            .catch(function () {
+                errEl.textContent = 'Error de red';
+                errEl.style.display = 'block';
+            });
+    });
+})();
+
 // Función para inicializar las tarjetas de vendedores de la página box
 function initializeBoxCards() {
     // Aplicar estilos a los estados de caja

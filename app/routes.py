@@ -7,6 +7,7 @@ from decimal import Decimal
 from datetime import timedelta, datetime as dt, date as dt_date
 import os
 import uuid
+import json
 import holidays
 from flask import send_file
 import pandas as pd
@@ -23,7 +24,7 @@ from flask import Blueprint, render_template, session, redirect, url_for, abort,
 
 # Importaciones de tu aplicación (módulos locales)
 from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manager, Payment, Salesman, TransactionType, \
-    ApprovalStatus, EmployeeRecord
+    ApprovalStatus, EmployeeRecord, AuditLog
 
 # Importaciones de modelos y otros componentes específicos de tu aplicación
 from .models import User, Client, Loan, Employee, LoanInstallment
@@ -2070,6 +2071,89 @@ def validate_coordinator_access():
     
     return user_id, user
 
+
+def coordinator_manages_salesman_user(actor_user_id, target_user_id):
+    """
+    Comprueba que el actor sea coordinador y que el usuario objetivo sea un vendedor
+    bajo su Manager. Retorna (target_user, None, None) si OK, o (None, mensaje, código HTTP).
+    """
+    actor = User.query.get(actor_user_id)
+    if not actor or actor.role != Role.COORDINADOR:
+        return None, 'Solo los coordinadores pueden realizar esta acción', 403
+
+    coordinator_employee = Employee.query.filter_by(user_id=actor_user_id).first()
+    if not coordinator_employee:
+        return None, 'No se encontró el empleado coordinador', 403
+
+    manager = Manager.query.filter_by(employee_id=coordinator_employee.id).first()
+    if not manager:
+        return None, 'No se encontró el equipo del coordinador', 403
+
+    target_user = User.query.get(target_user_id)
+    if not target_user:
+        return None, 'Usuario objetivo no encontrado', 404
+
+    if target_user.role != Role.VENDEDOR:
+        return None, 'El usuario objetivo no es un vendedor', 400
+
+    target_employee = Employee.query.filter_by(user_id=target_user_id).first()
+    if not target_employee:
+        return None, 'No se encontró el empleado del vendedor', 404
+
+    salesman = Salesman.query.filter_by(employee_id=target_employee.id).first()
+    if not salesman or salesman.manager_id != manager.id:
+        return None, 'No tiene permiso para gestionar a este vendedor', 403
+
+    return target_user, None, None
+
+
+@routes.route('/team-member/<int:target_user_id>/password-context', methods=['GET'])
+def team_member_password_context(target_user_id):
+    actor_id = session.get('user_id')
+    if actor_id is None:
+        return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
+    target_user, msg, code = coordinator_manages_salesman_user(actor_id, target_user_id)
+    if msg:
+        return jsonify({'message': msg}), code
+    return jsonify({
+        'username': target_user.username,
+        'current_password': target_user.password,
+    }), 200
+
+
+@routes.route('/team-member/<int:target_user_id>/password', methods=['POST'])
+def team_member_change_password(target_user_id):
+    actor_id = session.get('user_id')
+    if actor_id is None:
+        return jsonify({'message': 'Usuario no encontrado en la sesión'}), 401
+    target_user, msg, code = coordinator_manages_salesman_user(actor_id, target_user_id)
+    if msg:
+        return jsonify({'message': msg}), code
+
+    data = request.get_json(silent=True) or {}
+    new_password = (data.get('new_password') or '').strip()
+    if not new_password:
+        return jsonify({'message': 'La nueva contraseña es obligatoria'}), 400
+    if len(new_password) > 100:
+        return jsonify({'message': 'La contraseña no puede superar 100 caracteres'}), 400
+
+    target_user.password = new_password
+    target_user.modification_date = datetime.now()
+    db.session.add(AuditLog(
+        actor_user_id=actor_id,
+        target_user_id=target_user_id,
+        action='PASSWORD_CHANGE',
+        ip_address=request.remote_addr,
+        details=json.dumps({'target_username': target_user.username}),
+    ))
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error al guardar', 'error': str(e)}), 500
+    return jsonify({'message': 'Contraseña actualizada correctamente'}), 200
+
+
 @safe_cache(timeout=600)  # 10 minutos de caché
 def get_coordinator_data(user_id):
     """Obtiene los datos del coordinador y sus vendedores asociados"""
@@ -3563,6 +3647,7 @@ def box():
             salesman_data = {
                 'salesman_name': data['salesman_name'],
                 'employee_id': employee_id,
+                'salesman_user_id': user.id,
                 'employee_status': data['employee_status'],
                 'total_collections_today': data['total_collections_today'],
                 'new_clients': data['new_clients'],
@@ -3969,6 +4054,7 @@ def box_detail_admin(employee_id):
             salesman_data = {
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
                 'employee_id': salesman.employee_id,
+                'salesman_user_id': salesman.employee.user_id,
                 'employee_status': employee_status,
                 'total_collections_today': total_collections_today,
                 'new_clients': new_clients,

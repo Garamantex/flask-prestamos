@@ -34,6 +34,9 @@ def create_app():
     app.register_blueprint(routes)
 
     # Importar y registrar los modelos
-    from app.models import User, Client, Loan
+    from app.models import User, Client, Loan, AuditLog  # noqa: F401
+
+    with app.app_context():
+        db.create_all()
 
     return app

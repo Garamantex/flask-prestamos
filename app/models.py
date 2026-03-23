@@ -441,3 +441,25 @@ class EmployeeRecord(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+
+
+class AuditLog(db.Model):
+    """Registro de auditoría (acciones sensibles; no almacenar contraseñas)."""
+
+    __tablename__ = 'audit_log'
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=datetime.datetime.now)
+    actor_user_id = db.Column(db.Integer, db.ForeignKey(
+        'user.id'), nullable=False)
+    target_user_id = db.Column(db.Integer, db.ForeignKey(
+        'user.id'), nullable=True)
+    action = db.Column(db.String(64), nullable=False)
+    ip_address = db.Column(db.String(45), nullable=True)
+    details = db.Column(db.Text, nullable=True)
+
+    actor = db.relationship(
+        'User', foreign_keys=[actor_user_id], backref='audit_logs_as_actor')
+    target = db.relationship(
+        'User', foreign_keys=[target_user_id], backref='audit_logs_as_target')
