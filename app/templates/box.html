@@ -174,6 +174,12 @@
                                    class="c-btn c-btn-primary c-btn-sm">
                                     <i class="bi bi-inboxes me-1"></i>Detalle
                                 </a>
+                                <button type="button" class="c-btn c-btn-warning c-btn-sm js-change-password-btn"
+                                        data-employee-id="{{ salesman['employee_id'] }}"
+                                        data-employee-name="{{ salesman['salesman_name'] }}"
+                                        title="Cambiar Contraseña">
+                                    <i class="bi bi-key"></i>
+                                </button>
                                 <form action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST" 
                                       class="js-cerrar-caja d-inline" data-employee-id="{{ salesman['employee_id'] }}" 
                                       data-status-box="{{ salesman['status_box'] }}">
@@ -1059,6 +1065,153 @@ function formatNumber(number) {
         maximumFractionDigits: 0
     }).format(number);
 }
+</script>
+
+<!-- Modal Cambiar Contraseña -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #0A1C47; color: white;">
+                <h5 class="modal-title" id="changePasswordModalLabel">
+                    <i class="bi bi-key mr-2"></i>Cambiar Contraseña
+                </h5>
+                <button type="button" class="close text-white js-pw-close" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Cambiar contraseña de: <strong id="pwEmployeeName"></strong></p>
+                <div id="pwAlertContainer"></div>
+                <form id="changePasswordForm">
+                    <input type="hidden" id="pwEmployeeId" name="employee_id">
+                    <div class="form-group">
+                        <label for="pwNewPassword">Nueva Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="pwNewPassword" name="new_password"
+                                   placeholder="Mínimo 4 caracteres" minlength="4" required>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="pwToggleVisibility">
+                                    <i class="bi bi-eye" id="pwEyeIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="pwConfirmPassword">Confirmar Contraseña</label>
+                        <input type="password" class="form-control" id="pwConfirmPassword"
+                               placeholder="Repita la contraseña" minlength="4" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary js-pw-close">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="pwSubmitBtn">
+                    <i class="bi bi-check-lg mr-1"></i>Guardar Contraseña
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var $modal = $('#changePasswordModal');
+    if (!$modal.length) return;
+
+    var employeeNameEl = document.getElementById('pwEmployeeName');
+    var employeeIdEl = document.getElementById('pwEmployeeId');
+    var newPasswordEl = document.getElementById('pwNewPassword');
+    var confirmPasswordEl = document.getElementById('pwConfirmPassword');
+    var alertContainer = document.getElementById('pwAlertContainer');
+    var submitBtn = document.getElementById('pwSubmitBtn');
+    var toggleBtn = document.getElementById('pwToggleVisibility');
+    var eyeIcon = document.getElementById('pwEyeIcon');
+
+    function hideModal() {
+        $modal.modal('hide');
+        $modal.removeClass('show');
+        $modal.css('display', 'none');
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css('padding-right', '');
+    }
+
+    document.querySelectorAll('.js-pw-close').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            hideModal();
+        });
+    });
+
+    document.querySelectorAll('.js-change-password-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            employeeIdEl.value = this.getAttribute('data-employee-id');
+            employeeNameEl.textContent = this.getAttribute('data-employee-name');
+            newPasswordEl.value = '';
+            confirmPasswordEl.value = '';
+            alertContainer.innerHTML = '';
+            $modal.modal('show');
+        });
+    });
+
+    toggleBtn.addEventListener('click', function() {
+        var isPassword = newPasswordEl.type === 'password';
+        newPasswordEl.type = isPassword ? 'text' : 'password';
+        confirmPasswordEl.type = isPassword ? 'text' : 'password';
+        eyeIcon.classList.toggle('bi-eye');
+        eyeIcon.classList.toggle('bi-eye-slash');
+    });
+
+    function showAlert(message, type) {
+        alertContainer.innerHTML =
+            '<div class="alert alert-' + type + ' alert-dismissible fade show py-2" role="alert">' +
+            message +
+            '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>';
+    }
+
+    submitBtn.addEventListener('click', function() {
+        var newPw = newPasswordEl.value.trim();
+        var confirmPw = confirmPasswordEl.value.trim();
+
+        if (!newPw || newPw.length < 4) {
+            showAlert('La contraseña debe tener al menos 4 caracteres.', 'danger');
+            return;
+        }
+        if (newPw !== confirmPw) {
+            showAlert('Las contraseñas no coinciden.', 'danger');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span>Guardando...';
+
+        var employeeId = employeeIdEl.value;
+        var formData = new FormData();
+        formData.append('new_password', newPw);
+
+        fetch('/change-password/' + employeeId, {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(response) { return response.json().then(function(data) { return {ok: response.ok, data: data}; }); })
+        .then(function(result) {
+            if (result.ok) {
+                showAlert(result.data.message, 'success');
+                newPasswordEl.value = '';
+                confirmPasswordEl.value = '';
+                setTimeout(function() { hideModal(); }, 1500);
+            } else {
+                showAlert(result.data.message || 'Error al cambiar la contraseña.', 'danger');
+            }
+        })
+        .catch(function() {
+            showAlert('Error de conexión. Intente nuevamente.', 'danger');
+        })
+        .finally(function() {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-lg mr-1"></i>Guardar Contraseña';
+        });
+    });
+})();
 </script>
 
 {% endblock %}

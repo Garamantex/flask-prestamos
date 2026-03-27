@@ -8581,3 +8581,61 @@ def create_custom_loan():
     except Exception as e:
         flash(f'Error al crear préstamo personalizado: {str(e)}', 'error')
         return redirect(url_for('routes.create_custom_loan'))
+
+
+@routes.route('/change-password/<int:employee_id>', methods=['POST'])
+def change_password(employee_id):
+    try:
+        user_id, user = validate_coordinator_access()
+
+        coordinator = Employee.query.filter_by(user_id=user_id).first()
+        if not coordinator:
+            return jsonify({'message': 'Empleado coordinador no encontrado'}), 404
+
+        manager = Manager.query.filter_by(employee_id=coordinator.id).first()
+        if not manager:
+            return jsonify({'message': 'No se encontró manager asociado'}), 404
+
+        salesman = Salesman.query.filter_by(
+            employee_id=employee_id,
+            manager_id=manager.id
+        ).first()
+
+        is_sub_coordinator = False
+        if not salesman:
+            sub_manager = Manager.query.filter_by(employee_id=employee_id).first()
+            if sub_manager:
+                sub_as_salesman = Salesman.query.filter_by(
+                    employee_id=employee_id,
+                    manager_id=manager.id
+                ).first()
+                if sub_as_salesman:
+                    is_sub_coordinator = True
+
+        if not salesman and not is_sub_coordinator:
+            return jsonify({'message': 'El empleado no es subordinado de este coordinador'}), 403
+
+        target_employee = Employee.query.get(employee_id)
+        if not target_employee:
+            return jsonify({'message': 'Empleado no encontrado'}), 404
+
+        target_user = User.query.get(target_employee.user_id)
+        if not target_user:
+            return jsonify({'message': 'Usuario no encontrado'}), 404
+
+        new_password = request.form.get('new_password', '').strip()
+        if not new_password or len(new_password) < 4:
+            return jsonify({'message': 'La contraseña debe tener al menos 4 caracteres'}), 400
+
+        target_user.password = new_password
+        db.session.commit()
+
+        return jsonify({
+            'message': f'Contraseña de {target_user.first_name} {target_user.last_name} actualizada correctamente'
+        }), 200
+
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 403
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
