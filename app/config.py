@@ -1,20 +1,41 @@
 # app/config.py
+import os
+from urllib.parse import quote_plus
 
-# Configuración de la base de datos
-# SQLALCHEMY_DATABASE_URI = 'mysql://prestchile13:gpx5YvsLYj2#Pv@148.72.27.147/rutzchile'
-SQLALCHEMY_DATABASE_URI = 'mysql://root:123456@localhost/wwrutz_chile'
+
+def _as_bool(value, default=False):
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
+
+# Permite usar URI completa desde entorno o construirla por piezas.
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
+else:
+    db_driver = os.getenv("DB_DRIVER", "mysql+pymysql")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "3306")
+    db_name = os.getenv("DB_NAME", "wwrutz_chile")
+    db_user = os.getenv("DB_USER", "root")
+    db_password = quote_plus(os.getenv("DB_PASSWORD", ""))
+    SQLALCHEMY_DATABASE_URI = (
+        f"{db_driver}://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    )
+
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-
-# Configuración avanzada de SQLAlchemy
 SQLALCHEMY_ENGINE_OPTIONS = {
-    
-    'pool_pre_ping': True,
-    'pool_recycle': 3600
+    "pool_pre_ping": True,
+    "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", "3600")),
 }
 
-# Otras configuraciones
-DEBUG = True
-SECRET_KEY = 'Lieberm0rder'
-import os
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'images')
+DEBUG = _as_bool(os.getenv("DEBUG"), default=True)
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
+UPLOAD_FOLDER = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "static",
+    "images",
+)
