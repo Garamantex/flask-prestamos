@@ -177,7 +177,8 @@
                                 <button type="button" class="c-btn c-btn-warning c-btn-sm js-change-password-btn"
                                         data-employee-id="{{ salesman['employee_id'] }}"
                                         data-employee-name="{{ salesman['salesman_name'] }}"
-                                        title="Cambiar Contraseña">
+                                        data-current-username="{{ salesman['username'] }}"
+                                        title="Cambiar usuario y contraseña">
                                     <i class="bi bi-key"></i>
                                 </button>
                                 <form action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST" 
@@ -1067,23 +1068,28 @@ function formatNumber(number) {
 }
 </script>
 
-<!-- Modal Cambiar Contraseña -->
+<!-- Modal Usuario y contraseña -->
 <div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header" style="background-color: #0A1C47; color: white;">
                 <h5 class="modal-title" id="changePasswordModalLabel">
-                    <i class="bi bi-key mr-2"></i>Cambiar Contraseña
+                    <i class="bi bi-person-lock mr-2"></i>Usuario y contraseña
                 </h5>
                 <button type="button" class="close text-white js-pw-close" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <p class="mb-3">Cambiar contraseña de: <strong id="pwEmployeeName"></strong></p>
+                <p class="mb-3">Subordinado: <strong id="pwEmployeeName"></strong></p>
                 <div id="pwAlertContainer"></div>
                 <form id="changePasswordForm">
                     <input type="hidden" id="pwEmployeeId" name="employee_id">
+                    <div class="form-group">
+                        <label for="pwNewUsername">Nombre de usuario</label>
+                        <input type="text" class="form-control" id="pwNewUsername" name="new_username"
+                               autocomplete="username" required>
+                    </div>
                     <div class="form-group">
                         <label for="pwNewPassword">Nueva Contraseña</label>
                         <div class="input-group">
@@ -1106,7 +1112,7 @@ function formatNumber(number) {
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary js-pw-close">Cancelar</button>
                 <button type="button" class="btn btn-warning" id="pwSubmitBtn">
-                    <i class="bi bi-check-lg mr-1"></i>Guardar Contraseña
+                    <i class="bi bi-check-lg mr-1"></i>Guardar
                 </button>
             </div>
         </div>
@@ -1120,6 +1126,7 @@ function formatNumber(number) {
 
     var employeeNameEl = document.getElementById('pwEmployeeName');
     var employeeIdEl = document.getElementById('pwEmployeeId');
+    var newUsernameEl = document.getElementById('pwNewUsername');
     var newPasswordEl = document.getElementById('pwNewPassword');
     var confirmPasswordEl = document.getElementById('pwConfirmPassword');
     var alertContainer = document.getElementById('pwAlertContainer');
@@ -1146,6 +1153,7 @@ function formatNumber(number) {
         btn.addEventListener('click', function() {
             employeeIdEl.value = this.getAttribute('data-employee-id');
             employeeNameEl.textContent = this.getAttribute('data-employee-name');
+            newUsernameEl.value = this.getAttribute('data-current-username') || '';
             newPasswordEl.value = '';
             confirmPasswordEl.value = '';
             alertContainer.innerHTML = '';
@@ -1169,9 +1177,14 @@ function formatNumber(number) {
     }
 
     submitBtn.addEventListener('click', function() {
+        var newUser = newUsernameEl.value.trim();
         var newPw = newPasswordEl.value.trim();
         var confirmPw = confirmPasswordEl.value.trim();
 
+        if (!newUser) {
+            showAlert('El nombre de usuario es obligatorio.', 'danger');
+            return;
+        }
         if (!newPw || newPw.length < 4) {
             showAlert('La contraseña debe tener al menos 4 caracteres.', 'danger');
             return;
@@ -1186,6 +1199,7 @@ function formatNumber(number) {
 
         var employeeId = employeeIdEl.value;
         var formData = new FormData();
+        formData.append('new_username', newUser);
         formData.append('new_password', newPw);
 
         fetch('/change-password/' + employeeId, {
@@ -1196,6 +1210,10 @@ function formatNumber(number) {
         .then(function(result) {
             if (result.ok) {
                 showAlert(result.data.message, 'success');
+                newUsernameEl.value = newUser;
+                document.querySelectorAll('.js-change-password-btn[data-employee-id="' + employeeId + '"]').forEach(function(b) {
+                    b.setAttribute('data-current-username', newUser);
+                });
                 newPasswordEl.value = '';
                 confirmPasswordEl.value = '';
                 setTimeout(function() { hideModal(); }, 1500);
@@ -1208,7 +1226,7 @@ function formatNumber(number) {
         })
         .finally(function() {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="bi bi-check-lg mr-1"></i>Guardar Contraseña';
+            submitBtn.innerHTML = '<i class="bi bi-check-lg mr-1"></i>Guardar';
         });
     });
 })();

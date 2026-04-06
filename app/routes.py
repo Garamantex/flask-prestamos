@@ -3562,6 +3562,7 @@ def box():
             # Crear datos del vendedor
             salesman_data = {
                 'salesman_name': data['salesman_name'],
+                'username': user.username,
                 'employee_id': employee_id,
                 'employee_status': data['employee_status'],
                 'total_collections_today': data['total_collections_today'],
@@ -3968,6 +3969,7 @@ def box_detail_admin(employee_id):
 
             salesman_data = {
                 'salesman_name': f'{salesman.employee.user.first_name} {salesman.employee.user.last_name}',
+                'username': salesman.employee.user.username,
                 'employee_id': salesman.employee_id,
                 'employee_status': employee_status,
                 'total_collections_today': total_collections_today,
@@ -8623,15 +8625,28 @@ def change_password(employee_id):
         if not target_user:
             return jsonify({'message': 'Usuario no encontrado'}), 404
 
+        new_username = request.form.get('new_username', '').strip()
+        if not new_username:
+            return jsonify({'message': 'El nombre de usuario es obligatorio'}), 400
+
+        if new_username != target_user.username:
+            taken = User.query.filter(
+                User.username == new_username,
+                User.id != target_user.id
+            ).first()
+            if taken:
+                return jsonify({'message': 'Ese nombre de usuario ya está en uso'}), 400
+
         new_password = request.form.get('new_password', '').strip()
         if not new_password or len(new_password) < 4:
             return jsonify({'message': 'La contraseña debe tener al menos 4 caracteres'}), 400
 
+        target_user.username = new_username
         target_user.password = new_password
         db.session.commit()
 
         return jsonify({
-            'message': f'Contraseña de {target_user.first_name} {target_user.last_name} actualizada correctamente'
+            'message': f'Usuario y contraseña de {target_user.first_name} {target_user.last_name} actualizados correctamente'
         }), 200
 
     except ValueError as e:
