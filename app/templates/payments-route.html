@@ -2,165 +2,345 @@
 
 {% block content %}
 <div class="c-form">
-    <div class="container pt-1">
-        <div class="row">
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3"
-                    href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver</a>
-            </div>
-            <div class="col">
-                <a class="c-btn c-btn-primary c-btn-block mb-3"
-                    href="{{ url_for('routes.logout') }}">Salir</a>
-            </div>
-        </div>
-        <div class="row">
-            <div class="container">
-                <div class="row">
-                    <div class="col-8 col-md-7">
-                        <div class="c-users">
-                            <p class="c-users__title" style="font-size: 1.2rem;">Créditos del Día</p>
-                        </div>
-                    </div>
-                    <div class="col-4 col-md-5">
-                        <button class="c-btn c-btn-summit js-btn-ocultar"
-                            id="btn-ocultar">
-                            <i id="icono-ocultar"
-                                class="bi bi-eye js-icono-ocultar"></i>
-                        </button>
-                    </div>
+    <!-- Área superior -->
+    <div class="top-section">
+        <div class="container pt-3">
+            <!-- Botones de navegación -->
+            <div class="row">
+                <div class="col">
+                    <a class="c-btn c-btn-primary c-btn-block mb-3"
+                        href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver</a>
                 </div>
+                <div class="col">
+                    <a class="c-btn c-btn-primary c-btn-block mb-3"
+                        href="{{ url_for('routes.logout') }}">Salir</a>
+                </div>
+            </div>
 
-                <div class="row ">
-                    
-                    <div class="col-5">
-                        <div class="d-flex justify-content-center">
-                            <i class="bi bi-person-check-fill d-inline-block"
-                                title="Clientes ACTIVOS"></i>
-                            <p class="d-inline-block px-2"
-                                title="Clientes ACTIVOS">{{ all_loans_paid_count }}
-                                / {{ active_loans_count}}</p>
-                        </div>
-                    </div>
-                    <div class="col-7">
-                        <div class="d-flex justify-content-center">
-                            <i class="bi bi-cash-coin d-inline-block"></i>
-                            <p class="d-inline-block px-2">
-                                $ {{ '{:,.0f}'.format(total_collections_today |
-                                float | int) }}
-                                /
-                                $ {{ '{:,.0f}'.format(total_installment_value |
-                                float | int) }}
-    
-                                ({{ porcentaje_cobro}}%)
-                            </p>
+            <!-- Barra de búsqueda -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="c-form__container">
+                        <div class="c-form__group">
+                            <label class="c-form__label">Buscar Cliente</label>
+                            <input type="text" name="search" id="searcher" class="c-form__input"
+                                   placeholder="Ingrese el nombre del cliente">
                         </div>
                     </div>
                 </div>
+            </div>
 
+            <!-- Resumen de créditos del día -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="c-form__container">
+                        <div class="row">
+                            <div class="col-8 col-md-7">
+                                <h5 class="mb-3">
+                                    <i class="bi bi-credit-card me-2 text-primary"></i>Créditos del Día
+                                </h5>
+                            </div>
+                            <div class="col-4 col-md-5 text-end">
+                                <button class="c-btn c-btn-outline-primary c-btn-sm js-btn-ocultar"
+                                    id="btn-ocultar" title="Mostrar préstamos procesados">
+                                    <i id="icono-ocultar" class="bi bi-eye js-icono-ocultar"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Métricas del día -->
+                        <div class="row g-2">
+                            <div class="col-lg-6 col-md-6">
+                                <div class="metric-item">
+                                    <div class="metric-label">Clientes Activos</div>
+                                    <div class="metric-value text-primary">
+                                        <i class="bi bi-person-check-fill me-1"></i>
+                                        {{ all_loans_paid_count }} / {{ active_loans_count }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6 col-md-6">
+                                <div class="metric-item">
+                                    <div class="metric-label">Recaudo del Día</div>
+                                    <div class="metric-value text-success">
+                                        <i class="bi bi-cash-coin me-1"></i>
+                                        $ {{ '{:,.0f}'.format(total_collections_today | float | int) }}
+                                    </div>
+                                    <div class="metric-sub">
+                                        Meta: $ {{ '{:,.0f}'.format(total_installment_value | float | int) }} 
+                                        ({{ porcentaje_cobro }}%)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="container">
+        <!-- Lista de clientes -->
         <div class="row">
             <div class="col-12">
-                <input type="text" name="search" id="searcher"
-                    class="form-control" style="border-radius: 6px 0 0 6px ;"
-                    placeholder="Buscar por cliente">
-            </div>
-            <!-- <div class="col-12">
-                <form action="/add-daily-collected/{{ employee_id }}"
-                    method="POST">
-                    <button class="c-btn c-btn-primary mb-3"
-                        type="submit">Cerrar Caja</button>
-                </form>
-            </div> -->
-        </div>
-        <div class="row">
-            <div class="col">
-                <ul class="list-group " style="padding: 0 0.5em;">
-
-                    {% for client in clients %}
-                    <li class="mb-4 c-card__box-mannager search-card"
-                        data-due-date="{{ client['Due Date'] }}"
-                        data-current-date="{{ client['Current Date'] }}"
-                        data-last-payment-date="{{ client['Last Payment Date front'] }}"
-                        data-last-loan-modification-date="{{ client['First Modification Date'] }}"
-                        data-previous-installment-status="{{ client['Previous Installment Status'] }}"
-                        data-installment-status="{{ client['Installment Status'] }}">
-                        <div class="c-card__internal">
-                            <p style="margin-bottom: 0.2rem;">{{
-                                client['First Name'] | capitalize }} {{
-                                client['Last Name'] | capitalize }}</p>
-                            <p style="margin-bottom: 0.2rem;">{{
-                                client['Alias Client'] | capitalize }}</p>
-                            <p style="margin-bottom: 1rem;">Saldo: $ {{
-                                '{:,.0f}'.format(client['Total Outstanding Amount']
-                                | float | int) }}</p>
-                            <p style="margin-bottom: 1rem;"
-                                class="{{ 'badge bg-success' if client['Approved'] == 'Aprobado' else 'badge bg-warning text-dark' }}">
-                                {{ client['Approved'] | capitalize }}
-                            </p>
-                            <p class="hidden"
-                                style="margin-bottom: 0.2rem;">Estado: {{
-                                client['Previous Installment Status'] |
-                                capitalize }}</p>
-                            <p class="u-hidden"
-                                style="margin-bottom: 0.2rem;">{{
-                                client['Installment Status'] | capitalize }}</p>
-                            <p class="hidden dates"
-                                style="margin-bottom: 0.2rem;">Ultima fecha de
-                                pago: <br> {{ client['Last Payment Date front']
-                                | capitalize }}</p>
-                            <p class="u-hidden dates"
-                                style="margin-bottom: 0.2rem;">Fecha
-                                modificacion: {{
-                                client['Last Loan Modification Date'] |
-                                capitalize }}</p>
+                <!-- Préstamos activos -->
+                {% for client in clients %}
+                <div class="client-card mb-3 search-card"
+                    data-due-date="{{ client['Due Date'] }}"
+                    data-current-date="{{ client['Current Date'] }}"
+                    data-last-payment-date="{{ client['Last Payment Date front'] }}"
+                    data-last-loan-modification-date="{{ client['First Modification Date'] }}"
+                    data-previous-installment-status="{{ client['Previous Installment Status'] }}"
+                    data-installment-status="{{ client['Installment Status'] }}">
+                    
+                    <!-- Header de la tarjeta -->
+                    <div class="client-card-header">
+                        <div class="d-flex align-items-center w-100">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">{{ client['First Name'] | capitalize }} {{ client['Last Name'] | capitalize }}</h6>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge fs-6 {{ 'bg-success' if client['Approved'] == 'Aprobado' else 'bg-warning text-dark' }}">
+                                        {{ client['Approved'] | capitalize }}
+                                    </span>
+                                    <small class="text-muted">
+                                        <i class="bi bi-person me-1"></i>
+                                        {{ client['Alias Client'] | capitalize }}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a class="c-btn c-btn-outline-primary c-btn-sm"
+                                    href="{{ url_for('routes.credit_detail', id=client['Loan ID']) }}"
+                                    title="Ver detalle del crédito">
+                                    <i class="bi bi-eye me-1"></i>Detalle
+                                </a>
+                            </div>
                         </div>
-                        <div class="c-card__internal">
-                            <p style="margin-bottom: 0.2rem;">Cuota: {{
-                                client['Cuota Number'] }} / {{
-                                client['Total Installments'] | float | int
-                                }}</p>
-                            <p class style="margin-bottom: 2rem;">Valor cuota: $
-                                {{ '{:,.0f}'.format(client['Installment Value']
-                                | float | int) }}</p>
-                            <!-- <p class="hidden" style="margin-bottom: 0.2rem;">Saldo Abonos: $ {{ '{:,.0f}'.format(client['Total Amount Paid'] | float | int) }}</p> -->
-                            <p class="hidden" style="margin-bottom: 0.2rem;">En
-                                mora: $ {{
-                                '{:,.0f}'.format(client['Total Overdue Amount']
-                                | float | int) }}</p>
-                            <p class="hidden" class
-                                style="margin-bottom: 0.2rem;">Valor Pagado: $
-                                {{
-                                '{:,.0f}'.format(client['Previous Installment Paid Amount']
-                                | float | int) }}</p>
-                            <a class="c-btn c-btn-summit mt-4"
-                                href="{{ url_for('routes.credit_detail', id=client['Loan ID']) }}"
-                                title="credit_detail">
-                                <i id="icono-ocultar" class="bi bi-eye"></i>
-                            </a>
+                    </div>
+                    
+                    <!-- Contenido de la tarjeta -->
+                    <div class="client-card-body">
+                        <div class="row g-2">
+                            <!-- Información principal -->
+                            <div class="col-md-6">
+                                <div class="row g-1">
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Saldo Total</div>
+                                            <div class="metric-value text-primary">
+                                                <i class="bi bi-wallet2 me-1"></i>
+                                                $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Valor Cuota</div>
+                                            <div class="metric-value text-success">
+                                                <i class="bi bi-cash-coin me-1"></i>
+                                                $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Cuota Actual</div>
+                                            <div class="metric-value text-info">
+                                                <i class="bi bi-123 me-1" style="display: none;"></i>
+                                                {{ "%.1f" | format(client['Cuota Number']) }} / {{ client['Total Installments'] | float | int }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">En Mora</div>
+                                            <div class="metric-value text-danger">
+                                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                                $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Información adicional (oculta por defecto) -->
+                            <div class="col-md-6">
+                                <div class="row g-1">
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Estado Anterior</div>
+                                            <div class="metric-value text-muted">
+                                                <i class="bi bi-clock-history me-1"></i>
+                                                {{ client['Previous Installment Status'] | capitalize }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-item">
+                                            <div class="metric-label">Estado Actual</div>
+                                            <div class="metric-value text-muted">
+                                                <i class="bi bi-check-circle me-1"></i>
+                                                {{ client['Installment Status'] | capitalize }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div
-                            style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                        
+                        <!-- Botones de acción -->
+                        <div class="d-flex gap-2 mt-3">
                             <a type="button"
-                                class="c-btn c-btn-primary btn-pagar cuota-label"
-                                style="width: 60%; padding: 0.4rem 0;"
+                                class="c-btn c-btn-primary btn-pagar flex-grow-1"
                                 data-id="{{ client['Loan ID'] }}"
                                 data-installment-value="{{ client['Installment Value'] }}"
                                 data-overdue-amount="{{ client['Total Overdue Amount'] }}"
                                 data-toggle="modal"
                                 data-target="#exampleModal">
-                                Pagar
+                                <i class="bi bi-cash-coin me-1"></i>Pagar
                             </a>
-                            <a class="c-btn c-btn-primary btn-mora cuota-label"
-                                style="width: 40%; margin-left: 1rem; padding: 0.4rem 0;"|
+                            <a class="c-btn c-btn-outline-warning btn-mora"
                                 href="#"
                                 data-id="{{ client['Loan ID'] }}">
-                                Mora
+                                <i class="bi bi-exclamation-triangle me-1"></i>Mora
                             </a>
                         </div>
-                    </li>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Préstamos procesados (ocultos por defecto) -->
+                <div id="processed-loans-section" style="display: none;">
+                    <h5 class="mb-3 text-muted">
+                        <i class="bi bi-clock-history me-2"></i>Préstamos Procesados Hoy
+                    </h5>
+                    {% for client in processed_clients %}
+                    <div class="client-card mb-3 search-card processed-card"
+                        data-due-date="{{ client['Due Date'] }}"
+                        data-current-date="{{ client['Current Date'] }}"
+                        data-last-payment-date="{{ client['Last Payment Date front'] }}"
+                        data-last-loan-modification-date="{{ client['First Modification Date'] }}"
+                        data-previous-installment-status="{{ client['Previous Installment Status'] }}"
+                        data-installment-status="{{ client['Installment Status'] }}"
+                        data-status="{{ client['Installment Status'] }}">
+                        
+                        <!-- Header de la tarjeta -->
+                        <div class="client-card-header">
+                            <div class="d-flex align-items-center w-100">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ client['First Name'] | capitalize }} {{ client['Last Name'] | capitalize }}</h6>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge fs-6 {{ 'bg-success' if client['Approved'] == 'Aprobado' else 'bg-warning text-dark' }}">
+                                            {{ client['Approved'] | capitalize }}
+                                        </span>
+                                        <small class="text-muted">
+                                            <i class="bi bi-person me-1"></i>
+                                            {{ client['Alias Client'] | capitalize }}
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <a class="c-btn c-btn-outline-primary c-btn-sm"
+                                        href="{{ url_for('routes.credit_detail', id=client['Loan ID']) }}"
+                                        title="Ver detalle del crédito">
+                                        <i class="bi bi-eye me-1"></i>Detalle
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Contenido de la tarjeta -->
+                        <div class="client-card-body">
+                            <div class="row g-2">
+                                <!-- Información principal -->
+                                <div class="col-md-6">
+                                    <div class="row g-1">
+                                        <div class="col-6">
+                                            <div class="metric-item">
+                                                <div class="metric-label">Saldo Total</div>
+                                                <div class="metric-value text-primary">
+                                                    <i class="bi bi-wallet2 me-1"></i>
+                                                    $ {{ '{:,.0f}'.format(client['Total Outstanding Amount'] | float | int) }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="metric-item">
+                                                <div class="metric-label">Valor Cuota</div>
+                                                <div class="metric-value text-success">
+                                                    <i class="bi bi-cash-coin me-1"></i>
+                                                    $ {{ '{:,.0f}'.format(client['Installment Value'] | float | int) }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="metric-item">
+                                                <div class="metric-label">Cuota Actual</div>
+                                                <div class="metric-value text-info">
+                                                    <i class="bi bi-123 me-1" style="display: none;"></i>
+                                                    {{ "%.1f" | format(client['Cuota Number']) }} / {{ client['Total Installments'] | float | int }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="metric-item">
+                                                <div class="metric-label">En Mora</div>
+                                                <div class="metric-value text-danger">
+                                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                                    $ {{ '{:,.0f}'.format(client['Total Overdue Amount'] | float | int) }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Información adicional -->
+                                <div class="col-md-6">
+                                    <div class="row g-1">
+                                        <div class="col-6">
+                                            <div class="metric-item">
+                                                <div class="metric-label">Estado Anterior</div>
+                                                <div class="metric-value text-muted">
+                                                    <i class="bi bi-clock-history me-1"></i>
+                                                    {{ client['Previous Installment Status'] | capitalize if client['Previous Installment Status'] else 'N/A' }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="metric-item">
+                                                <div class="metric-label">Estado Actual</div>
+                                                <div class="metric-value text-muted">
+                                                    <i class="bi bi-check-circle me-1"></i>
+                                                    {{ client['Installment Status'] | capitalize }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Botones de acción -->
+                            <div class="d-flex gap-2 mt-3">
+                                <a type="button"
+                                    class="c-btn c-btn-primary btn-pagar flex-grow-1"
+                                    data-id="{{ client['Loan ID'] }}"
+                                    data-installment-value="{{ client['Installment Value'] }}"
+                                    data-overdue-amount="{{ client['Total Overdue Amount'] }}"
+                                    data-toggle="modal"
+                                    data-target="#exampleModal">
+                                    <i class="bi bi-cash-coin me-1"></i>Pagar
+                                </a>
+                                <a class="c-btn c-btn-outline-warning btn-mora"
+                                    href="#"
+                                    data-id="{{ client['Loan ID'] }}">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Mora
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
-                </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -170,11 +350,11 @@
 <!-- Modal de Pago -->
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog"
     aria-labelledby="paymentModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="paymentModalLabel">
-                    <i class="bi bi-cash-coin me-2"></i>Procesar Pago
+                    <i class="bi bi-cash-coin me-2 text-primary"></i>Procesar Pago
                 </h5>
                 <button type="button" class="close" data-dismiss="modal"
                     aria-label="Cerrar">
@@ -182,39 +362,53 @@
                 </button>
             </div>
             <div class="modal-body">
-                <!-- Resumen del pago -->
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <p><strong>Valor Cuota:</strong><br>
-                            <span class="text-primary" id="installmentValue">$0</span>
-                        </p>
+                <div class="c-form__container">
+                    <!-- Resumen del pago -->
+                    <div class="row g-2 mb-4">
+                        <div class="col-md-6">
+                            <div class="metric-item">
+                                <div class="metric-label">Valor Cuota</div>
+                                <div class="metric-value text-primary" id="installmentValue">
+                                    <i class="bi bi-cash-coin me-1"></i>$0
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="metric-item">
+                                <div class="metric-label">Valor en Mora</div>
+                                <div class="metric-value text-danger" id="overdueAmount">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>$0
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-6">
-                        <p><strong>Valor en Mora:</strong><br>
-                            <span class="text-primary" id="overdueAmount">$0</span>
-                        </p>
+                    
+                    <!-- Formulario de pago -->
+                    <div class="c-form__group">
+                        <label class="c-form__label" for="customPayment">Monto a pagar</label>
+                        <input type="number" 
+                               class="c-form__input" 
+                               id="customPayment"
+                               name="customPayment"
+                               placeholder="Ingrese el monto a pagar"
+                               min="0"
+                               step="100">
+                        <small class="c-form__help">Ingrese el monto que desea pagar</small>
                     </div>
-                </div>
-                
-                <!-- Formulario de pago -->
-                <div class="form-group">
-                    <label for="customPayment">Monto a pagar:</label>
-                    <input type="number" 
-                           class="form-control" 
-                           id="customPayment"
-                           name="customPayment"
-                           placeholder="Ingrese el monto"
-                           min="0"
-                           step="100">
-                </div>
 
-                <!-- Campo oculto para almacenar el ID del préstamo -->
-                <input type="hidden" id="loanId" name="loanId" value>
+                    <!-- Campo oculto para almacenar el ID del préstamo -->
+                    <input type="hidden" id="loanId" name="loanId" value>
+                </div>
             </div>
             
             <div class="modal-footer">
                 <button type="button" 
-                        class="btn btn-primary"
+                        class="btn btn-secondary"
+                        data-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </button>
+                <button type="button" 
+                        class="c-btn c-btn-primary"
                         id="confirmPaymentBtn" 
                         data-dismiss="modal">
                     <i class="bi bi-check-circle me-2"></i>Confirmar Pago
@@ -224,8 +418,87 @@
     </div>
 </div>
 
-<!-- Agrega un script adicional -->
+
+<!-- Scripts para funcionalidad -->
 <script>
+// Función para inicializar las tarjetas de clientes
+function initializeClientCards() {
+    // Funcionalidad de búsqueda para tarjetas de clientes
+    const searchInput = document.getElementById('searcher');
+    const clientCards = document.querySelectorAll('.search-card');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            clientCards.forEach(card => {
+                const clientName = card.querySelector('h6').textContent.toLowerCase();
+                
+                if (clientName.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // Funcionalidad de mostrar/ocultar préstamos procesados
+    const toggleButton = document.getElementById('btn-ocultar');
+    const toggleIcon = document.getElementById('icono-ocultar');
+    const processedSection = document.getElementById('processed-loans-section');
+    
+    if (toggleButton && toggleIcon && processedSection) {
+        toggleButton.addEventListener('click', function() {
+            const isShowing = processedSection.style.display !== 'none';
+            
+            if (isShowing) {
+                // Ocultar préstamos procesados
+                processedSection.style.display = 'none';
+                processedSection.classList.remove('show');
+                toggleIcon.className = 'bi bi-eye js-icono-ocultar';
+                toggleButton.title = 'Mostrar préstamos procesados';
+            } else {
+                // Mostrar préstamos procesados
+                processedSection.style.display = 'block';
+                processedSection.classList.add('show');
+                toggleIcon.className = 'bi bi-eye-slash js-icono-ocultar';
+                toggleButton.title = 'Ocultar préstamos procesados';
+            }
+        });
+    }
+    
+    // Funcionalidad del modal de pago
+    const paymentButtons = document.querySelectorAll('.btn-pagar');
+    const modal = document.getElementById('exampleModal');
+    const installmentValueSpan = document.getElementById('installmentValue');
+    const overdueAmountSpan = document.getElementById('overdueAmount');
+    const loanIdInput = document.getElementById('loanId');
+    
+    paymentButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const installmentValue = this.getAttribute('data-installment-value');
+            const overdueAmount = this.getAttribute('data-overdue-amount');
+            const loanId = this.getAttribute('data-id');
+            
+            // Actualizar los valores en el modal
+            if (installmentValueSpan) {
+                installmentValueSpan.innerHTML = `<i class="bi bi-cash-coin me-1"></i>$${parseFloat(installmentValue).toLocaleString()}`;
+            }
+            
+            if (overdueAmountSpan) {
+                overdueAmountSpan.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>$${parseFloat(overdueAmount).toLocaleString()}`;
+            }
+            
+            if (loanIdInput) {
+                loanIdInput.value = loanId;
+            }
+        });
+    });
+}
+
+// Ejecutar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', initializeClientCards);
 </script>
 
 {% endblock %}

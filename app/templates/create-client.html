@@ -4,6 +4,7 @@
 <div id="user-id" data-user-id="{{ session.get('user_id') }}"></div>
 <div class="c-form">
     <div class="container pt-5">
+        <!-- Botones de navegación -->
         <div class="row">
             <div class="col">
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver</a>
@@ -12,105 +13,297 @@
                 <a class="c-btn c-btn-primary c-btn-block mb-3" href="{{ url_for('routes.client_list', user_id=user_id) }}">Clientes</a>
             </div>
         </div>
+
+        <!-- Formulario principal -->
         <div class="row">
             <div class="col">
                 <div class="c-form__container c-form--mobile">
                     <h2 class="c-form__title">Crear Nuevo Cliente</h2>
                     
                     <form action="{{ url_for('routes.create_client', user_id=user_id) }}" method="POST">
-                        <div class="c-form__group">
-                            <label for="first_name" class="c-form__label c-form__label--required">Nombre</label>
-                            <input type="text" 
-                                   class="c-form__input" 
-                                   name="first_name" 
-                                   id="first_name" 
-                                   placeholder="Ingrese el nombre del cliente"
-                                   required>
-                        </div>
+                        <fieldset>
+                            <legend>Información Personal</legend>
+                            
+                            <div class="c-form__group">
+                                <label for="first_name" class="c-form__label c-form__label--required">Nombre</label>
+                                <input type="text" 
+                                       class="c-form__input" 
+                                       name="first_name" 
+                                       id="first_name" 
+                                       placeholder="Ingrese el nombre del cliente"
+                                       required>
+                            </div>
+                            
+                            <div class="c-form__group">
+                                <label for="last_name" class="c-form__label c-form__label--required">Apellido</label>
+                                <input type="text" 
+                                       class="c-form__input" 
+                                       name="last_name" 
+                                       id="last_name" 
+                                       placeholder="Ingrese el apellido del cliente"
+                                       required>
+                            </div>
+                            
+                            <div class="c-form__group">
+                                <label for="alias" class="c-form__label">Alias</label>
+                                <input type="text" 
+                                       class="c-form__input" 
+                                       name="alias" 
+                                       id="alias" 
+                                       placeholder="Alias o nombre comercial">
+                            </div>
+                            
+                            <div class="c-form__group">
+                                <label for="document" class="c-form__label c-form__label--required">DNI / Documento</label>
+                                <input type="text" 
+                                       class="c-form__input" 
+                                       name="document" 
+                                       id="document" 
+                                       placeholder="Número de documento"
+                                       required>
+                                <small id="document-feedback" class="form-text"></small>
+                            </div>
+                            
+                            <div class="c-form__group">
+                                <label for="cellphone" class="c-form__label c-form__label--required">Teléfono</label>
+                                <input type="tel" 
+                                       class="c-form__input" 
+                                       name="cellphone" 
+                                       id="cellphone" 
+                                       placeholder="Número de teléfono"
+                                       required>
+                            </div>
+                            
+                            <div class="c-form__group">
+                                <label for="address" class="c-form__label">Dirección</label>
+                                <input type="text" 
+                                       class="c-form__input" 
+                                       name="address" 
+                                       id="address" 
+                                       placeholder="Dirección completa">
+                            </div>
+                            
+                            <div class="c-form__group">
+                                <label for="neighborhood" class="c-form__label">Barrio</label>
+                                <input type="text" 
+                                       class="c-form__input" 
+                                       name="neighborhood" 
+                                       id="neighborhood" 
+                                       placeholder="Barrio">
+                            </div>
+                        </fieldset>
                         
-                        <div class="c-form__group">
-                            <label for="last_name" class="c-form__label c-form__label--required">Apellido</label>
-                            <input type="text" 
-                                   class="c-form__input" 
-                                   name="last_name" 
-                                   id="last_name" 
-                                   placeholder="Ingrese el apellido del cliente"
-                                   required>
-                        </div>
+                        <fieldset>
+                            <legend>Datos del préstamo</legend>
+                            
+                            <div class="c-form__group">
+                                <label for="amount" class="c-form__label">Monto</label>
+                                <input type="text" 
+                                       class="c-form__input js-number" 
+                                       name="amount" 
+                                       id="amount" 
+                                       placeholder="Monto">
+                            </div>
+                            
+                            <div class="c-form__group">
+                                <label for="dues" class="c-form__label">Cuotas</label>
+                                <select class="c-form__select" name="dues" id="dues" aria-label="dues">
+                                    <option selected>Seleccionar</option>
+                                </select>
+                            </div>
+                            
+                            <div class="c-form__group">
+                                <label for="interest" class="c-form__label">Interés</label>
+                                <select class="c-form__select" name="interest" id="interest" aria-label="interest">
+                                    <option selected>Seleccionar</option>
+                                </select>
+                            </div>
+                            
+                            <div class="c-form__group">
+                                <label for="amountPerPay" class="c-form__label">Monto por cuota</label>
+                                <input type="text" 
+                                       class="c-form__input js-number" 
+                                       name="amountPerPay" 
+                                       id="amountPerPay" 
+                                       placeholder="Monto por cuota" 
+                                       readonly>
+                            </div>
+                        </fieldset>
                         
-                        <div class="c-form__group">
-                            <label for="alias" class="c-form__label">Alias</label>
-                            <input type="text" 
-                                   class="c-form__input" 
-                                   name="alias" 
-                                   id="alias" 
-                                   placeholder="Alias o nombre comercial">
+                        <div class="c-form__actions">
+                            <button id="submit-btn" class="c-btn c-btn-primary" type="submit" disabled>Crear Cliente</button>
                         </div>
-                        
-                        <div class="c-form__group">
-                            <label for="document" class="c-form__label c-form__label--required">DNI</label>
-                            <input type="text" 
-                                   class="c-form__input" 
-                                   name="document" 
-                                   id="document" 
-                                   placeholder="Número de documento"
-                                   required>
-                        </div>
-                        
-                        <div class="c-form__group">
-                            <label for="cellphone" class="c-form__label c-form__label--required">Teléfono</label>
-                            <input type="tel" 
-                                   class="c-form__input" 
-                                   name="cellphone" 
-                                   id="cellphone" 
-                                   placeholder="Número de teléfono"
-                                   required>
-                        </div>
-                        
-                        <div class="c-form__group">
-                            <label for="address" class="c-form__label">Dirección</label>
-                            <input type="text" 
-                                   class="c-form__input" 
-                                   name="address" 
-                                   id="address" 
-                                   placeholder="Dirección completa">
-                        </div>
-                        
-                        <div class="c-form__group">
-                            <label for="neighborhood" class="c-form__label">Barrio</label>
-                            <input type="text" class="c-form c-form__input" name="neighborhood" id="neighborhood" placeholder="Barrio">
-                        </div>
-                    </fieldset>
-                    
-                    <fieldset>
-                        <legend class="mt-3">Datos del préstamo</legend>
-                        <hr class="mb-3">
-                        <div class="mb-3">
-                            <label for="amount" class="form-label">Monto</label>
-                            <input type="text" class="c-form c-form__input js-number" name="amount" id="amount" placeholder="Monto">
-                        </div>
-                        <div class="mb-3">
-                            <label for="dues" class="form-label">Cuotas</label>
-                            <select class="c-form c-form__input" name="dues" id="dues" aria-label="dues">
-                                <option selected>Seleccionar</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="interest" class="form-label">Interés</label>
-                            <select class="c-form c-form__input" name="interest" id="interest" aria-label="interest">
-                                <option selected>Seleccionar</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="amountPerPay" class="form-label">Monto por cuota</label>
-                            <input type="text" class="c-form c-form__input js-number" name="amountPerPay"  id="amountPerPay" placeholder="Monto por cuota" readonly>
-                        </div>
-                    </fieldset>
-                    
-                    <button class="c-btn c-btn-primary mb-4" type="submit">Crear Cliente</button>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .dni-valid {
+        color: #28a745;
+        font-weight: bold;
+    }
+    .dni-invalid {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .dni-checking {
+        color: #6c757d;
+        font-style: italic;
+    }
+    .input-valid {
+        border-color: #28a745 !important;
+    }
+    .input-invalid {
+        border-color: #dc3545 !important;
+    }
+    .c-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #6c757d !important;
+    }
+</style>
+
+<script>
+    let checkDniTimeout;
+    let lastCheckedDni = '';
+    let isDniValid = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const documentInput = document.getElementById('document');
+        const feedbackElement = document.getElementById('document-feedback');
+        const form = document.querySelector('form');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        // Obtener referencias a todos los campos obligatorios
+        const firstNameInput = document.getElementById('first_name');
+        const lastNameInput = document.getElementById('last_name');
+        const cellphoneInput = document.getElementById('cellphone');
+        
+        // Función para validar si todos los campos obligatorios están completos
+        function validateForm() {
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            const document = documentInput.value.trim();
+            const cellphone = cellphoneInput.value.trim();
+            
+            // Verificar que todos los campos obligatorios estén llenos
+            const allFieldsFilled = firstName && lastName && document && cellphone;
+            
+            // Habilitar el botón solo si todos los campos están llenos y el DNI es válido
+            if (allFieldsFilled && isDniValid) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+
+        // Función para verificar DNI
+        function checkDni(dni) {
+            // Limpiar espacios
+            dni = dni.trim();
+
+            // Si el DNI está vacío, limpiar feedback
+            if (!dni) {
+                feedbackElement.textContent = '';
+                feedbackElement.className = 'form-text';
+                documentInput.classList.remove('input-valid', 'input-invalid');
+                isDniValid = false;
+                validateForm();
+                return;
+            }
+
+            // Si es el mismo DNI que ya verificamos, no hacer nada
+            if (dni === lastCheckedDni) {
+                return;
+            }
+
+            // Mostrar mensaje de verificación
+            feedbackElement.textContent = 'Verificando DNI...';
+            feedbackElement.className = 'form-text dni-checking';
+            documentInput.classList.remove('input-valid', 'input-invalid');
+
+            // Hacer la petición al API
+            fetch(`/api/check-dni/${encodeURIComponent(dni)}`)
+                .then(response => response.json())
+                .then(data => {
+                    lastCheckedDni = dni;
+                    
+                    if (data.exists) {
+                        feedbackElement.textContent = '❌ ' + data.message + '. Por favor, use un DNI diferente.';
+                        feedbackElement.className = 'form-text dni-invalid';
+                        documentInput.classList.remove('input-valid');
+                        documentInput.classList.add('input-invalid');
+                        isDniValid = false;
+                    } else {
+                        feedbackElement.textContent = '✓ ' + data.message;
+                        feedbackElement.className = 'form-text dni-valid';
+                        documentInput.classList.remove('input-invalid');
+                        documentInput.classList.add('input-valid');
+                        isDniValid = true;
+                    }
+                    validateForm();
+                })
+                .catch(error => {
+                    console.error('Error al verificar DNI:', error);
+                    feedbackElement.textContent = 'Error al verificar el DNI';
+                    feedbackElement.className = 'form-text dni-invalid';
+                    documentInput.classList.remove('input-valid', 'input-invalid');
+                    isDniValid = true; // Permitir envío si hay error de red
+                    validateForm();
+                });
+        }
+
+        // Evento cuando el usuario escribe en el campo DNI
+        documentInput.addEventListener('input', function() {
+            const dni = this.value;
+
+            // Cancelar timeout anterior
+            clearTimeout(checkDniTimeout);
+
+            // Esperar 500ms después de que el usuario deje de escribir
+            checkDniTimeout = setTimeout(function() {
+                checkDni(dni);
+            }, 500);
+        });
+
+        // Evento cuando el usuario sale del campo DNI
+        documentInput.addEventListener('blur', function() {
+            clearTimeout(checkDniTimeout);
+            checkDni(this.value);
+        });
+        
+        // Agregar event listeners a todos los campos obligatorios
+        firstNameInput.addEventListener('input', validateForm);
+        lastNameInput.addEventListener('input', validateForm);
+        cellphoneInput.addEventListener('input', validateForm);
+        documentInput.addEventListener('input', validateForm);
+        
+        // Validar al cargar la página
+        validateForm();
+
+        // Validar antes de enviar el formulario
+        form.addEventListener('submit', function(e) {
+            const dni = documentInput.value.trim();
+            
+            if (!isDniValid) {
+                e.preventDefault();
+                alert('Por favor, corrija el DNI antes de continuar. El DNI ingresado ya está registrado.');
+                documentInput.focus();
+                return false;
+            }
+
+            // Si no se ha verificado el DNI, no permitir envío
+            if (dni && lastCheckedDni !== dni) {
+                e.preventDefault();
+                alert('Por favor, espere mientras se verifica el DNI.');
+                checkDni(dni);
+                return false;
+            }
+        });
+    });
+</script>
+
 {% endblock %}

@@ -6,7 +6,13 @@
         line-height: 1.5rem;
     }
     &__small {
-        font-size: 0.75rem;
+        font-size: 0.95rem;
         line-height: 1.25rem;
+    }
+    &__bold {
+        font-weight: 600;
+    }
+    &__primary {
+        color: $primary;
     }
 }

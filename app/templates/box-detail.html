@@ -1,4 +1,10 @@
 {% extends "base.html" %} {% block content %}
+<style>
+  .c-table__box {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+</style>
 <div class="c-form">
   <div class="container pt-5">
     <div class="row">
@@ -21,6 +27,14 @@
       }} {{ salesman.employee.user.last_name }}
     </h2>
     <hr class="mb-3">
+
+    <!-- Buscador Global -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <input type="text" id="globalSearchInput" class="form-control" placeholder="Buscar en todas las tablas...">
+      </div>
+    </div>
+
     <table class="c-table">
       <thead>
         <tr>
@@ -176,17 +190,15 @@
       </tbody>
     </table>
     <!-- Agregar esta tabla para los clientes con cuotas en mora -->
-    <h2 class="c-headings c-headings__h3 mt-4">No Pago</h2>
+    <h2 class="c-headings c-headings__h3 mt-4">No Pago <span class="badge badge-secondary">({{ unpaid_loans_count }})</span></h2>
     <table class="c-table">
       <thead>
         <tr>
           <th class="c-table__box">Cliente</th>
           <th class="c-table__box">C. MORA</th>
-          <th class="c-table__box">Saldo</th>
+          <th class="c-table__box">Saldo en Mora</th>
           <th class="c-table__box">Valor Total</th>
-                        {% if user_role == 'VENDEDOR' %}
-              <th class="c-table__box">Acción</th>
-              {% endif %}
+          <th class="c-table__box">Acción</th>
         </tr>
       </thead>
       <tbody>
@@ -196,10 +208,11 @@
           <td class="c-table__box">{{ client_in_arrears.arrears_count }}</td>
           <td class="c-table__box">$ {{ '{:,.0f}'.format(client_in_arrears.overdue_balance) }}</td>
           <td class="c-table__box">$ {{ '{:,.0f}'.format(client_in_arrears.total_loan_amount) }}</td>
-          {% if user_role == 'VENDEDOR' %}
           <td class="c-table__box">
+            <div class="d-flex" style="gap: 5px;">
+            {% if user_role == 'VENDEDOR' %}
             <a class="c-btn c-btn-primary js-btn-editar-pago cuota-label"
-              style="width: 60%; padding: 0.4rem 0;"
+              style="width: 45%; padding: 0.4rem 0;"
               data-id="{{ client_in_arrears.loan_id }}"
               data-installment-value="{{ client_in_arrears.installment_value }}"
               data-overdue-amount="{{ client_in_arrears.overdue_balance }}"
@@ -207,25 +220,29 @@
               data-target="#editPaymentModal">
               <i class="bi bi-pencil"></i>            
             </a>
+            {% endif %}
+            <a class="c-btn c-btn-primary cuota-label"
+               style="width: 45%; padding: 0.4rem 0;"
+               href="{{ url_for('routes.credit_detail', id=client_in_arrears.loan_id) }}">
+               <i class="bi bi-eye"></i>
+            </a>
+            </div>
            </td>
-           {% endif %}
         </tr>
         {% endfor %}
       </tbody>
     </table>
     <div class="row">
       <div class="col">
-        <h2 class="c-headings c-headings__h3 mt-4">Pago</h2>
+        <h2 class="c-headings c-headings__h3 mt-4">Pago <span class="badge badge-secondary">({{ paid_loans_count }})</span></h2>
         <table class="c-table mb-4">
           <thead>
             <tr>
               <th class="c-table__box">Cliente</th>
               <th class="c-table__box">Vr. Pago</th>
-              <th class="c-table__box">Fecha de Pago</th>
+              <th class="c-table__box">Vr. Cuota</th>
               <th class="c-table__box">Saldo</th>
-              {% if user_role == 'VENDEDOR' %}
               <th class="c-table__box">Acción</th>
-              {% endif %}
             </tr>
           </thead>
           <tbody>
@@ -233,12 +250,13 @@
             <tr>
               <td class="c-table__box">{{ payment_detail.client_name }}</td>
               <td class="c-table__box">$ {{ '{:,.0f}'.format(payment_detail.payment_amount) }}</td>
-              <td class="c-table__box"> {{ payment_detail.payment_date }}</td>
+              <td class="c-table__box">$ {{ '{:,.0f}'.format(payment_detail.expected_amount) }}</td>
               <td class="c-table__box">$ {{ '{:,.0f}'.format(payment_detail.remaining_balance) }}</td>
-              {% if user_role == 'VENDEDOR' %}
               <td class="c-table__box">
+                <div class="d-flex" style="gap: 5px;">
+                {% if user_role == 'VENDEDOR' %}
                 <a type="button" class="c-btn c-btn-primary js-btn-editar-pago cuota-label"
-                style="width: 60%; padding: 0.4rem 0;"
+                style="width: 45%; padding: 0.4rem 0;"
                 data-id="{{ payment_detail.loan_id }}"
                 data-installment-id="{{ payment_detail.installment_id }}"
                 data-overdue-amount="{{ payment_detail.total_credit }}"
@@ -246,8 +264,14 @@
                 data-target="#editPaymentModal">
                 <i class="bi bi-pencil"></i>
              </a>             
+                {% endif %}
+                <a class="c-btn c-btn-primary cuota-label"
+                   style="width: 45%; padding: 0.4rem 0;"
+                   href="{{ url_for('routes.credit_detail', id=payment_detail.loan_id) }}">
+                   <i class="bi bi-eye"></i>
+                </a>
+                </div>
               </td>
-              {% endif %}
             </tr>
 
             {% endfor %}
@@ -349,6 +373,31 @@
     document.querySelectorAll('[data-dismiss="modal"]').forEach(button => {
       button.addEventListener('click', () => {
         $('#editPaymentModal').modal('hide');
+      });
+    });
+
+    // Buscador Global
+    document.getElementById('globalSearchInput').addEventListener('keyup', function() {
+      const searchTerm = this.value.toLowerCase();
+      const tables = document.querySelectorAll('.c-table');
+
+      tables.forEach(table => {
+        const rows = table.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          let rowText = '';
+          
+          cells.forEach(cell => {
+            rowText += cell.textContent.toLowerCase() + ' ';
+          });
+
+          if (rowText.includes(searchTerm)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
       });
     });
 </script>

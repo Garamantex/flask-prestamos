@@ -13,61 +13,155 @@
         </div>
         <div class="row mb-2">
             <div class="col-12">
-                <div class="c-card mb-2 p-3" style="background: #e5e5e5;">
+                <div class="c-card c-card--summary mb-2 p-3">
                     <div class="d-flex justify-content-between align-items-center flex-wrap">
                         <span><b>Créditos</b></span>
                         <span><b>#</b> {{ wallet_detail_data['Total Loans'] }}</span>
-                        <span><b>$</b> {{ '{:,.0f}'.format(wallet_detail_data['Total Overdue Amount']|float|int) }}</span>
+                        <span><b>$</b> {{ '{:,.0f}'.format(wallet_detail_data['Total Portfolio Value']|float|int) }}</span>
                     </div>
                 </div>
             </div>
         </div>
+        <!-- Barra de búsqueda -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="c-form__container">
+                    <form method="get" action="{{ url_for('routes.wallet_detail', employee_id=user_id) }}">
+                        <div class="c-form__group">
+                            <label class="c-form__label">Buscar por Nombre del Cliente</label>
+                            <input type="hidden" name="show_all" value="{{ 1 if show_all else 0 }}">
+                            <div class="d-flex flex-column flex-md-row">
+                                <input type="text" name="search" class="c-form__input mb-2 mb-md-0 mr-md-2 flex-grow-1" placeholder="Buscar por nombre del cliente" value="{{ search or '' }}">
+                                <div class="d-flex">
+                                    <button type="submit" class="c-btn c-btn-primary flex-grow-1 flex-md-grow-0 mr-2">Buscar</button>
+                                    {% if search %}
+                                    <a href="{{ url_for('routes.wallet_detail', employee_id=user_id, show_all=(1 if show_all else 0)) }}" class="c-btn c-btn-primary flex-grow-1 flex-md-grow-0">Limpiar</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toggle Todos/Solo activos -->
         <div class="row mb-2">
             <div class="col-12 text-center">
-                <form method="get" style="display:inline;">
+                <form method="get" class="d-inline">
                     <input type="hidden" name="show_all" value="{{ 1 if show_all else 0 }}">
-                    <label style="display: inline-flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" name="show_all_toggle" onchange="this.form.show_all.value=this.checked?1:0; this.form.submit();" {% if show_all %}checked{% endif %} style="display:none;">
-                        <span style="width: 40px; height: 22px; background: #ccc; border-radius: 22px; position: relative; display: inline-block; margin-right: 10px; vertical-align: middle;">
-                            <span style="position: absolute; left: {% if show_all %}20px{% else %}2px{% endif %}; top: 2px; width: 18px; height: 18px; background: #0A1C47; border-radius: 50%; transition: left 0.2s;"></span>
+                    {% if search %}
+                    <input type="hidden" name="search" value="{{ search }}">
+                    {% endif %}
+                    <label class="c-toggle">
+                        <input type="checkbox" class="c-toggle__input" name="show_all_toggle" onchange="this.form.show_all.value=this.checked?1:0; this.form.submit();" {% if show_all %}checked{% endif %}>
+                        <span class="c-toggle__switch">
+                            <span class="c-toggle__slider"></span>
                         </span>
-                        <span style="font-size: 1rem; font-weight: 600;">{{ 'Todos los préstamos' if show_all else 'Solo activos' }}</span>
+                        <span class="c-toggle__label">{{ 'Todos los préstamos' if show_all else 'Solo activos' }}</span>
                     </label>
                 </form>
             </div>
         </div>
         <div class="row mb-2">
             <div class="col-12">
-                <div class="c-overflow" style="max-height: 65vh; overflow-y: auto;">
-                    {% for loan_info in wallet_detail_data['Loans Detail'] %}
-                    <div class="c-card mb-3 p-2" style="background: #fff;">
+                {% for loan_info in wallet_detail_data['Loans Detail'] %}
+                    <div class="c-card c-card--content mb-3 p-2">
                         <!-- Fila 1: Vendedor y Cliente -->
                         <div class="row mb-1">
-                            <div class="col-6" style="font-size: 0.95rem; font-weight: 600;">
-                                <span style="color: #0A1C47;">#{{ loop.index }}</span>
+                            <div class="col-6 c-text c-text__small c-text__bold">
+                                <span class="c-text__primary">#{{ ((pagination.page - 1) * pagination.per_page + loop.index) if pagination else loop.index }}</span>
                                 <span> Vendedor: <b>{{ loan_info['Seller First Name'] }} {{ loan_info['Seller Last Name'] }}</b></span>
                             </div>
-                            <div class="col-6 text-right" style="font-size: 0.95rem;">
+                            <div class="col-6 text-right c-text c-text__small">
                                 Cliente: <b>{{ loan_info['Client First Name'] }} {{ loan_info['Client Last Name'] }}</b>
                             </div>
                         </div>
-                        <hr style="margin: 1rem 0;" />
+                        <hr class="my-3" />
                         <!-- Fila 2: Saldos y Cuotas -->
-                        <div class="row">
-                            <div class="col-6" style="font-size: 0.95rem;">
+                        <div class="row mb-2">
+                            <div class="col-6 c-text c-text__small">
                                 <div>Saldo Inicial: <b>$ {{ '{:,.0f}'.format(loan_info['Loan Amount']|float|int) }}</b></div>
                                 <div>Saldo Vencido: <b>$ {{ '{:,.0f}'.format(loan_info['Total Overdue Amount']|float|int) }}</b></div>
                             </div>
-                            <div class="col-6" style="font-size: 0.95rem;">
+                            <div class="col-6 c-text c-text__small">
                                 <div>Cuotas Vencidas: <b>{{ loan_info['Overdue Installments Count'] }}</b></div>
                                 <div>Cuotas Pagas: <b>{{ loan_info['Paid Installments Count'] }}/{{ loan_info['Total Installments'] }}</b></div>
                             </div>
                         </div>
+                        <!-- Botón para ver detalle del crédito -->
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <a href="{{ url_for('routes.credit_detail', id=loan_info['Loan ID']) }}" class="c-btn c-btn-primary w-100">
+                                    <i class="bi bi-eye me-1"></i>Ver Detalle del Crédito
+                                </a>
+                            </div>
+                        </div>
                     </div>
                     {% endfor %}
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        {% if pagination.pages > 1 %}
+        <!-- Primera fila: Todos los botones de paginación -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="c-pagination">
+                    <nav aria-label="Navegación de páginas">
+                        <ul class="pagination pagination-sm justify-content-center flex-wrap mb-0">
+                            {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link c-btn c-btn-primary" href="?page={{ pagination.prev_num }}{% if search %}&search={{ search }}{% endif %}{% if show_all %}&show_all=1{% endif %}">
+                                        <i class="bi bi-chevron-left"></i><span class="d-none d-sm-inline ms-1">Anterior</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                                {% if page_num %}
+                                    {% if page_num != pagination.page %}
+                                        <li class="page-item">
+                                            <a class="page-link c-btn c-btn-primary" href="?page={{ page_num }}{% if search %}&search={{ search }}{% endif %}{% if show_all %}&show_all=1{% endif %}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link c-btn c-btn-primary c-btn--completed">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link c-btn c-btn-primary pagination-disabled">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link c-btn c-btn-primary" href="?page={{ pagination.next_num }}{% if search %}&search={{ search }}{% endif %}{% if show_all %}&show_all=1{% endif %}">
+                                        <span class="d-none d-sm-inline me-1">Siguiente</span><i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
+        
+        <!-- Segunda fila: Texto informativo -->
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="text-center">
+                    <p class="c-text c-text__small text-muted mb-0">
+                        Mostrando {{ pagination.per_page * (pagination.page - 1) + 1 }} a 
+                        {{ pagination.per_page * (pagination.page - 1) + pagination.items|length }} 
+                        de {{ pagination.total }} préstamos
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

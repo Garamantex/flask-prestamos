@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="c-form">
+    <div class="container pt-5">
+        <!-- Botones de navegación -->
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3"
+                   href="{{ url_for('routes.loan_management') }}">Volver</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3"
+                   href="{{ url_for('routes.logout') }}">Salir</a>
+            </div>
+        </div>
+
+        <!-- Título -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="c-headings c-headings__h3">Crear Préstamo Personalizado</h2>
+                <p class="text-muted">Coordinador: {{ coordinator_name }}</p>
+            </div>
+        </div>
+
+        <!-- Formulario -->
+        <form method="POST" action="{{ url_for('routes.create_custom_loan') }}" id="loanForm">
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="c-card">
+                        <div class="c-card__header">
+                            <h5>Información del Préstamo</h5>
+                        </div>
+                        <div class="c-card__body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="c-form__group">
+                                        <label class="c-form__label">Vendedor *</label>
+                                        <select name="employee_id" class="c-form__input" required id="employeeSelect">
+                                            <option value="">Seleccione un vendedor</option>
+                                            {% for salesman in salesmen_list %}
+                                            <option value="{{ salesman.employee_id }}">
+                                                {{ salesman.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="c-form__group">
+                                        <label class="c-form__label">Cliente *</label>
+                                        <div class="mb-2">
+                                            <input type="radio" name="client_option" id="existingClient" value="existing" checked onchange="toggleClientForm()">
+                                            <label for="existingClient" class="ms-2">Cliente Existente</label>
+                                            <input type="radio" name="client_option" id="newClient" value="new" class="ms-3" onchange="toggleClientForm()">
+                                            <label for="newClient" class="ms-2">Crear Nuevo Cliente</label>
+                                        </div>
+                                        <select name="client_id" class="c-form__input" required id="clientSelect">
+                                            <option value="">Seleccione un cliente</option>
+                                            {% for client in clients %}
+                                            <option value="{{ client.id }}" data-employee-id="{{ client.employee_id }}">
+                                                {{ client.first_name }} {{ client.last_name }} - {{ client.document }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <input type="hidden" name="create_new_client" id="createNewClient" value="false">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Formulario para crear nuevo cliente (oculto por defecto) -->
+                            <div id="newClientForm" style="display: none;" class="mt-3">
+                                <div class="alert alert-info">
+                                    <strong>Información del Nuevo Cliente</strong>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="c-form__group">
+                                            <label class="c-form__label">Nombre *</label>
+                                            <input type="text" name="client_first_name" class="c-form__input" 
+                                                   id="clientFirstName">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="c-form__group">
+                                            <label class="c-form__label">Apellido *</label>
+                                            <input type="text" name="client_last_name" class="c-form__input" 
+                                                   id="clientLastName">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="c-form__group">
+                                            <label class="c-form__label">DNI / Documento *</label>
+                                            <input type="text" name="client_document" class="c-form__input" 
+                                                   id="clientDocument">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="c-form__group">
+                                            <label class="c-form__label">Teléfono *</label>
+                                            <input type="tel" name="client_cellphone" class="c-form__input" 
+                                                   id="clientCellphone">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="c-form__group">
+                                            <label class="c-form__label">Alias</label>
+                                            <input type="text" name="client_alias" class="c-form__input" 
+                                                   id="clientAlias">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="c-form__group">
+                                            <label class="c-form__label">Dirección</label>
+                                            <input type="text" name="client_address" class="c-form__input" 
+                                                   id="clientAddress">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="c-form__group">
+                                            <label class="c-form__label">Barrio</label>
+                                            <input type="text" name="client_neighborhood" class="c-form__input" 
+                                                   id="clientNeighborhood">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="c-form__group">
+                                        <label class="c-form__label">Monto *</label>
+                                        <input type="number" name="amount" class="c-form__input" 
+                                               step="0.01" min="0" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="c-form__group">
+                                        <label class="c-form__label">Número de Cuotas *</label>
+                                        <input type="number" name="dues" class="c-form__input" 
+                                               min="1" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="c-form__group">
+                                        <label class="c-form__label">Interés (%) *</label>
+                                        <input type="number" name="interest" class="c-form__input" 
+                                               step="0.01" min="0" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="c-form__group">
+                                        <label class="c-form__label">Fecha de Inicio *</label>
+                                        <input type="date" name="start_date" class="c-form__input" 
+                                               max="{{ current_date }}" required id="startDate">
+                                        <small class="text-muted">La fecha no puede ser futura</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="c-form__group">
+                                        <label class="c-form__label">Monto Abonado</label>
+                                        <input type="number" name="advance_amount" class="c-form__input" 
+                                               step="0.01" min="0" value="0" id="advanceAmount">
+                                        <small class="text-muted">Se distribuirá entre las cuotas desde la fecha de inicio hasta hoy</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div id="previewInfo" class="alert alert-info" style="display: none;">
+                                        <strong>Vista Previa:</strong>
+                                        <p id="previewText"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón de guardar -->
+            <div class="row">
+                <div class="col-md-12">
+                    <button type="submit" class="c-btn c-btn-success c-btn-block">
+                        <i class="bi bi-save"></i> Crear Préstamo
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Función para alternar entre cliente existente y nuevo (debe estar en scope global)
+function toggleClientForm() {
+    const existingClientRadio = document.getElementById('existingClient');
+    const clientSelect = document.getElementById('clientSelect');
+    const newClientForm = document.getElementById('newClientForm');
+    const createNewClient = document.getElementById('createNewClient');
+    
+    if (existingClientRadio.checked) {
+        // Mostrar selector de cliente existente
+        clientSelect.style.display = 'block';
+        clientSelect.required = true;
+        newClientForm.style.display = 'none';
+        createNewClient.value = 'false';
+        
+        // Limpiar campos del nuevo cliente y quitar required
+        const firstNameField = document.getElementById('clientFirstName');
+        const lastNameField = document.getElementById('clientLastName');
+        const documentField = document.getElementById('clientDocument');
+        const cellphoneField = document.getElementById('clientCellphone');
+        
+        if (firstNameField) {
+            firstNameField.value = '';
+            firstNameField.required = false;
+        }
+        if (lastNameField) {
+            lastNameField.value = '';
+            lastNameField.required = false;
+        }
+        if (documentField) {
+            documentField.value = '';
+            documentField.required = false;
+        }
+        if (cellphoneField) {
+            cellphoneField.value = '';
+            cellphoneField.required = false;
+        }
+        document.getElementById('clientAlias').value = '';
+        document.getElementById('clientAddress').value = '';
+        document.getElementById('clientNeighborhood').value = '';
+    } else {
+        // Mostrar formulario de nuevo cliente
+        clientSelect.style.display = 'none';
+        clientSelect.required = false;
+        clientSelect.value = '';
+        newClientForm.style.display = 'block';
+        createNewClient.value = 'true';
+        
+        // Hacer campos obligatorios
+        document.getElementById('clientFirstName').required = true;
+        document.getElementById('clientLastName').required = true;
+        document.getElementById('clientDocument').required = true;
+        document.getElementById('clientCellphone').required = true;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const employeeSelect = document.getElementById('employeeSelect');
+    const clientSelect = document.getElementById('clientSelect');
+    const startDate = document.getElementById('startDate');
+    const advanceAmount = document.getElementById('advanceAmount');
+    const previewInfo = document.getElementById('previewInfo');
+    const previewText = document.getElementById('previewText');
+
+    // Filtrar clientes por vendedor seleccionado
+    if (employeeSelect) {
+        employeeSelect.addEventListener('change', function() {
+            const selectedEmployeeId = this.value;
+            const options = clientSelect.querySelectorAll('option');
+            
+            options.forEach(option => {
+                if (option.value === '') {
+                    option.style.display = 'block';
+                } else {
+                    const optionEmployeeId = option.getAttribute('data-employee-id');
+                    if (optionEmployeeId === selectedEmployeeId) {
+                        option.style.display = 'block';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Resetear selección de cliente
+            clientSelect.value = '';
+        });
+    }
+
+    // Calcular preview de distribución
+    function updatePreview() {
+        const startDateValue = startDate.value;
+        const advanceValue = parseFloat(advanceAmount.value) || 0;
+        
+        if (startDateValue && advanceValue > 0) {
+            const start = new Date(startDateValue);
+            const today = new Date();
+            const daysDiff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff > 0) {
+                const amountPerDay = advanceValue / daysDiff;
+                previewText.textContent = `Se distribuirán $${advanceValue.toFixed(2)} entre aproximadamente ${daysDiff} días (desde ${startDateValue} hasta hoy). Aproximadamente $${amountPerDay.toFixed(2)} por día.`;
+                previewInfo.style.display = 'block';
+            } else {
+                previewInfo.style.display = 'none';
+            }
+        } else {
+            previewInfo.style.display = 'none';
+        }
+    }
+
+    if (startDate) {
+        startDate.addEventListener('change', updatePreview);
+    }
+    if (advanceAmount) {
+        advanceAmount.addEventListener('input', updatePreview);
+    }
+    
+    // Validar formulario antes de enviar
+    const loanForm = document.getElementById('loanForm');
+    if (loanForm) {
+        loanForm.addEventListener('submit', function(e) {
+            const createNewClient = document.getElementById('createNewClient').value === 'true';
+            
+            if (createNewClient) {
+                // Validar campos del nuevo cliente
+                const firstName = document.getElementById('clientFirstName').value.trim();
+                const lastName = document.getElementById('clientLastName').value.trim();
+                const document = document.getElementById('clientDocument').value.trim();
+                const cellphone = document.getElementById('clientCellphone').value.trim();
+                
+                if (!firstName || !lastName || !document || !cellphone) {
+                    e.preventDefault();
+                    alert('Por favor complete todos los campos obligatorios del cliente (Nombre, Apellido, DNI y Teléfono)');
+                    return false;
+                }
+            } else {
+                // Validar que se haya seleccionado un cliente
+                const clientSelect = document.getElementById('clientSelect');
+                if (!clientSelect.value) {
+                    e.preventDefault();
+                    alert('Por favor seleccione un cliente');
+                    return false;
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+

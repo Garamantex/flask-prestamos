@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="c-form">
+    <div class="container pt-5">
+        <!-- Botones de navegación -->
+        <div class="row">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3"
+                   href="{{ url_for('routes.loan_management') }}">Volver</a>
+            </div>
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-3"
+                   href="{{ url_for('routes.logout') }}">Salir</a>
+            </div>
+        </div>
+
+        <!-- Título -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="c-headings c-headings__h3">Editar Préstamo</h2>
+                <p class="text-muted">Cliente: {{ client.first_name }} {{ client.last_name }} | Vendedor: {{ employee.user.first_name }} {{ employee.user.last_name }}</p>
+            </div>
+        </div>
+
+        <!-- Información del préstamo -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="c-card">
+                    <div class="c-card__header">
+                        <h5>Información General</h5>
+                    </div>
+                    <div class="c-card__body">
+                        <p><strong>Total Pagado:</strong> $ {{ '{:,.0f}'.format(total_paid) }}</p>
+                        <p><strong>Saldo Pendiente:</strong> $ {{ '{:,.0f}'.format(pending_balance) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario de edición -->
+        <form method="POST" action="{{ url_for('routes.edit_loan', loan_id=loan.id) }}">
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="c-card">
+                        <div class="c-card__header">
+                            <h5>Parámetros del Préstamo</h5>
+                        </div>
+                        <div class="c-card__body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="c-form__group">
+                                        <label class="c-form__label">Monto</label>
+                                        <input type="number" name="amount" class="c-form__input" 
+                                               value="{{ loan.amount }}" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="c-form__group">
+                                        <label class="c-form__label">Número de Cuotas</label>
+                                        <input type="number" name="dues" class="c-form__input" 
+                                               value="{{ loan.dues }}" min="1" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="c-form__group">
+                                        <label class="c-form__label">Interés (%)</label>
+                                        <input type="number" name="interest" class="c-form__input" 
+                                               value="{{ loan.interest }}" step="0.01" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cuotas -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="c-card">
+                        <div class="c-card__header">
+                            <h5>Cuotas</h5>
+                        </div>
+                        <div class="c-card__body">
+                            <div class="table-responsive">
+                                <table class="c-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="c-table__box">#</th>
+                                            <th class="c-table__box">Fecha Vencimiento</th>
+                                            <th class="c-table__box">Monto Fijo</th>
+                                            <th class="c-table__box">Saldo Pendiente</th>
+                                            <th class="c-table__box">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for installment in installments %}
+                                        <tr>
+                                            <td class="c-table__box">{{ installment.installment_number }}</td>
+                                            <td class="c-table__box">
+                                                <input type="date" 
+                                                       name="installment_{{ installment.id }}_due_date" 
+                                                       class="c-form__input" 
+                                                       value="{{ installment.due_date }}">
+                                            </td>
+                                            <td class="c-table__box">
+                                                $ {{ '{:,.0f}'.format(installment.fixed_amount | float) }}
+                                            </td>
+                                            <td class="c-table__box">
+                                                <input type="number" 
+                                                       name="installment_{{ installment.id }}_amount" 
+                                                       class="c-form__input" 
+                                                       value="{{ installment.amount }}" 
+                                                       step="0.01" min="0">
+                                            </td>
+                                            <td class="c-table__box">
+                                                <span class="badge 
+                                                    {% if installment.status.value == 'PAGADA' %}badge-success
+                                                    {% elif installment.status.value == 'ABONADA' %}badge-warning
+                                                    {% elif installment.status.value == 'MORA' %}badge-danger
+                                                    {% else %}badge-secondary{% endif %}">
+                                                    {{ installment.status.value }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón de guardar -->
+            <div class="row">
+                <div class="col-md-12">
+                    <button type="submit" class="c-btn c-btn-success c-btn-block">
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

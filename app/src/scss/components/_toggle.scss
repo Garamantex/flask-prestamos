@@ -1,0 +1,61 @@
+// Componente Toggle Switch
+.c-toggle {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    
+    &__switch {
+        width: 40px;
+        height: 22px;
+        background: $neutral-300;
+        border-radius: 22px;
+        position: relative;
+        display: inline-block;
+        margin-right: 10px;
+        vertical-align: middle;
+        transition: background 0.2s ease;
+    }
+    
+    &__slider {
+        position: absolute;
+        left: 2px;
+        top: 2px;
+        width: 18px;
+        height: 18px;
+        background: $white-100;
+        border-radius: 50%;
+        transition: left 0.2s ease;
+        box-shadow: 0 2px 4px rgba($neutral-900, 0.2);
+    }
+    
+    &__label {
+        font-size: 1rem;
+        font-weight: 600;
+        color: $neutral-700;
+        vertical-align: middle;
+    }
+    
+    // Ocultar el checkbox real
+    &__input {
+        display: none;
+        
+        // Cuando está checked, actualizar switch y slider
+        &:checked ~ .c-toggle__switch {
+            background: $primary;
+            
+            .c-toggle__slider {
+                left: 20px;
+            }
+        }
+    }
+    
+    // Estados hover
+    &:hover .c-toggle__switch {
+        background: $neutral-400;
+    }
+    
+    &__input:checked ~ .c-toggle__switch:hover {
+        background: $primary-light;
+    }
+}
+
