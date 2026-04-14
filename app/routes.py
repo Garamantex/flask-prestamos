@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta
 from decimal import Decimal
 from datetime import timedelta, datetime as dt, date as dt_date
 import os
+import json
 import uuid
 import holidays
 from flask import send_file
@@ -16,7 +17,7 @@ from operator import and_
 import holidays
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
-from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
+from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify, current_app, send_from_directory
 # from flask_caching import Cache
 # import hashlib
 # import json
@@ -26,10 +27,31 @@ from app.models import db, InstallmentStatus, Concept, Transaction, Role, Manage
     ApprovalStatus, EmployeeRecord
 
 # Importaciones de modelos y otros componentes específicos de tu aplicación
-from .models import User, Client, Loan, Employee, LoanInstallment
+from .models import User, Client, Loan, Employee, LoanInstallment, SupportTicket, TicketMessage, TicketAttachment, SupportTicketStatus, AuditLog
 
 # Crea una instancia de Blueprint
 routes = Blueprint('routes', __name__)
+
+
+def write_audit_log(action, entity_type, entity_id=None, summary='', details=None, actor_user_id=None):
+    """Persiste un evento de auditoría. No debe interrumpir la petición principal si falla."""
+    try:
+        uid = actor_user_id if actor_user_id is not None else session.get('user_id')
+        if not uid:
+            return
+        row = AuditLog(
+            action=(action or '')[:64],
+            entity_type=(entity_type or '')[:64],
+            entity_id=entity_id,
+            actor_user_id=uid,
+            summary=(summary or '')[:4000],
+            details_json=json.dumps(details, ensure_ascii=False, default=str)[:16000] if details is not None else None,
+        )
+        db.session.add(row)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
 
 # ==================== CONFIGURACIÓN DE CACHÉ (DESHABILITADA) ====================
 
@@ -217,6 +239,8 @@ def home():
         role = session.get('role')
         if role == 'ADMINISTRADOR' or role == 'COORDINADOR':
             return redirect(url_for('routes.menu_manager', user_id=session['user_id']))
+        elif role in ('ADMINISTRADOR_SOPORTE', 'SOPORTE_TECNICO'):
+            return redirect(url_for('routes.menu_support', user_id=session['user_id']))
         elif role == 'VENDEDOR':
             return redirect(url_for('routes.menu_salesman', user_id=session['user_id']))
         else:
@@ -232,9 +256,20 @@ def home():
             username=username, password=password).first()
 
         if user:
-            employee = '' if user.role.name == 'ADMINISTRADOR' else Employee.query.filter_by(
-                user_id=user.id).first()
-            status = 1 if user.role.name == 'ADMINISTRADOR' else employee.status
+            no_employee_roles = (
+                'ADMINISTRADOR',
+                'ADMINISTRADOR_SOPORTE',
+                'SOPORTE_TECNICO',
+            )
+            if user.role.name in no_employee_roles:
+                employee = None
+                status = 1
+            else:
+                employee = Employee.query.filter_by(user_id=user.id).first()
+                if not employee:
+                    error_message = 'Usuario sin registro de empleado. Contacte al administrador.'
+                    return render_template('index.html', error_message=error_message)
+                status = 1 if employee.status else 0
             if status == 1:
                 # Guardar el usuario en la sesión
                 session['user_id'] = user.id
@@ -247,6 +282,8 @@ def home():
                 # Redireccionar según el rol del usuario
                 if user.role.name == 'ADMINISTRADOR' or user.role.name == 'COORDINADOR':
                     return redirect(url_for('routes.menu_manager', user_id=user.id))
+                elif user.role.name in ('ADMINISTRADOR_SOPORTE', 'SOPORTE_TECNICO'):
+                    return redirect(url_for('routes.menu_support', user_id=user.id))
                 elif user.role.name == 'VENDEDOR':
                     return redirect(url_for('routes.menu_salesman', user_id=user.id))
                 else:
@@ -275,6 +312,19 @@ def menu_manager(user_id):
 
     # Mostrar el menú del administrador
     return render_template('menu-manager.html', manager_name=manager_name)
+
+
+@routes.route('/menu-support/<int:user_id>')
+def menu_support(user_id):
+    """Menú reducido para personal de soporte (sin acceso al resto del sistema)."""
+    if 'user_id' not in session:
+        return redirect(url_for('routes.home'))
+    if session.get('user_id') != user_id:
+        abort(403)
+    if session.get('role') not in ('ADMINISTRADOR_SOPORTE', 'SOPORTE_TECNICO'):
+        abort(403)
+    staff_name = f"{session.get('first_name')} {session.get('last_name')}"
+    return render_template('menu-support.html', user_id=user_id, staff_name=staff_name)
 
 
 # ruta para el menú del vendedor
@@ -356,6 +406,10 @@ def create_user():
             name = request.form['name']
             password = request.form['password']
             role = request.form['role']
+            allowed_roles_create = frozenset({'COORDINADOR', 'VENDEDOR'})
+            if role not in allowed_roles_create:
+                flash('Rol no permitido.', 'error')
+                return render_template('create-user.html', user_id=user_id)
             first_name = request.form['first_name']
             last_name = request.form['last_name']
             cellphone = request.form['cellphone']
@@ -372,7 +426,7 @@ def create_user():
             user = User(
                 username=name,
                 password=password,
-                role=role,
+                role=Role[role],
                 first_name=first_name,
                 last_name=last_name,
                 cellphone=cellphone
@@ -469,6 +523,14 @@ def create_user():
                         # Guarda el nuevo vendedor en la base de datos
                         db.session.add(salesman)
                         db.session.commit()
+
+            write_audit_log(
+                'USER_CREATE',
+                'user',
+                user.id,
+                summary=f'Usuario creado: {user.username} ({role})',
+                details={'new_user_id': user.id, 'role': role},
+            )
 
             # Redirecciona a la página de lista de usuarios o a donde corresponda
             return redirect(url_for('routes.user_list'))
@@ -694,6 +756,14 @@ def create_client(user_id):
                 db.session.add(transaction)
                 db.session.commit()
 
+            write_audit_log(
+                'CLIENT_CREATE',
+                'client',
+                client_id,
+                summary=f'Alta cliente y préstamo: {client.first_name} {client.last_name}, préstamo {loan.id}',
+                details={'client_id': client_id, 'loan_id': loan.id, 'loan_amount': str(amount)},
+            )
+
             flash('Préstamo creado exitosamente', 'success')
             return redirect(url_for('routes.credit_detail', id=loan.id))
 
@@ -740,6 +810,14 @@ def edit_client(client_id):
 
                 # Guardar los cambios en la base de datos
                 db.session.commit()
+
+                write_audit_log(
+                    'CLIENT_UPDATE',
+                    'client',
+                    client_id,
+                    summary=f'Cliente modificado: {client.first_name} {client.last_name} (DNI {client.document})',
+                    details={'client_id': client_id},
+                )
 
                 return redirect(url_for('routes.client_list'))
 
@@ -1129,6 +1207,15 @@ def confirm_payment():
     # Operaciones en lote
     db.session.add_all(payments_to_create)
     db.session.commit()
+
+    write_audit_log(
+        'PAYMENT_REGISTER',
+        'loan',
+        loan_id,
+        summary=f'Pago registrado préstamo {loan_id} por ${custom_payment:,.0f}',
+        details={'loan_id': loan_id, 'amount': custom_payment, 'employee_id': loan.employee_id},
+        actor_user_id=session.get('user_id'),
+    )
 
     # Invalidar cache después del pago - DESHABILITADO
     # current_cache = get_cache()
@@ -4620,6 +4707,20 @@ def modify_transaction(transaction_id):
 
             db.session.commit()
 
+        write_audit_log(
+            'TRANSACTION_APPROVAL',
+            'transaction',
+            transaction_id,
+            summary=f'Estado transacción {transaction_id}: {old_status.name} → {new_status_enum.name}',
+            details={
+                'transaction_id': transaction_id,
+                'old_status': old_status.name,
+                'new_status': new_status_enum.name,
+                'employee_id': employee_id,
+            },
+            actor_user_id=session.get('user_id'),
+        )
+
         return redirect('/approval-expenses')
 
     except Exception as e:
@@ -4795,6 +4896,19 @@ def update_transaction(transaction_id):
         transaction.modification_date = datetime.now()
         
         db.session.commit()
+
+        write_audit_log(
+            'TRANSACTION_UPDATE',
+            'transaction',
+            transaction_id,
+            summary=f'Transacción {transaction_id} editada vía API',
+            details={
+                'employee_id': transaction.employee_id,
+                'amount': float(transaction.amount),
+                'approval_status': transaction.approval_status.name,
+            },
+            actor_user_id=user_id,
+        )
         
         # Preparar respuesta (remover prefijo si existe)
         description = transaction.description
@@ -4853,6 +4967,15 @@ def delete_transaction(transaction_id):
         transaction.modification_date = datetime.now()
         
         db.session.commit()
+
+        write_audit_log(
+            'TRANSACTION_DELETE',
+            'transaction',
+            transaction_id,
+            summary=f'Transacción {transaction_id} marcada como eliminada (soft delete)',
+            details={'employee_id': transaction.employee_id},
+            actor_user_id=user_id,
+        )
         
         return jsonify({
             'message': 'Transacción eliminada exitosamente',
@@ -6214,6 +6337,15 @@ def edit_payment(loan_id):
         
         loan.modification_date = datetime.now()
         db.session.commit()
+
+        write_audit_log(
+            'PAYMENT_EDIT',
+            'loan',
+            loan_id,
+            summary=f'Edición pagos: revertir día (pago=0) préstamo {loan_id}',
+            details={'loan_id': loan_id, 'mode': 'revert_day_zero'},
+            actor_user_id=user_id,
+        )
         
         # Redirigir sin hacer más cambios
         return redirect(url_for('routes.box_detail', employee_id=employee_id))
@@ -6385,6 +6517,16 @@ def edit_payment(loan_id):
         
         loan.modification_date = datetime.now()
         db.session.commit()
+
+        write_audit_log(
+            'PAYMENT_EDIT',
+            'loan',
+            loan_id,
+            summary=f'Edición pagos vía caja: pago completo cuotas préstamo {loan_id}',
+            details={'loan_id': loan_id, 'mode': 'edit_full_pay_all', 'custom_payment': float(custom_payment)},
+            actor_user_id=user_id,
+        )
+
         return jsonify({"message": "Todas las cuotas han sido pagadas correctamente."}), 200
         
     else:
@@ -6452,6 +6594,15 @@ def edit_payment(loan_id):
         loan.modification_date = datetime.now()
         client.debtor = False
         db.session.commit()
+
+    write_audit_log(
+        'PAYMENT_EDIT',
+        'loan',
+        loan_id,
+        summary=f'Edición pagos vía caja préstamo {loan_id} (monto ${custom_payment:,.0f})',
+        details={'loan_id': loan_id, 'mode': 'edit_payment', 'custom_payment': float(custom_payment)},
+        actor_user_id=user_id,
+    )
 
     # Redirigir a la vista de detalles de caja del empleado
     return redirect(url_for('routes.box_detail', employee_id=employee_id))
@@ -7178,6 +7329,15 @@ def cancel_loan(loan_id):
 
     # Guardar cambios en la base de datos
     db.session.commit()
+
+    write_audit_log(
+        'LOAN_CANCEL',
+        'loan',
+        loan_id,
+        summary=f'Préstamo cancelado: {client_name} (préstamo id {loan_id})',
+        details={'loan_id': loan_id, 'client_id': loan.client_id},
+        actor_user_id=session.get('user_id'),
+    )
 
     return jsonify({'message': f'Préstamo {client_name} cancelado correctamente'}), 200
 
@@ -8397,6 +8557,14 @@ def edit_loan(loan_id):
             
             db.session.commit()
             flash('Préstamo actualizado correctamente', 'success')
+            write_audit_log(
+                'LOAN_UPDATE',
+                'loan',
+                loan_id,
+                summary=f'Préstamo {loan_id} modificado (monto {new_amount}, cuotas {new_dues})',
+                details={'loan_id': loan_id, 'client_id': loan.client_id, 'employee_id': loan.employee_id},
+                actor_user_id=user_id,
+            )
             return redirect(url_for('routes.loan_management'))
         
         # GET: Mostrar formulario de edición
@@ -8625,6 +8793,7 @@ def change_password(employee_id):
         if not target_user:
             return jsonify({'message': 'Usuario no encontrado'}), 404
 
+        old_username = target_user.username
         new_username = request.form.get('new_username', '').strip()
         if not new_username:
             return jsonify({'message': 'El nombre de usuario es obligatorio'}), 400
@@ -8645,6 +8814,19 @@ def change_password(employee_id):
         target_user.password = new_password
         db.session.commit()
 
+        write_audit_log(
+            'PASSWORD_CHANGE',
+            'user',
+            target_user.id,
+            summary='Actualización de usuario y contraseña (coordinador)',
+            details={
+                'target_user_id': target_user.id,
+                'employee_id': employee_id,
+                'username_changed': old_username != new_username,
+            },
+            actor_user_id=user_id,
+        )
+
         return jsonify({
             'message': f'Usuario y contraseña de {target_user.first_name} {target_user.last_name} actualizados correctamente'
         }), 200
@@ -8654,3 +8836,310 @@ def change_password(employee_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
+
+
+# ==================== SOPORTE / TICKETS ====================
+
+AUDIT_LOG_ACTIONS = (
+    'PASSWORD_CHANGE',
+    'TRANSACTION_DELETE',
+    'TRANSACTION_UPDATE',
+    'TRANSACTION_APPROVAL',
+    'CLIENT_UPDATE',
+    'CLIENT_CREATE',
+    'LOAN_UPDATE',
+    'LOAN_CANCEL',
+    'PAYMENT_REGISTER',
+    'PAYMENT_EDIT',
+    'USER_CREATE',
+)
+
+
+def _tickets_upload_folder():
+    folder = current_app.config.get("TICKETS_UPLOAD_FOLDER")
+    if not folder:
+        folder = os.path.join(current_app.root_path, "static", "tickets")
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+def _ticket_is_closed(ticket):
+    return ticket.status in (SupportTicketStatus.RESUELTO, SupportTicketStatus.CERRADO)
+
+
+def _is_ticket_staff(user):
+    if not user:
+        return False
+    return user.role in (
+        Role.ADMINISTRADOR,
+        Role.ADMINISTRADOR_SOPORTE,
+        Role.SOPORTE_TECNICO,
+    )
+
+
+def _support_can_access_ticket(user, ticket):
+    if not user:
+        return False
+    if _is_ticket_staff(user):
+        return True
+    return ticket.created_by_user_id == user.id
+
+
+def _support_reporter_roles():
+    return (Role.VENDEDOR, Role.COORDINADOR)
+
+
+def _support_resolve_context(employee):
+    """Devuelve (employee_id, manager_id) para un ticket."""
+    if not employee:
+        return None, None
+    salesman = Salesman.query.filter_by(employee_id=employee.id).first()
+    if salesman:
+        return employee.id, salesman.manager_id
+    manager_row = Manager.query.filter_by(employee_id=employee.id).first()
+    if manager_row:
+        return employee.id, manager_row.id
+    return employee.id, None
+
+
+def _support_save_attachments(ticket, message, files):
+    if not files:
+        return
+    base = _tickets_upload_folder()
+    for f in files:
+        if not f or not getattr(f, "filename", None):
+            continue
+        raw_name = f.filename
+        safe = secure_filename(raw_name) or "adjunto"
+        unique = f"{uuid.uuid4().hex}_{safe}"
+        rel = os.path.join(str(ticket.id), unique)
+        dest_dir = os.path.join(base, str(ticket.id))
+        os.makedirs(dest_dir, exist_ok=True)
+        dest_path = os.path.join(dest_dir, unique)
+        f.save(dest_path)
+        att = TicketAttachment(
+            ticket_id=ticket.id,
+            message_id=message.id,
+            stored_filename=rel.replace("\\", "/"),
+            original_filename=(raw_name or safe)[:255],
+        )
+        db.session.add(att)
+
+
+@routes.route("/support/tickets", methods=["GET"])
+def support_my_tickets():
+    if "user_id" not in session:
+        return redirect(url_for("routes.home"))
+    user = User.query.get(session["user_id"])
+    if not user or user.role not in _support_reporter_roles():
+        flash("No tiene permiso para acceder a soporte.", "error")
+        return redirect(url_for("routes.home"))
+    tickets = (
+        SupportTicket.query.filter_by(created_by_user_id=user.id)
+        .order_by(SupportTicket.created_at.desc())
+        .all()
+    )
+    return render_template(
+        "support-tickets.html",
+        tickets=tickets,
+        user_id=user.id,
+        is_admin_view=False,
+    )
+
+
+@routes.route("/support/tickets/new", methods=["GET", "POST"])
+def support_new_ticket():
+    if "user_id" not in session:
+        return redirect(url_for("routes.home"))
+    user = User.query.get(session["user_id"])
+    if not user or user.role not in _support_reporter_roles():
+        flash("No tiene permiso para crear tickets.", "error")
+        return redirect(url_for("routes.home"))
+    employee = Employee.query.filter_by(user_id=user.id).first()
+    if request.method == "POST":
+        subject = (request.form.get("subject") or "").strip()
+        body = (request.form.get("body") or "").strip()
+        if not subject or not body:
+            flash("Asunto y descripción son obligatorios.", "error")
+            return render_template(
+                "support-ticket-new.html",
+                user_id=user.id,
+            )
+        emp_id, mgr_id = _support_resolve_context(employee)
+        ticket = SupportTicket(
+            created_by_user_id=user.id,
+            employee_id=emp_id,
+            manager_id=mgr_id,
+            subject=subject[:200],
+            status=SupportTicketStatus.ABIERTO,
+        )
+        db.session.add(ticket)
+        db.session.flush()
+        msg = TicketMessage(
+            ticket_id=ticket.id,
+            author_user_id=user.id,
+            body=body,
+        )
+        db.session.add(msg)
+        db.session.flush()
+        files = request.files.getlist("attachments")
+        _support_save_attachments(ticket, msg, files)
+        db.session.commit()
+        flash("Ticket creado correctamente.", "success")
+        return redirect(url_for("routes.support_ticket_detail", ticket_id=ticket.id))
+    return render_template("support-ticket-new.html", user_id=user.id)
+
+
+@routes.route("/support/ticket/<int:ticket_id>", methods=["GET"])
+def support_ticket_detail(ticket_id):
+    if "user_id" not in session:
+        return redirect(url_for("routes.home"))
+    user = User.query.get(session["user_id"])
+    ticket = SupportTicket.query.get_or_404(ticket_id)
+    if not _support_can_access_ticket(user, ticket):
+        abort(403)
+    messages = (
+        ticket.messages.options(joinedload(TicketMessage.author))
+        .order_by(TicketMessage.created_at.asc())
+        .all()
+    )
+    can_manage_tickets = _is_ticket_staff(user)
+    manager_name = None
+    if ticket.manager_id:
+        mgr = Manager.query.get(ticket.manager_id)
+        if mgr and mgr.employee and mgr.employee.user:
+            u = mgr.employee.user
+            manager_name = f"{u.first_name} {u.last_name}"
+    creator = ticket.created_by
+    creator_label = ""
+    if creator:
+        creator_label = f"{creator.first_name} {creator.last_name}"
+    return render_template(
+        "support-ticket-detail.html",
+        ticket=ticket,
+        messages=messages,
+        user_id=user.id,
+        can_manage_tickets=can_manage_tickets,
+        manager_name=manager_name,
+        creator_label=creator_label,
+    )
+
+
+@routes.route("/support/ticket/<int:ticket_id>/reply", methods=["POST"])
+def support_ticket_reply(ticket_id):
+    if "user_id" not in session:
+        return redirect(url_for("routes.home"))
+    user = User.query.get(session["user_id"])
+    ticket = SupportTicket.query.get_or_404(ticket_id)
+    if not _support_can_access_ticket(user, ticket):
+        abort(403)
+    if _ticket_is_closed(ticket):
+        flash("Este ticket está cerrado.", "error")
+        return redirect(url_for("routes.support_ticket_detail", ticket_id=ticket.id))
+    body = (request.form.get("body") or "").strip()
+    if not body:
+        flash("El mensaje no puede estar vacío.", "error")
+        return redirect(url_for("routes.support_ticket_detail", ticket_id=ticket.id))
+    msg = TicketMessage(
+        ticket_id=ticket.id,
+        author_user_id=user.id,
+        body=body,
+    )
+    db.session.add(msg)
+    db.session.flush()
+    files = request.files.getlist("attachments")
+    _support_save_attachments(ticket, msg, files)
+    ticket.updated_at = datetime.now()
+    db.session.commit()
+    flash("Mensaje enviado.", "success")
+    return redirect(url_for("routes.support_ticket_detail", ticket_id=ticket.id))
+
+
+@routes.route("/support/ticket/<int:ticket_id>/status", methods=["POST"])
+def support_ticket_status(ticket_id):
+    if "user_id" not in session:
+        return redirect(url_for("routes.home"))
+    user = User.query.get(session["user_id"])
+    if not user or not _is_ticket_staff(user):
+        abort(403)
+    ticket = SupportTicket.query.get_or_404(ticket_id)
+    action = (request.form.get("action") or "").strip()
+    if not action:
+        return redirect(url_for("routes.support_ticket_detail", ticket_id=ticket.id))
+    if action == "en_revision":
+        ticket.status = SupportTicketStatus.EN_REVISION
+    elif action == "resuelto":
+        ticket.status = SupportTicketStatus.RESUELTO
+        ticket.closed_at = datetime.now()
+        ticket.closed_by_user_id = user.id
+    elif action == "cerrado":
+        ticket.status = SupportTicketStatus.CERRADO
+        ticket.closed_at = datetime.now()
+        ticket.closed_by_user_id = user.id
+    else:
+        flash("Acción no válida.", "error")
+        return redirect(url_for("routes.support_ticket_detail", ticket_id=ticket.id))
+    ticket.updated_at = datetime.now()
+    db.session.commit()
+    flash("Estado del ticket actualizado.", "success")
+    return redirect(url_for("routes.support_ticket_detail", ticket_id=ticket.id))
+
+
+@routes.route("/support/admin/tickets", methods=["GET"])
+def support_admin_tickets():
+    if "user_id" not in session:
+        return redirect(url_for("routes.home"))
+    user = User.query.get(session["user_id"])
+    if not user or not _is_ticket_staff(user):
+        abort(403)
+    status_filter = request.args.get("status", "").strip()
+    q = SupportTicket.query.options(joinedload(SupportTicket.created_by))
+    if status_filter in ("ABIERTO", "EN_REVISION", "RESUELTO", "CERRADO"):
+        q = q.filter(SupportTicket.status == SupportTicketStatus[status_filter])
+    tickets = q.order_by(SupportTicket.created_at.desc()).all()
+    return render_template(
+        "support-admin-tickets.html",
+        tickets=tickets,
+        user_id=user.id,
+        status_filter=status_filter,
+    )
+
+
+@routes.route("/support/attachment/<int:attachment_id>", methods=["GET"])
+def support_attachment_download(attachment_id):
+    if "user_id" not in session:
+        return redirect(url_for("routes.home"))
+    user = User.query.get(session["user_id"])
+    att = TicketAttachment.query.get_or_404(attachment_id)
+    ticket = SupportTicket.query.get_or_404(att.ticket_id)
+    if not _support_can_access_ticket(user, ticket):
+        abort(403)
+    base = _tickets_upload_folder()
+    full = os.path.join(base, att.stored_filename.replace("/", os.sep))
+    if not os.path.isfile(full):
+        abort(404)
+    directory = os.path.dirname(full)
+    fname = os.path.basename(full)
+    return send_from_directory(directory, fname, as_attachment=True, download_name=att.original_filename)
+
+
+@routes.route("/support/audit-logs", methods=["GET"])
+def support_audit_logs():
+    """Listado de auditoría: solo personal de soporte (no administrador general)."""
+    if "user_id" not in session:
+        return redirect(url_for("routes.home"))
+    user = User.query.get(session["user_id"])
+    if not user or user.role not in (Role.ADMINISTRADOR_SOPORTE, Role.SOPORTE_TECNICO):
+        abort(403)
+    action_filter = request.args.get("action", "").strip()
+    q = AuditLog.query.options(joinedload(AuditLog.actor)).order_by(AuditLog.created_at.desc())
+    if action_filter:
+        q = q.filter(AuditLog.action == action_filter)
+    logs = q.limit(500).all()
+    return render_template(
+        "support-audit-logs.html",
+        logs=logs,
+        action_filter=action_filter,
+        user_id=user.id,
+        audit_actions=AUDIT_LOG_ACTIONS,
+    )

@@ -10,6 +10,9 @@ class Role(Enum):
     ADMINISTRADOR = "ADMINISTRADOR"
     COORDINADOR = "COORDINADOR"
     VENDEDOR = "VENDEDOR"
+    # Ocultos en el formulario de creación de usuarios; asignación manual (BD / script)
+    ADMINISTRADOR_SOPORTE = "ADMINISTRADOR_SOPORTE"
+    SOPORTE_TECNICO = "SOPORTE_TECNICO"
 
     def to_json(self):
         return self.name
@@ -441,3 +444,116 @@ class EmployeeRecord(db.Model):
 
     def __str__(self):
         return json.dumps(self.to_json(), indent=4)
+
+
+class SupportTicketStatus(Enum):
+    ABIERTO = "ABIERTO"
+    EN_REVISION = "EN_REVISION"
+    RESUELTO = "RESUELTO"
+    CERRADO = "CERRADO"
+
+    def to_json(self):
+        return self.name
+
+
+class SupportTicket(db.Model):
+    """Ticket de soporte creado por vendedor o coordinador."""
+
+    __tablename__ = "support_ticket"
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey("employee.id"), nullable=True)
+    manager_id = db.Column(db.Integer, db.ForeignKey("manager.id"), nullable=True)
+    subject = db.Column(db.String(200), nullable=False)
+    status = db.Column(
+        db.Enum(SupportTicketStatus),
+        nullable=False,
+        default=SupportTicketStatus.ABIERTO,
+    )
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
+    updated_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.datetime.now,
+        onupdate=datetime.datetime.now,
+    )
+    closed_at = db.Column(db.DateTime, nullable=True)
+    closed_by_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+
+    created_by = db.relationship(
+        "User",
+        foreign_keys=[created_by_user_id],
+        backref=db.backref("support_tickets_created", lazy="dynamic"),
+    )
+    closed_by = db.relationship("User", foreign_keys=[closed_by_user_id])
+    messages = db.relationship(
+        "TicketMessage",
+        backref="ticket",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+        order_by="TicketMessage.created_at",
+    )
+
+
+class TicketMessage(db.Model):
+    """Mensaje en el hilo de un ticket."""
+
+    __tablename__ = "ticket_message"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey("support_ticket.id"), nullable=False)
+    author_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
+
+    author = db.relationship(
+        "User",
+        foreign_keys=[author_user_id],
+        backref=db.backref("ticket_messages", lazy="dynamic"),
+    )
+    attachments = db.relationship(
+        "TicketAttachment",
+        backref="message",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+
+
+class TicketAttachment(db.Model):
+    """Adjunto asociado a un mensaje del ticket."""
+
+    __tablename__ = "ticket_attachment"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey("support_ticket.id"), nullable=False)
+    message_id = db.Column(db.Integer, db.ForeignKey("ticket_message.id"), nullable=False)
+    stored_filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+
+    ticket = db.relationship(
+        "SupportTicket",
+        backref=db.backref("all_attachments", lazy="dynamic"),
+        foreign_keys=[ticket_id],
+    )
+
+
+class AuditLog(db.Model):
+    """Registro de auditoría para acciones sensibles en la aplicación."""
+
+    __tablename__ = "audit_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
+    action = db.Column(db.String(64), nullable=False)
+    entity_type = db.Column(db.String(64), nullable=False)
+    entity_id = db.Column(db.Integer, nullable=True)
+    actor_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    summary = db.Column(db.Text, nullable=False)
+    details_json = db.Column(db.Text, nullable=True)
+
+    actor = db.relationship(
+        "User",
+        foreign_keys=[actor_user_id],
+        backref=db.backref("audit_logs", lazy="dynamic"),
+    )

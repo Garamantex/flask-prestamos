@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row mb-3">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.support_my_tickets') }}">Volver a mis tickets</a>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col">
+                <h2 class="c-form__title">Nuevo ticket de soporte</h2>
+                <p class="text-muted">Describa el problema y adjunte evidencias si lo desea.</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-8">
+                <form method="post" enctype="multipart/form-data" action="{{ url_for('routes.support_new_ticket') }}">
+                    <div class="form-group mb-3">
+                        <label for="subject">Asunto</label>
+                        <input type="text" class="form-control" id="subject" name="subject" required maxlength="200">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="body">Descripción / observación</label>
+                        <textarea class="form-control" id="body" name="body" rows="6" required></textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="attachments">Evidencias (archivos opcionales, puede seleccionar varios)</label>
+                        <input type="file" class="form-control-file" id="attachments" name="attachments" multiple>
+                    </div>
+                    <button type="submit" class="c-btn c-btn-primary">Enviar ticket</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Contraste legible en mensajes (evita .card-body oscuro del bundle global) */
+    .support-ticket-thread .card-body {
+        background-color: #fff !important;
+        color: #212529;
+    }
+    .support-ticket-thread .card-text {
+        color: #212529;
+    }
+</style>
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row mb-3">
+            <div class="col">
+                {% if can_manage_tickets %}
+                    <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.support_admin_tickets') }}">Volver a gestión de tickets</a>
+                    {% if session.role in ['ADMINISTRADOR_SOPORTE', 'SOPORTE_TECNICO'] %}
+                    <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.menu_support', user_id=user_id) }}">Menú soporte</a>
+                    {% elif session.role == 'ADMINISTRADOR' %}
+                    <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Menú administrador</a>
+                    {% endif %}
+                {% elif session.role == 'VENDEDOR' %}
+                    <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver al menú</a>
+                {% else %}
+                    <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver al menú</a>
+                {% endif %}
+                {% if not can_manage_tickets %}
+                    <a class="c-btn c-btn-secondary c-btn-block mb-2" href="{{ url_for('routes.support_my_tickets') }}">Mis tickets</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col">
+                <h2 class="c-form__title">Ticket #{{ ticket.id }} — {{ ticket.subject }}</h2>
+                <p class="mb-1"><strong>Estado:</strong> <span class="badge badge-info">{{ ticket.status.value }}</span></p>
+                <p class="mb-1"><strong>Creado:</strong> {{ ticket.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                <p class="mb-1"><strong>Usuario:</strong> {{ creator_label }}</p>
+                {% if manager_name %}
+                    <p class="mb-1"><strong>Coordinador / jerarquía:</strong> {{ manager_name }}</p>
+                {% endif %}
+                {% if ticket.closed_at %}
+                    <p class="mb-1 text-muted"><strong>Cerrado:</strong> {{ ticket.closed_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row mb-4 support-ticket-thread">
+            <div class="col">
+                <h4 class="mb-3">Conversación</h4>
+                {% for m in messages %}
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between">
+                        <span>
+                            {% if m.author %}
+                                {{ m.author.first_name }} {{ m.author.last_name }}
+                                {% if m.author.role %}
+                                    <small class="text-muted">({{ m.author.role.value }})</small>
+                                {% endif %}
+                            {% else %}
+                                Usuario
+                            {% endif %}
+                        </span>
+                        <small>{{ m.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text" style="white-space: pre-wrap;">{{ m.body }}</p>
+                        {% if m.attachments %}
+                            <ul class="list-unstyled mb-0">
+                                {% for a in m.attachments %}
+                                <li>
+                                    <a href="{{ url_for('routes.support_attachment_download', attachment_id=a.id) }}">{{ a.original_filename }}</a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if can_manage_tickets and not (ticket.status.value in ['RESUELTO', 'CERRADO']) %}
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h5>Gestión del ticket</h5>
+                <form method="post" action="{{ url_for('routes.support_ticket_status', ticket_id=ticket.id) }}" class="form-inline flex-wrap mb-2">
+                    <input type="hidden" name="action" value="en_revision">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm mr-2 mb-2">Marcar en revisión</button>
+                </form>
+                <form method="post" action="{{ url_for('routes.support_ticket_status', ticket_id=ticket.id) }}" class="form-inline flex-wrap mb-2">
+                    <input type="hidden" name="action" value="resuelto">
+                    <button type="submit" class="btn btn-success btn-sm mr-2 mb-2">Marcar como resuelto</button>
+                </form>
+                <form method="post" action="{{ url_for('routes.support_ticket_status', ticket_id=ticket.id) }}" class="form-inline flex-wrap">
+                    <input type="hidden" name="action" value="cerrado">
+                    <button type="submit" class="btn btn-outline-dark btn-sm mb-2">Cerrar sin resolver</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not (ticket.status.value in ['RESUELTO', 'CERRADO']) %}
+        <div class="row">
+            <div class="col-md-8">
+                <h5>Nuevo mensaje</h5>
+                <form method="post" enctype="multipart/form-data" action="{{ url_for('routes.support_ticket_reply', ticket_id=ticket.id) }}">
+                    <div class="form-group mb-3">
+                        <label for="body">Mensaje</label>
+                        <textarea class="form-control" id="body" name="body" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="attachments">Adjuntos (opcional)</label>
+                        <input type="file" class="form-control-file" id="attachments" name="attachments" multiple>
+                    </div>
+                    <button type="submit" class="c-btn c-btn-primary">Enviar</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted">Este ticket está cerrado; no se pueden añadir más mensajes.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

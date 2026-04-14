@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="c-form menu-manager">
+        <div class="container pt-5">
+            <div class="row">
+                <div class="col mb-4">
+                    <h4>Hola, {{ staff_name }}</h4>
+                    <p class="text-muted mb-0">
+                        {% if session.role == 'ADMINISTRADOR_SOPORTE' %}
+                            Perfil: Administrador de soporte
+                        {% else %}
+                            Perfil: Soporte técnico
+                        {% endif %}
+                    </p>
+                    <hr>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <nav class="c-menu d-flex flex-wrap justify-content-center justify-content-md-start align-items-center h-100">
+                        <a href="{{ url_for('routes.support_admin_tickets') }}" class="c-btn c-btn-primary c-btn--menu mb-1"><i class="c-icon c-icon--white bi bi-kanban me-3"></i> Gestión de tickets</a>
+                        <a href="{{ url_for('routes.support_audit_logs') }}" class="c-btn c-btn-primary c-btn--menu mb-1"><i class="c-icon c-icon--white bi bi-journal-text me-3"></i> Registros de auditoría</a>
+                        <a class="c-btn c-btn-primary c-btn--menu c-btn-block mb-3 mt-4" href="{{ url_for('routes.logout') }}">Salir</a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row mb-3">
+            <div class="col">
+                {% if session.role == 'VENDEDOR' %}
+                    <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.menu_salesman', user_id=user_id) }}">Volver al menú</a>
+                {% else %}
+                    <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.menu_manager', user_id=user_id) }}">Volver al menú</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col d-flex justify-content-between align-items-center flex-wrap">
+                <h2 class="c-form__title mb-2">Mis tickets de soporte</h2>
+                <a class="c-btn c-btn-primary mb-2" href="{{ url_for('routes.support_new_ticket') }}">Nuevo ticket</a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                {% if tickets %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Asunto</th>
+                                    <th>Estado</th>
+                                    <th>Fecha</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for t in tickets %}
+                                <tr>
+                                    <td>{{ t.id }}</td>
+                                    <td>{{ t.subject }}</td>
+                                    <td><span class="badge badge-secondary">{{ t.status.value }}</span></td>
+                                    <td>{{ t.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('routes.support_ticket_detail', ticket_id=t.id) }}">Ver</a></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No tiene tickets aún. Cree uno desde &quot;Nuevo ticket&quot;.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

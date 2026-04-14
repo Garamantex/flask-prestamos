@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="c-form">
+    <div class="container pt-5">
+        <div class="row mb-3">
+            <div class="col">
+                <a class="c-btn c-btn-primary c-btn-block mb-2" href="{{ url_for('routes.menu_support', user_id=user_id) }}">Volver al menú</a>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col">
+                <h2 class="c-form__title">Registros de auditoría</h2>
+                <p class="text-muted">Últimos eventos registrados en el sistema (contraseñas, transacciones, clientes, préstamos, pagos, etc.).</p>
+                <form method="get" action="{{ url_for('routes.support_audit_logs') }}" class="form-inline mb-3 flex-wrap">
+                    <label class="mr-2" for="action">Acción</label>
+                    <select name="action" id="action" class="form-control mr-2 mb-2" onchange="this.form.submit()">
+                        <option value="">Todas</option>
+                        {% for a in audit_actions %}
+                        <option value="{{ a }}" {% if action_filter == a %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                {% if logs %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-striped" style="font-size: 0.9rem;">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Acción</th>
+                                <th>Tipo</th>
+                                <th>ID entidad</th>
+                                <th>Usuario</th>
+                                <th>Resumen</th>
+                                <th>Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td>{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                                <td><span class="badge badge-secondary">{{ log.action }}</span></td>
+                                <td>{{ log.entity_type }}</td>
+                                <td>{{ log.entity_id if log.entity_id is not none else '—' }}</td>
+                                <td>
+                                    {% if log.actor %}
+                                        {{ log.actor.first_name }} {{ log.actor.last_name }}
+                                        <small class="text-muted d-block">{{ log.actor.username }}</small>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td style="max-width: 280px;">{{ log.summary }}</td>
+                                <td style="max-width: 320px; word-break: break-word;">
+                                    {% if log.details_json %}
+                                    <small class="text-monospace">{{ log.details_json[:400] }}{% if log.details_json|length > 400 %}…{% endif %}</small>
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No hay registros con ese filtro.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
