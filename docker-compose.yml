@@ -55,7 +55,10 @@ services:
       PMA_HOST: db
       PMA_PORT: 3306
       PMA_ARBITRARY: 0
-      UPLOAD_LIMIT: 64M
+      UPLOAD_LIMIT: 300M
+      MAX_EXECUTION_TIME: 600
+      MEMORY_LIMIT: 512M
+      PMA_ABSOLUTE_URI: http://129.121.60.37/phpmyadmin/
     ports:
       - "${PHPMYADMIN_PORT:-8080}:80"
 
