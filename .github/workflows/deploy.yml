@@ -1,0 +1,38 @@
+name: CI/CD Pipeline
+
+# El flujo se activa SOLO cuando se hace un push o merge a la rama main
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Ejecutar comandos de despliegue en el VPS vía SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          # Cambia el puerto si tu SSH usa uno personalizado (ej: 22022). Si usa el 22 por defecto, puedes borrar esta línea.
+          port: 22 
+          script: |
+            echo "--- Iniciando el Despliegue Continuo ---"
+            
+            # 1. Entrar a la carpeta del proyecto en el VPS
+            cd /var/www/flask-prestamos
+            
+            # 2. Traer los últimos cambios desde GitHub de forma limpia
+            git reset --hard HEAD
+            git pull origin main
+            
+            # 3. Reconstruir la imagen de Flask e inyectar los cambios sin tumbar la BD por completo
+            docker compose up -d --build
+
+            echo "--- ¡Despliegue completado con éxito! ---"
