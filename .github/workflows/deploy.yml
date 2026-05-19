@@ -19,11 +19,9 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          # Cambia el puerto si tu SSH usa uno personalizado (ej: 22022). Si usa el 22 por defecto, puedes borrar esta línea.
-          port: 22022 
+          key: ${{ secrets.SSH_KEY }}
+          port: 22022
           script: |
-            echo "--- Iniciando el Despliegue Continuo ---"
             
             # 1. Entrar a la carpeta del proyecto en el VPS
             cd /var/www/flask-prestamos
