@@ -19,7 +19,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          port: 22022
+          port: 443 # <--- El puerto mágico que ningún firewall se atreve a bloquear
           script: |
             echo "--- Iniciando el Despliegue Continuo ---"
             cd /var/www/flask-prestamos
