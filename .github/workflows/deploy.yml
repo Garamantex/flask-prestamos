@@ -7,23 +7,14 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
-      - name: Descargar el código del repositorio
-        uses: actions/checkout@v4
-
-      - name: Ejecutar comandos de despliegue en el VPS vía SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: 443 # <--- El puerto mágico que ningún firewall se atreve a bloquear
-          script: |
-            echo "--- Iniciando el Despliegue Continuo ---"
-            cd /var/www/flask-prestamos
-            git reset --hard HEAD
-            git pull origin main
-            docker compose up -d --build
-            echo "--- ¡Despliegue completado con éxito! ---"
+      - name: Descargar últimos cambios y levantar Docker
+        run: |
+          echo "--- Ejecutando despliegue local interno ---"
+          cd /var/www/flask-prestamos
+          git reset --hard HEAD
+          git pull origin main
+          docker compose up -d --build
+          echo "--- ¡Despliegue completado con éxito! ---"
