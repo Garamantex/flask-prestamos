@@ -21,7 +21,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           # Cambia el puerto si tu SSH usa uno personalizado (ej: 22022). Si usa el 22 por defecto, puedes borrar esta línea.
-          port: 22 
+          port: 22022 
           script: |
             echo "--- Iniciando el Despliegue Continuo ---"
             
