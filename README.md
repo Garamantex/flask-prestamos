@@ -283,7 +283,6 @@ Se han diseñado índices específicos para mejorar los tiempos de respuesta del
 ### Archivos de optimización incluidos
 - **`optimize_box_endpoint.py`** (Recomendado): Ejecuta la creación de índices críticos mediante SQLAlchemy.
 - **`create_database_indexes.py`**: Script completo con verificación detallada.
-- **`database_indexes_optimization.sql`**: Sentencias SQL puras para su ejecución directa.
 
 ### Ejecución de Optimización (Recomendada)
 Para crear los índices críticos desde Python:
