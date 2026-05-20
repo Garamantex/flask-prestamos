@@ -4913,6 +4913,27 @@ def wallet():
                     subadmins.append(m)
                     seen.add(m.id)
 
+        def get_all_subordinate_employee_ids(manager_id, visited=None):
+            if visited is None:
+                visited = set()
+            if manager_id in visited:
+                return []
+            visited.add(manager_id)
+            
+            emp_ids = []
+            mgr = Manager.query.get(manager_id)
+            if mgr and mgr.employee_id:
+                emp_ids.append(mgr.employee_id)
+            
+            salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
+            for s in salesmen:
+                if s.employee_id:
+                    emp_ids.append(s.employee_id)
+                    sub_mgr = Manager.query.filter_by(employee_id=s.employee_id).first()
+                    if sub_mgr:
+                        emp_ids.extend(get_all_subordinate_employee_ids(sub_mgr.id, visited))
+            return list(set(emp_ids))
+
         def get_wallet_data_optimized(employee_ids):
             """Obtiene datos de cartera optimizados en consultas bulk para evitar N+1"""
             if not employee_ids:
@@ -5088,24 +5109,58 @@ def wallet():
                         continue
                     
                     emp_id = seller.employee.id
-                    emp_data = wallet_data.get(emp_id, {})
                     
-                    # Calcular porcentaje de recaudación
-                    projected_value = emp_data.get('total_pending_installments', 0)
-                    collected_today = emp_data.get('collected_today', 0)
-                    collection_percentage = (collected_today / projected_value * 100) if projected_value > 0 else 0
-                    
-                    seller_info = {
-                        'Employee ID': emp_id,
-                        'First Name': seller.employee.user.first_name or '',
-                        'Last Name': seller.employee.user.last_name or '',
-                        'Number of Active Loans': len(emp_data.get('active_clients', set())),
-                        'Total Amount of Overdue Loans': emp_data.get('total_overdue_installments', 0),
-                        'Total Amount of Pending Installments': projected_value,
-                        'Total Portfolio Value': emp_data.get('total_portfolio_value', 0),
-                        'Balance': emp_data.get('balance', 0),
-                        'Collection Percentage': collection_percentage,
-                    }
+                    # Verificar si este vendedor es administrador/coordinador (manager)
+                    is_mgr = Manager.query.filter_by(employee_id=emp_id).first()
+                    if is_mgr:
+                        sub_emp_ids = get_all_subordinate_employee_ids(is_mgr.id)
+                        active_clients = set()
+                        total_overdue = 0
+                        projected_value = 0
+                        portfolio_value = 0
+                        balance = 0
+                        collected_today = 0
+                        for sub_id in sub_emp_ids:
+                            sub_data = wallet_data.get(sub_id, {})
+                            active_clients.update(sub_data.get('active_clients', set()))
+                            total_overdue += sub_data.get('total_overdue_installments', 0)
+                            projected_value += sub_data.get('total_pending_installments', 0)
+                            portfolio_value += sub_data.get('total_portfolio_value', 0)
+                            balance += sub_data.get('balance', 0)
+                            collected_today += sub_data.get('collected_today', 0)
+                        
+                        collection_percentage = (collected_today / projected_value * 100) if projected_value > 0 else 0
+                        
+                        seller_info = {
+                            'Employee ID': emp_id,
+                            'First Name': seller.employee.user.first_name or '',
+                            'Last Name': seller.employee.user.last_name or '',
+                            'Number of Active Loans': len(active_clients),
+                            'Total Amount of Overdue Loans': total_overdue,
+                            'Total Amount of Pending Installments': projected_value,
+                            'Total Portfolio Value': portfolio_value,
+                            'Balance': balance,
+                            'Collection Percentage': collection_percentage,
+                            'is_consolidated': True
+                        }
+                    else:
+                        emp_data = wallet_data.get(emp_id, {})
+                        projected_value = emp_data.get('total_pending_installments', 0)
+                        collected_today = emp_data.get('collected_today', 0)
+                        collection_percentage = (collected_today / projected_value * 100) if projected_value > 0 else 0
+                        
+                        seller_info = {
+                            'Employee ID': emp_id,
+                            'First Name': seller.employee.user.first_name or '',
+                            'Last Name': seller.employee.user.last_name or '',
+                            'Number of Active Loans': len(emp_data.get('active_clients', set())),
+                            'Total Amount of Overdue Loans': emp_data.get('total_overdue_installments', 0),
+                            'Total Amount of Pending Installments': projected_value,
+                            'Total Portfolio Value': emp_data.get('total_portfolio_value', 0),
+                            'Balance': emp_data.get('balance', 0),
+                            'Collection Percentage': collection_percentage,
+                            'is_consolidated': False
+                        }
                     boxes.append(seller_info)
                 return boxes
             except Exception as e:
@@ -5159,10 +5214,44 @@ def wallet():
                         if seller.manager and seller.manager.employee and seller.manager.employee.user:
                             manager_name = f"{seller.manager.employee.user.first_name or ''} {seller.manager.employee.user.last_name or ''}"
                             
-                            emp_id = seller.employee.id
-                            emp_data = wallet_data.get(emp_id, {})
+                        emp_id = seller.employee.id
+                        
+                        # Verificar si este vendedor es administrador/coordinador (manager)
+                        is_mgr = Manager.query.filter_by(employee_id=emp_id).first()
+                        if is_mgr:
+                            sub_emp_ids = get_all_subordinate_employee_ids(is_mgr.id)
+                            active_clients = set()
+                            total_overdue = 0
+                            projected_value = 0
+                            portfolio_value = 0
+                            balance = 0
+                            collected_today = 0
+                            for sub_id in sub_emp_ids:
+                                sub_data = wallet_data.get(sub_id, {})
+                                active_clients.update(sub_data.get('active_clients', set()))
+                                total_overdue += sub_data.get('total_overdue_installments', 0)
+                                projected_value += sub_data.get('total_pending_installments', 0)
+                                portfolio_value += sub_data.get('total_portfolio_value', 0)
+                                balance += sub_data.get('balance', 0)
+                                collected_today += sub_data.get('collected_today', 0)
                             
-                            # Calcular porcentaje de recaudación
+                            collection_percentage = (collected_today / projected_value * 100) if projected_value > 0 else 0
+                            
+                            seller_info = {
+                                'Employee ID': emp_id,
+                                'First Name': seller.employee.user.first_name or '',
+                                'Last Name': seller.employee.user.last_name or '',
+                                'Manager Name': manager_name,
+                                'Number of Active Loans': len(active_clients),
+                                'Total Amount of Overdue Loans': total_overdue,
+                                'Total Amount of Pending Installments': projected_value,
+                                'Total Portfolio Value': portfolio_value,
+                                'Balance': balance,
+                                'Collection Percentage': collection_percentage,
+                                'is_consolidated': True
+                            }
+                        else:
+                            emp_data = wallet_data.get(emp_id, {})
                             projected_value = emp_data.get('total_pending_installments', 0)
                             collected_today = emp_data.get('collected_today', 0)
                             collection_percentage = (collected_today / projected_value * 100) if projected_value > 0 else 0
@@ -5178,8 +5267,9 @@ def wallet():
                                 'Total Portfolio Value': emp_data.get('total_portfolio_value', 0),
                                 'Balance': emp_data.get('balance', 0),
                                 'Collection Percentage': collection_percentage,
+                                'is_consolidated': False
                             }
-                            boxes.append(seller_info)
+                        boxes.append(seller_info)
                 return boxes
             except Exception as e:
         
@@ -5216,13 +5306,12 @@ def wallet():
         num_direct_subadmins = len(subadmins_list)
         total_active_sellers = num_direct_sellers + num_direct_subadmins
         
-        # 2. Sumar "Debido Cobrar" de cajas propias + cajas de subadministradores
-        # Cajas propias (vendedores directos)
-        total_cash = sum([b.get('Total Amount of Pending Installments', 0) for b in only_sellers_boxes])
-        
-        # Cajas de subadministradores (usar los datos ya calculados)
-        for subadmin_data in subadmins_list:
-            total_cash += sum([b.get('Total Amount of Pending Installments', 0) for b in subadmin_data['boxes']])
+        # 2. Sumar "Debido Cobrar" de todas las cajas en la jerarquía (evitando doble contabilidad de cajas consolidadas)
+        if main_admin:
+            sub_emp_ids = get_all_subordinate_employee_ids(main_admin.id)
+            total_cash = sum([wallet_data_cache.get(emp_id, {}).get('total_pending_installments', 0) for emp_id in sub_emp_ids])
+        else:
+            total_cash = sum([b.get('Total Amount of Pending Installments', 0) for b in only_sellers_boxes])
 
         # Porcentaje de recaudación del día - Monto cobrado HOY vs Monto esperado HOY
         try:
