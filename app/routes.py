@@ -14,7 +14,7 @@ import holidays
 import io
 from operator import and_
 import holidays
-from sqlalchemy import func
+from sqlalchemy import func, case
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, session, redirect, url_for, abort, request, jsonify
 # from flask_caching import Cache
@@ -6726,6 +6726,8 @@ def process_salesman_record(employee_id, current_date):
     Procesa el registro de cierre de caja para un vendedor.
     Si ya existe un registro para el día, lo actualiza en lugar de crear uno nuevo.
     Retorna True si se procesó correctamente.
+    
+    NOTA: No hace commit — el llamador es responsable de hacer db.session.commit().
     """
     # Verificar si ya existe un registro para este empleado en la fecha actual
     existing_record = EmployeeRecord.query.filter_by(employee_id=employee_id) \
@@ -6737,20 +6739,6 @@ def process_salesman_record(employee_id, current_date):
     
     employee_status = employee.status
 
-    # Inicializar las variables
-    initial_state = 0
-    loans_to_collect = 0
-    paid_installments = 0
-    partial_installments = 0
-    overdue_installments_total = 0
-    daily_incomes_amount = 0
-    daily_expenses_amount = 0
-    daily_withdrawals = 0
-    total_collected = 0
-    new_clients_loan_amount = 0
-    total_renewal_loans_amount = 0
-    total_pending_installments_amount = 0
-
     # Buscar el último registro en EmployeeRecord del día anterior
     last_record = EmployeeRecord.query.filter_by(employee_id=employee_id) \
         .filter(func.date(EmployeeRecord.creation_date) < current_date) \
@@ -6760,64 +6748,84 @@ def process_salesman_record(employee_id, current_date):
     loans_to_collect = Loan.query.filter_by(
         employee_id=employee_id, status=True).count()
 
-    # Subconsulta para obtener los IDs de las cuotas de préstamo PAGADA del empleado
+    # --- Cuotas PAGADAS: monto total de pagos del día ---
     paid_installments_query = db.session.query(LoanInstallment.id) \
         .join(Loan) \
         .filter(Loan.employee_id == employee_id,
                 LoanInstallment.status == InstallmentStatus.PAGADA) \
         .subquery()
 
-    # Calcular la cantidad de cuotas PAGADA y su total
     paid_installments_amount = db.session.query(func.sum(Payment.amount)) \
         .join(paid_installments_query, Payment.installment_id == paid_installments_query.c.id) \
         .filter(func.date(Payment.payment_date) == current_date) \
         .scalar() or 0
 
-    # Inicializar variables para el nuevo cálculo
+    # --- Debido cobrar del siguiente día y préstamos cerrados (optimizado con bulk queries) ---
+    total_pending_installments_amount = 0
     total_pending_installments_loan_close_amount = 0
-    
-    # Calcular el debido cobrar del siguiente dia y préstamos cerrados
-    for client in employee.clients:
-        for loan in client.loans:
-            # Excluir préstamos creados hoy mismo
-            if loan.creation_date.date() == datetime.now().date():
-                continue
-            
-            if loan.status:
-                # Encuentra la última cuota pendiente a la fecha actual incluyendo la fecha de creación de la cuota
-                pending_installment = LoanInstallment.query.filter(
-                    LoanInstallment.loan_id == loan.id
-                ).order_by(LoanInstallment.due_date.asc()).first()
-                if pending_installment:
-                    total_pending_installments_amount += pending_installment.fixed_amount
-            elif loan.status == False and loan.up_to_date and loan.modification_date.date() == datetime.now().date():
-                pending_installment_paid = LoanInstallment.query.filter(
-                    LoanInstallment.loan_id == loan.id
-                ).order_by(LoanInstallment.due_date.asc()).first()
-                total_pending_installments_loan_close_amount += pending_installment_paid.fixed_amount
 
-    # Subconsulta para obtener los IDs de las cuotas de préstamo ABONADAS del empleado
+    # Préstamos activos: obtener la primera cuota de cada préstamo (excluyendo préstamos creados hoy)
+    active_first_installments = db.session.query(
+        LoanInstallment.loan_id,
+        func.min(LoanInstallment.due_date).label('first_due_date')
+    ).join(Loan).join(Client).filter(
+        Client.employee_id == employee_id,
+        Loan.status == True,
+        func.date(Loan.creation_date) != datetime.now().date()
+    ).group_by(LoanInstallment.loan_id).subquery()
+
+    # Sumar los fixed_amount de las primeras cuotas de préstamos activos
+    total_pending_installments_amount = db.session.query(
+        func.sum(LoanInstallment.fixed_amount)
+    ).join(
+        active_first_installments,
+        and_(
+            LoanInstallment.loan_id == active_first_installments.c.loan_id,
+            LoanInstallment.due_date == active_first_installments.c.first_due_date
+        )
+    ).scalar() or 0
+
+    # Préstamos cerrados hoy y al día: obtener la primera cuota
+    closed_first_installments = db.session.query(
+        LoanInstallment.loan_id,
+        func.min(LoanInstallment.due_date).label('first_due_date')
+    ).join(Loan).join(Client).filter(
+        Client.employee_id == employee_id,
+        Loan.status == False,
+        Loan.up_to_date == True,
+        func.date(Loan.modification_date) == datetime.now().date()
+    ).group_by(LoanInstallment.loan_id).subquery()
+
+    total_pending_installments_loan_close_amount = db.session.query(
+        func.sum(LoanInstallment.fixed_amount)
+    ).join(
+        closed_first_installments,
+        and_(
+            LoanInstallment.loan_id == closed_first_installments.c.loan_id,
+            LoanInstallment.due_date == closed_first_installments.c.first_due_date
+        )
+    ).scalar() or 0
+
+    # --- Cuotas ABONADAS: monto total de pagos del día ---
     partial_installments_query = db.session.query(LoanInstallment.id) \
         .join(Loan) \
         .filter(Loan.employee_id == employee_id,
                 LoanInstallment.status == InstallmentStatus.ABONADA) \
         .subquery()
 
-    # Calcular la cantidad de cuotas ABONADAS y su total
     partial_installments = db.session.query(func.sum(Payment.amount)) \
         .join(partial_installments_query,
               Payment.installment_id == partial_installments_query.c.id) \
         .filter(func.date(Payment.payment_date) == current_date) \
         .scalar() or 0
 
-    # Subconsulta para obtener los IDs de las cuotas de préstamo en MORA del empleado
+    # --- Cuotas en MORA: monto total ---
     overdue_installments_query = db.session.query(LoanInstallment.id) \
         .join(Loan) \
         .filter(Loan.employee_id == employee_id,
                 LoanInstallment.status == InstallmentStatus.MORA) \
         .subquery()
 
-    # Calcular la cantidad de cuotas en MORA y su total
     overdue_installments_total = db.session.query(func.sum(LoanInstallment.amount)) \
         .join(overdue_installments_query,
               LoanInstallment.id == overdue_installments_query.c.id) \
@@ -6825,7 +6833,7 @@ def process_salesman_record(employee_id, current_date):
         .filter(func.date(Payment.payment_date) == current_date) \
         .scalar() or 0
 
-    # Calcular el total recaudado en la fecha actual
+    # --- Total recaudado en la fecha actual ---
     total_collected = db.session.query(
         db.func.sum(Payment.amount)
     ).join(LoanInstallment, LoanInstallment.id == Payment.installment_id).join(
@@ -6835,15 +6843,14 @@ def process_salesman_record(employee_id, current_date):
             Payment.payment_date) == current_date)
     ).scalar() or 0
 
-    # Calcula el total de préstamos de los nuevos clientes
+    # --- Préstamos nuevos y renovaciones (2 queries en vez de 2, sin cambio) ---
     new_clients_loan_amount = Loan.query.join(Client).filter(
         Client.employee_id == employee_id,
         func.date(Loan.creation_date) >= current_date,
-        Loan.is_renewal == False,  # Excluir renovaciones
-        Loan.status == True  # Solo préstamos activos
+        Loan.is_renewal == False,
+        Loan.status == True
     ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
-    # Calcula el monto total de las renovaciones de préstamos para este vendedor
     total_renewal_loans_amount = Loan.query.filter(
         Loan.client.has(employee_id=employee_id),
         Loan.is_renewal == True,
@@ -6852,48 +6859,44 @@ def process_salesman_record(employee_id, current_date):
         func.date(Loan.creation_date) >= current_date
     ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
-    # Calcula Valor de los gastos diarios
-    daily_expenses_amount = Transaction.query.filter(
+    # --- OPTIMIZACIÓN: Consolidar 3 queries de transacciones en 1 con GROUP BY ---
+    transaction_totals = db.session.query(
+        Transaction.transaction_types,
+        func.sum(Transaction.amount)
+    ).filter(
         Transaction.employee_id == employee_id,
-        Transaction.transaction_types == TransactionType.GASTO,
         Transaction.approval_status == ApprovalStatus.APROBADA,
-        func.date(Transaction.creation_date) == current_date
-    ).with_entities(func.sum(Transaction.amount)).scalar() or 0
+        func.date(Transaction.creation_date) == current_date,
+        Transaction.transaction_types.in_([
+            TransactionType.GASTO,
+            TransactionType.RETIRO,
+            TransactionType.INGRESO
+        ])
+    ).group_by(Transaction.transaction_types).all()
 
-    # Calcula los retiros diarios basados en transacciones de RETIRO
-    daily_withdrawals_amount = Transaction.query.filter(
-        Transaction.employee_id == employee_id,
-        Transaction.transaction_types == TransactionType.RETIRO,
-        Transaction.approval_status == ApprovalStatus.APROBADA,
-        func.date(Transaction.creation_date) == current_date
-    ).with_entities(func.sum(Transaction.amount)).scalar() or 0
+    # Mapear los resultados
+    transaction_map = {t_type: float(amount) for t_type, amount in transaction_totals}
+    daily_expenses_amount = transaction_map.get(TransactionType.GASTO, 0)
+    daily_withdrawals_amount = transaction_map.get(TransactionType.RETIRO, 0)
+    daily_incomes_amount = transaction_map.get(TransactionType.INGRESO, 0)
 
-    # Calcula las colecciones diarias basadas en transacciones de INGRESO
-    daily_incomes_amount = Transaction.query.filter(
-        Transaction.employee_id == employee_id,
-        Transaction.transaction_types == TransactionType.INGRESO,
-        Transaction.approval_status == ApprovalStatus.APROBADA,
-        func.date(Transaction.creation_date) == current_date
-    ).with_entities(func.sum(Transaction.amount)).scalar() or 0
+    # --- OPTIMIZACIÓN: Verificar pagos del día con una sola query JOIN ---
+    # En vez del triple loop O(n³), contamos préstamos distintos con pago hoy
+    all_loans_paid_count = db.session.query(
+        func.count(func.distinct(Loan.id))
+    ).join(
+        LoanInstallment, LoanInstallment.loan_id == Loan.id
+    ).join(
+        Payment, Payment.installment_id == LoanInstallment.id
+    ).filter(
+        Loan.employee_id == employee_id,
+        func.date(Payment.payment_date) == current_date
+    ).scalar() or 0
 
-    # Verificar si todos los préstamos tienen un PAGO, ABONO o MORA igual al de hoy
-    all_loans_paid = Loan.query.filter_by(employee_id=employee_id).all()
-    all_loans_paid_today = False
-    all_loans_paid_count = 0
-    for loan in all_loans_paid:
-        loan_installments = LoanInstallment.query.filter_by(
-            loan_id=loan.id).all()
-        for installment in loan_installments:
-            payments = Payment.query.filter_by(
-                installment_id=installment.id).all()
-            for payment in payments:
-                if payment.payment_date.date() == current_date:
-                    all_loans_paid_count += 1
-                    break
+    all_loans_paid_today = (loans_to_collect == all_loans_paid_count)
 
-    if loans_to_collect == all_loans_paid_count:
-        all_loans_paid_today = True
-        
+    # Determinar initial_state
+    initial_state = 0
     if last_record:
         initial_state = float(last_record.closing_total)
 
@@ -6928,7 +6931,6 @@ def process_salesman_record(employee_id, current_date):
         
         db.session.add(employee)
         db.session.add(existing_record)
-        db.session.commit()
     else:
         # Crear nuevo registro
         employee_record = EmployeeRecord(
@@ -6954,8 +6956,9 @@ def process_salesman_record(employee_id, current_date):
 
         db.session.add(employee)
         db.session.add(employee_record)
-        db.session.commit()
     
+    # Flush para que los datos sean visibles en la misma sesión sin commit
+    db.session.flush()
     return True
 
 
@@ -6963,6 +6966,8 @@ def process_coordinator_hierarchy(manager_id, current_date):
     """
     Procesa coordinadores recursivamente de abajo hacia arriba.
     Primero procesa todos los sub-coordinadores, luego vendedores puros, finalmente el coordinador padre.
+    
+    NOTA: No hace commit — el llamador es responsable de hacer db.session.commit().
     """
     # Obtener el Manager object para acceder a su employee_id
     manager_obj = Manager.query.get(manager_id)
@@ -6985,18 +6990,19 @@ def process_coordinator_hierarchy(manager_id, current_date):
     # Obtener todos los Salesman bajo este manager
     salesmen = Salesman.query.filter_by(manager_id=manager_id).all()
     
-    # Separar vendedores puros de sub-coordinadores
-    pure_salesmen = []  # Solo vendedores (NO son Manager)
-    sub_coordinators = []  # Salesman que también son Manager (sub-coordinadores)
+    # OPTIMIZACIÓN: Pre-cargar todos los employee_ids que son managers en una sola query
+    all_manager_employee_ids = {
+        m.employee_id for m in db.session.query(Manager.employee_id).all()
+    }
+    
+    # Separar vendedores puros de sub-coordinadores sin queries individuales
+    pure_salesmen = []
+    sub_coordinators = []
     
     for salesman in salesmen:
-        # Verificar si este salesman también es un manager (sub-coordinador)
-        is_manager = Manager.query.filter_by(employee_id=salesman.employee_id).first()
-        if is_manager:
-            # Es un sub-coordinador - procesarlo PRIMERO (recursivo)
+        if salesman.employee_id in all_manager_employee_ids:
             sub_coordinators.append(salesman)
         else:
-            # Es un vendedor puro
             pure_salesmen.append(salesman)
     
     # 1. Procesar primero todos los sub-coordinadores (bottom-up)
@@ -7010,15 +7016,11 @@ def process_coordinator_hierarchy(manager_id, current_date):
         process_salesman_record(salesman.employee_id, current_date)
     
     # 3. Finalmente procesar este coordinador
-    # Inicializar las variables
-    initial_state = 0.0
+    # Inicializar las variables (que no se usan para coordinadores)
     loans_to_collect = 0
     paid_installments = 0
     partial_installments = 0
     overdue_installments_total = 0
-    daily_incomes_amount = 0
-    daily_expenses_amount = 0
-    daily_withdrawals = 0
     total_collected = 0
     new_clients_loan_amount = 0
     total_renewal_loans_amount = 0
@@ -7030,88 +7032,71 @@ def process_coordinator_hierarchy(manager_id, current_date):
         .order_by(EmployeeRecord.creation_date.desc()).first()
 
     # Usar el initial_state del último registro como estado inicial para hoy
-    # Si el último registro tiene un initial_state correcto, lo usamos
-    # Si no hay registro previo, usar box_value
     if last_record:
-        # Usar el initial_state del último registro (que es el valor inicial correcto de ese día)
-        # y sumarle los movimientos de ese día para obtener el valor inicial de hoy
-        # Fórmula: initial_state_ayer + incomings_ayer - withdrawals_ayer - expenses_ayer = closing_total_ayer
-        # Pero como el closing_total puede estar mal, usamos: initial_state_ayer + movimientos_ayer
         initial_state = float(last_record.initial_state) + float(last_record.incomings) - float(last_record.withdrawals) - float(last_record.expenses)
     else:
-        # Solo usar box_value si no hay registros previos
         initial_state = float(manager_array.box_value)
 
-    # Obtener Gastos del Coordinador
-    transaction_expenses_today = Transaction.query.filter_by(employee_id=employee_id, transaction_types=TransactionType.GASTO,
-                                                             approval_status=ApprovalStatus.APROBADA).filter(func.date(Transaction.creation_date) == current_date).all()
+    # --- OPTIMIZACIÓN: Consolidar 3 queries de transacciones del coordinador en 1 ---
+    coordinator_transaction_totals = db.session.query(
+        Transaction.transaction_types,
+        func.sum(Transaction.amount)
+    ).filter(
+        Transaction.employee_id == employee_id,
+        Transaction.approval_status == ApprovalStatus.APROBADA,
+        func.date(Transaction.creation_date) == current_date,
+        Transaction.transaction_types.in_([
+            TransactionType.GASTO,
+            TransactionType.INGRESO,
+            TransactionType.RETIRO
+        ])
+    ).group_by(Transaction.transaction_types).all()
 
-    transaction_incomes_today = Transaction.query.filter_by(employee_id=employee_id, transaction_types=TransactionType.INGRESO,
-                                                            approval_status=ApprovalStatus.APROBADA).filter(func.date(Transaction.creation_date) == current_date).all()
+    coord_tx_map = {t_type: float(amount) for t_type, amount in coordinator_transaction_totals}
+    coordinator_expenses = coord_tx_map.get(TransactionType.GASTO, 0)
+    coordinator_incomes = coord_tx_map.get(TransactionType.INGRESO, 0)
+    coordinator_withdrawals = coord_tx_map.get(TransactionType.RETIRO, 0)
 
-    transaction_withdrawals_today = Transaction.query.filter_by(employee_id=employee_id, transaction_types=TransactionType.RETIRO,
-                                                                approval_status=ApprovalStatus.APROBADA).filter(func.date(Transaction.creation_date) == current_date).all()
-
-    # Inicializar acumuladores
+    # --- OPTIMIZACIÓN: Consolidar 2N queries de subordinados en 2 queries bulk ---
+    pure_salesmen_ids = [s.employee_id for s in pure_salesmen]
+    
     total_employee_incomes_amount = 0
     total_employee_withdrawals_amount = 0
 
-    # Obtener SOLO los vendedores puros (excluyendo sub-coordinadores)
-    pure_salesmen_ids = get_pure_salesmen_ids(manager_id)
-    pure_salesmen = Salesman.query.filter(
-        Salesman.manager_id == manager_id,
-        Salesman.employee_id.in_(pure_salesmen_ids)
-    ).all() if pure_salesmen_ids else []
+    if pure_salesmen_ids:
+        # INGRESO de subordinados = RETIRO para el coordinador (subordinado recibe dinero)
+        # RETIRO de subordinados = INGRESO para el coordinador (subordinado devuelve dinero)
+        subordinate_totals = db.session.query(
+            Transaction.transaction_types,
+            func.sum(Transaction.amount)
+        ).filter(
+            Transaction.employee_id.in_(pure_salesmen_ids),
+            Transaction.approval_status == ApprovalStatus.APROBADA,
+            func.date(Transaction.creation_date) == current_date,
+            Transaction.transaction_types.in_([
+                TransactionType.INGRESO,
+                TransactionType.RETIRO
+            ])
+        ).group_by(Transaction.transaction_types).all()
 
-    for subordinate in pure_salesmen:
-        subordinate_employee_id = subordinate.employee_id
-        employee = Employee.query.get(subordinate_employee_id)
-        
-        if not employee:
-            continue
-
-        # Transacciones de tipo INGRESO del subordinado = RETIRO para el coordinador
-        # (El subordinado recibe dinero del coordinador)
-        transaction_withdrawals = Transaction.query.filter_by(employee_id=subordinate_employee_id, transaction_types=TransactionType.INGRESO,
-                                                              approval_status=ApprovalStatus.APROBADA).filter(func.date(Transaction.creation_date) == current_date).all()
-
-        # Transacciones de tipo RETIRO del subordinado = INGRESO para el coordinador
-        # (El subordinado devuelve dinero al coordinador)
-        transaction_incomes = Transaction.query.filter_by(employee_id=subordinate_employee_id, transaction_types=TransactionType.RETIRO,
-                                                          approval_status=ApprovalStatus.APROBADA).filter(func.date(Transaction.creation_date) == current_date).all()
-
-        # Obtener RETIROS del Coordinador = INGRESOS del subordinado
-        employee_withdrawals_amount = sum(
-            transaction.amount for transaction in transaction_withdrawals)
-
-        # Obtener INGRESOS del Coordinador = RETIROS del subordinado
-        employee_incomes_amount = sum(
-            transaction.amount for transaction in transaction_incomes)
-
-        # Acumular los valores
-        total_employee_withdrawals_amount += float(
-            employee_withdrawals_amount)
-        total_employee_incomes_amount += float(employee_incomes_amount)
+        sub_tx_map = {t_type: float(amount) for t_type, amount in subordinate_totals}
+        # INGRESO del subordinado = RETIRO para coordinador
+        total_employee_withdrawals_amount = sub_tx_map.get(TransactionType.INGRESO, 0)
+        # RETIRO del subordinado = INGRESO para coordinador
+        total_employee_incomes_amount = sub_tx_map.get(TransactionType.RETIRO, 0)
 
     # Valor total de INGRESOS Coordinador
     # Incluye transacciones INGRESO del coordinador + RETIRO de subordinados
-    daily_incomes_amount = float(sum(
-        transaction.amount for transaction in transaction_incomes_today)) + float(total_employee_incomes_amount)
+    daily_incomes_amount = coordinator_incomes + total_employee_incomes_amount
 
     # Valor total de RETIROS Coordinador
     # Incluye transacciones RETIRO del coordinador + INGRESO de subordinados
-    daily_withdrawals_amount = float(sum(
-        transaction.amount for transaction in transaction_withdrawals_today)) + float(total_employee_withdrawals_amount)
+    daily_withdrawals_amount = coordinator_withdrawals + total_employee_withdrawals_amount
 
     # Valor total de GASTOS Coordinador
-    daily_expenses_amount = float(
-        sum(transaction.amount for transaction in transaction_expenses_today))
+    daily_expenses_amount = coordinator_expenses
 
     # Calcular closing_total usando la misma fórmula que la interfaz
-    # El closing_total es el valor inicial del día siguiente
-    # Fórmula: initial_state + ingresos - retiros - gastos
-    # donde ingresos = ingresos coordinador + retiros subordinados
-    # y retiros = retiros coordinador + ingresos subordinados
     closing_total_calculated = float(initial_state) + float(daily_incomes_amount) - float(daily_withdrawals_amount) - float(daily_expenses_amount)
 
     # Si existe un registro, actualizarlo; si no, crear uno nuevo
@@ -7136,7 +7121,6 @@ def process_coordinator_hierarchy(manager_id, current_date):
         
         db.session.add(manager_array)
         db.session.add(existing_record)
-        db.session.commit()
     else:
         # Crear nuevo registro
         employee_record = EmployeeRecord(
@@ -7145,16 +7129,16 @@ def process_coordinator_hierarchy(manager_id, current_date):
             incomings=daily_incomes_amount,
             expenses=daily_expenses_amount,
             withdrawals=daily_withdrawals_amount,
-            closing_total=closing_total_calculated,  # Usar el valor calculado como en la interfaz
+            closing_total=closing_total_calculated,
             creation_date=datetime.now(),
-            loans_to_collect=loans_to_collect,  # NO SE USA
-            paid_installments=paid_installments,  # NO SE USA
-            partial_installments=partial_installments,  # NO SE USA
-            overdue_installments=overdue_installments_total,  # NO SE USA
-            sales=new_clients_loan_amount,  # NO SE USA
-            renewals=total_renewal_loans_amount,  # NO SE USA
-            due_to_collect_tomorrow=total_pending_installments_amount,  # NO SE USA
-            total_collected=total_collected  # NO SE USA
+            loans_to_collect=loans_to_collect,
+            paid_installments=paid_installments,
+            partial_installments=partial_installments,
+            overdue_installments=overdue_installments_total,
+            sales=new_clients_loan_amount,
+            renewals=total_renewal_loans_amount,
+            due_to_collect_tomorrow=total_pending_installments_amount,
+            total_collected=total_collected
         )
         
         # Actualizar el valor de box_value del modelo Employee
@@ -7162,7 +7146,9 @@ def process_coordinator_hierarchy(manager_id, current_date):
         
         db.session.add(manager_array)
         db.session.add(employee_record)
-        db.session.commit()
+    
+    # Flush para que los datos sean visibles en la misma sesión sin commit
+    db.session.flush()
 
 
 @routes.route('/add-manager-record')
@@ -7171,32 +7157,55 @@ def add_manager_record():
         users_manager = User.query.filter_by(role=Role.COORDINADOR).all()
         users_salesman = User.query.filter_by(role=Role.VENDEDOR).all()
         current_date = datetime.now().date()
-        tomorrow = datetime.now().date() + timedelta(days=1)
 
-        # PRIMERO: Procesar TODOS los vendedores que NO son coordinadores
+        # OPTIMIZACIÓN: Pre-cargar todos los employee_ids que son managers en un set
+        all_manager_employee_ids = {
+            m.employee_id for m in db.session.query(Manager.employee_id).all()
+        }
+
+        # OPTIMIZACIÓN: Recopilar employee_ids que serán procesados por coordinadores
+        # para evitar procesamiento duplicado
+        employees_under_coordinators = set()
+        for user in users_manager:
+            employee = Employee.query.filter_by(user_id=user.id).first()
+            if not employee:
+                continue
+            manager = Manager.query.filter_by(employee_id=employee.id).first()
+            if manager:
+                # Agregar todos los vendedores puros bajo este coordinador
+                salesmen = Salesman.query.filter_by(manager_id=manager.id).all()
+                for s in salesmen:
+                    if s.employee_id not in all_manager_employee_ids:
+                        employees_under_coordinators.add(s.employee_id)
+
+        # PRIMERO: Procesar SOLO vendedores que NO son coordinadores Y NO están bajo un coordinador
         for user in users_salesman:
-            user_id = user.id
-            employee = Employee.query.filter_by(user_id=user_id).first()
+            employee = Employee.query.filter_by(user_id=user.id).first()
             if not employee:
                 continue
             
-            # Verificar si este vendedor es también un coordinador (sub-coordinador)
-            is_manager = Manager.query.filter_by(employee_id=employee.id).first()
-            if not is_manager:
-                # Es un vendedor puro - procesarlo
-                process_salesman_record(employee.id, current_date)
+            # Saltar si es manager o si ya será procesado por un coordinador
+            if employee.id in all_manager_employee_ids:
+                continue
+            if employee.id in employees_under_coordinators:
+                continue
+            
+            # Es un vendedor huérfano (sin coordinador) - procesarlo
+            process_salesman_record(employee.id, current_date)
 
         # SEGUNDO: Procesar coordinadores usando función recursiva (bottom-up)
+        # Esto internamente procesará a sus vendedores subordinados
         for user in users_manager:
-            user_id = user.id
-            manager_array = Employee.query.filter_by(user_id=user_id).first()
+            manager_array = Employee.query.filter_by(user_id=user.id).first()
             if not manager_array:
                 continue
             
-            # Obtener el Manager ID
             manager = Manager.query.filter_by(employee_id=manager_array.id).first()
             if manager:
                 process_coordinator_hierarchy(manager.id, current_date)
+        
+        # OPTIMIZACIÓN: Un solo commit para todas las operaciones
+        db.session.commit()
         
         return render_template('add-manager-record.html')
     except Exception as e:
