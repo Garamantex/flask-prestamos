@@ -6771,7 +6771,7 @@ def process_salesman_record(employee_id, current_date):
     ).join(Loan).join(Client).filter(
         Client.employee_id == employee_id,
         Loan.status == True,
-        func.date(Loan.creation_date) != datetime.now().date()
+        func.date(Loan.creation_date) != current_date
     ).group_by(LoanInstallment.loan_id).subquery()
 
     # Sumar los fixed_amount de las primeras cuotas de préstamos activos
@@ -6793,7 +6793,7 @@ def process_salesman_record(employee_id, current_date):
         Client.employee_id == employee_id,
         Loan.status == False,
         Loan.up_to_date == True,
-        func.date(Loan.modification_date) == datetime.now().date()
+        func.date(Loan.modification_date) == current_date
     ).group_by(LoanInstallment.loan_id).subquery()
 
     total_pending_installments_loan_close_amount = db.session.query(
@@ -6846,7 +6846,7 @@ def process_salesman_record(employee_id, current_date):
     # --- Préstamos nuevos y renovaciones (2 queries en vez de 2, sin cambio) ---
     new_clients_loan_amount = Loan.query.join(Client).filter(
         Client.employee_id == employee_id,
-        func.date(Loan.creation_date) >= current_date,
+        func.date(Loan.creation_date) == current_date,
         Loan.is_renewal == False,
         Loan.status == True
     ).with_entities(func.sum(Loan.amount)).scalar() or 0
@@ -6856,7 +6856,7 @@ def process_salesman_record(employee_id, current_date):
         Loan.is_renewal == True,
         Loan.status == True,
         Loan.approved == True,
-        func.date(Loan.creation_date) >= current_date
+        func.date(Loan.creation_date) == current_date
     ).with_entities(func.sum(Loan.amount)).scalar() or 0
 
     # --- OPTIMIZACIÓN: Consolidar 3 queries de transacciones en 1 con GROUP BY ---
@@ -6940,7 +6940,7 @@ def process_salesman_record(employee_id, current_date):
             expenses=daily_expenses_amount,
             withdrawals=daily_withdrawals_amount,
             closing_total=closing_total,
-            creation_date=datetime.now(),
+            creation_date=datetime.combine(current_date, datetime.now().time()),
             loans_to_collect=loans_to_collect,
             paid_installments=paid_installments_amount,
             partial_installments=partial_installments,
@@ -7130,7 +7130,7 @@ def process_coordinator_hierarchy(manager_id, current_date):
             expenses=daily_expenses_amount,
             withdrawals=daily_withdrawals_amount,
             closing_total=closing_total_calculated,
-            creation_date=datetime.now(),
+            creation_date=datetime.combine(current_date, datetime.now().time()),
             loans_to_collect=loans_to_collect,
             paid_installments=paid_installments,
             partial_installments=partial_installments,
@@ -7212,6 +7212,114 @@ def add_manager_record():
         db.session.rollback()
         # Log del error (puedes usar logging aquí)
         return render_template('add-manager-record.html')
+
+
+@routes.route('/add-manager-record/<target_date>')
+def add_manager_record_for_date(target_date):
+    """
+    Genera registros de cierre de caja para una fecha específica.
+    Útil para recuperar registros de días que no se pudieron procesar.
+    
+    Uso: /add-manager-record/2026-05-20
+    """
+    try:
+        # Validar formato de fecha
+        try:
+            current_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD (ej: 2026-05-20)'}), 400
+
+        # Validar que la fecha no sea futura
+        if current_date > datetime.now().date():
+            return jsonify({'error': 'No se pueden generar registros para fechas futuras'}), 400
+
+        # --- DIAGNÓSTICO: Verificar que existen datos para la fecha solicitada ---
+        total_payments = db.session.query(func.count(Payment.id)).filter(
+            func.date(Payment.payment_date) == current_date
+        ).scalar() or 0
+
+        total_transactions = db.session.query(func.count(Transaction.id)).filter(
+            func.date(Transaction.creation_date) == current_date,
+            Transaction.approval_status == ApprovalStatus.APROBADA
+        ).scalar() or 0
+
+        total_loans_created = db.session.query(func.count(Loan.id)).filter(
+            func.date(Loan.creation_date) == current_date
+        ).scalar() or 0
+
+        diagnostics = {
+            'fecha_solicitada': target_date,
+            'datos_encontrados': {
+                'pagos_en_fecha': total_payments,
+                'transacciones_aprobadas_en_fecha': total_transactions,
+                'prestamos_creados_en_fecha': total_loans_created
+            }
+        }
+
+        if total_payments == 0 and total_transactions == 0 and total_loans_created == 0:
+            return jsonify({
+                'warning': f'No se encontraron datos (pagos, transacciones, préstamos) para la fecha {target_date}. '
+                           'Verifique que las fechas en la base de datos correspondan a esta fecha.',
+                'diagnostics': diagnostics
+            }), 200
+
+        # --- PROCESAR REGISTROS ---
+        users_manager = User.query.filter_by(role=Role.COORDINADOR).all()
+        users_salesman = User.query.filter_by(role=Role.VENDEDOR).all()
+
+        # Pre-cargar todos los employee_ids que son managers
+        all_manager_employee_ids = {
+            m.employee_id for m in db.session.query(Manager.employee_id).all()
+        }
+
+        # PRIMERO: Procesar TODOS los vendedores puros (mismo flujo que la ruta original)
+        processed_salesmen = 0
+        for user in users_salesman:
+            employee = Employee.query.filter_by(user_id=user.id).first()
+            if not employee:
+                continue
+            if employee.id in all_manager_employee_ids:
+                continue
+            process_salesman_record(employee.id, current_date)
+            processed_salesmen += 1
+
+        # SEGUNDO: Procesar coordinadores (bottom-up, incluye sus vendedores)
+        processed_coordinators = 0
+        for user in users_manager:
+            manager_array = Employee.query.filter_by(user_id=user.id).first()
+            if not manager_array:
+                continue
+            manager = Manager.query.filter_by(employee_id=manager_array.id).first()
+            if manager:
+                process_coordinator_hierarchy(manager.id, current_date)
+                processed_coordinators += 1
+        
+        db.session.commit()
+
+        # Verificar los registros creados
+        records_created = EmployeeRecord.query.filter(
+            func.date(EmployeeRecord.creation_date) == current_date
+        ).count()
+
+        records_with_values = EmployeeRecord.query.filter(
+            func.date(EmployeeRecord.creation_date) == current_date,
+            (EmployeeRecord.total_collected > 0) | (EmployeeRecord.paid_installments > 0) |
+            (EmployeeRecord.incomings > 0) | (EmployeeRecord.expenses > 0)
+        ).count()
+        
+        return jsonify({
+            'message': f'Registros generados para {target_date}',
+            'diagnostics': diagnostics,
+            'resultado': {
+                'vendedores_procesados': processed_salesmen,
+                'coordinadores_procesados': processed_coordinators,
+                'registros_creados': records_created,
+                'registros_con_valores': records_with_values
+            }
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error al generar registros: {str(e)}'}), 500
 
 
 @routes.route('/closed-boxes')
