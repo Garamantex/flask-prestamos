@@ -3633,7 +3633,8 @@ def box():
                              coordinator_id=coordinator.id,
                              user_id=user_id, 
                              expense_details=coordinator_expense_details, 
-                             total_expenses=total_expenses)
+                             total_expenses=total_expenses,
+                             redirect_url='/box')
                              
     except ValueError as e:
         return jsonify({'message': str(e)}), 401 if 'Usuario no encontrado' in str(e) else 403
@@ -3873,7 +3874,8 @@ def box_detail_admin(employee_id):
         return render_template('box.html', coordinator_box=sub_admin_box, salesmen_stats=salesmen_stats,
                                search_term=search_term, all_boxes_closed=all_boxes_closed,
                                coordinator_name=sub_admin_name, user_id=user_id, expense_details=expense_details, 
-                               total_expenses=total_expenses, manager_id=manager_id)
+                               total_expenses=total_expenses, manager_id=manager_id,
+                               redirect_url='/box-detail-admin/' + str(employee_id))
     except Exception as e:
         return jsonify({'message': 'Error interno del servidor', 'error': str(e)}), 500
 
@@ -5757,7 +5759,9 @@ def add_employee_record(employee_id):
         db.session.add(employee)
         db.session.commit()
 
-    return redirect(url_for('routes.box'))
+    # Redirigir a la página de origen (box o box-detail-admin)
+    redirect_url = request.form.get('redirect_url', url_for('routes.box'))
+    return redirect(redirect_url)
 
 
 @routes.route('/all-open-boxes', methods=['POST'])
@@ -5790,7 +5794,9 @@ def all_open_boxes():
 
     db.session.commit()
 
-    return redirect(url_for('routes.box'))
+    # Redirigir a la página de origen (box o box-detail-admin)
+    redirect_url = request.form.get('redirect_url', url_for('routes.box'))
+    return redirect(redirect_url)
 
 
 # Cierra las cajas desde la vista del vendedor

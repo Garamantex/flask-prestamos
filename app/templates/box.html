@@ -52,7 +52,7 @@
                                 <a type="button" class="c-btn c-btn-primary c-btn-sm" data-toggle="modal" data-target="#exampleModal">
                                     <i class="bi bi-gear me-1"></i>Gestión
                                 </a>
-                                <a type="button" class="c-btn c-btn-secondary c-btn-sm" href="/box">
+                                <a type="button" class="c-btn c-btn-secondary c-btn-sm" href="{{ redirect_url|default('/box') }}">
                                     <i class="bi bi-arrow-clockwise"></i>
                                 </a>
                             </div>
@@ -130,6 +130,7 @@
             <div class="col-12">
                 <div class="c-form__container">
                     <form action="/all-open-boxes" method="POST">
+                        <input type="hidden" name="redirect_url" value="{{ redirect_url|default('/box') }}">
                         <button class="c-btn c-btn-success" type="submit">
                             <i class="bi bi-unlock me-2"></i>Abrir todas las cajas
                         </button>
@@ -184,6 +185,7 @@
                                 <form action="/add-employee-record/{{ salesman['employee_id'] }}" method="POST" 
                                       class="js-cerrar-caja d-inline" data-employee-id="{{ salesman['employee_id'] }}" 
                                       data-status-box="{{ salesman['status_box'] }}">
+                                    <input type="hidden" name="redirect_url" value="{{ redirect_url|default('/box') }}">
                                     <button type="submit" class="js-eye-button c-btn c-btn-secondary c-btn-sm">
                                         <i class="js-eye-icon bi {{ 'bi-eye' if salesman['employee_status'] == True else 'bi-eye-slash' }}"></i>
                                     </button>
