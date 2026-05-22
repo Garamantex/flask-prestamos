@@ -308,11 +308,53 @@ def add_manager_record():
 
 @routes.route('/add-manager-record/<target_date>')
 def add_manager_record_for_date(target_date):
-    """
-    Genera registros de cierre de caja para una fecha específica.
-    Útil para recuperar registros de días que no se pudieron procesar.
-    
-    Uso: /add-manager-record/2026-05-20
+    """Generar registros de cierre de caja para una fecha específica
+    ---
+    tags:
+      - Caja
+    parameters:
+      - name: target_date
+        in: path
+        type: string
+        required: true
+        description: Fecha en formato YYYY-MM-DD (ej. 2026-05-20)
+    responses:
+      200:
+        description: Registros generados o diagnóstico de datos
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            diagnostics:
+              type: object
+              properties:
+                fecha_solicitada:
+                  type: string
+                datos_encontrados:
+                  type: object
+                  properties:
+                    pagos_en_fecha:
+                      type: integer
+                    transacciones_aprobadas_en_fecha:
+                      type: integer
+                    prestamos_creados_en_fecha:
+                      type: integer
+            resultado:
+              type: object
+              properties:
+                vendedores_procesados:
+                  type: integer
+                coordinadores_procesados:
+                  type: integer
+                registros_creados:
+                  type: integer
+                registros_con_valores:
+                  type: integer
+      400:
+        description: Formato de fecha inválido o fecha futura
+      500:
+        description: Error interno del servidor
     """
     try:
         # Validar formato de fecha

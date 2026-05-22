@@ -438,7 +438,38 @@ def modify_installments(loan_id):
 
 @routes.route('/api/check-dni/<dni>', methods=['GET'])
 def check_dni(dni):
-    """Verificar si un DNI ya existe en la base de datos"""
+    """Verificar si un DNI ya existe en la base de datos
+    ---
+    tags:
+      - Clientes
+    parameters:
+      - name: dni
+        in: path
+        type: string
+        required: true
+        description: Número de documento (DNI) a verificar
+    responses:
+      200:
+        description: Resultado de la verificación
+        schema:
+          type: object
+          properties:
+            exists:
+              type: boolean
+              description: true si el DNI ya está registrado
+            message:
+              type: string
+              description: Mensaje descriptivo del resultado
+      500:
+        description: Error interno del servidor
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+            message:
+              type: string
+    """
     try:
         # Buscar si existe un cliente con ese DNI
         existing_client = Client.query.filter_by(document=dni).first()
@@ -463,6 +494,32 @@ def check_dni(dni):
 
 @routes.route('/cancel_loan/<int:loan_id>', methods=['PUT'])
 def cancel_loan(loan_id):
+    """Cancelar un préstamo existente
+    ---
+    tags:
+      - Clientes
+    parameters:
+      - name: loan_id
+        in: path
+        type: integer
+        required: true
+        description: ID del préstamo a cancelar
+    responses:
+      200:
+        description: Préstamo cancelado exitosamente
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+      404:
+        description: Préstamo no encontrado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     # Buscar el préstamo
     loan = Loan.query.get(loan_id)
     

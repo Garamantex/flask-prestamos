@@ -222,6 +222,40 @@ def user_list():
 
 @routes.route('/get_maximum_values_create_salesman', methods=['GET'])
 def get_maximum_values_create_salesman():
+    """Obtener valores máximos para crear un vendedor
+    ---
+    tags:
+      - Usuarios
+    responses:
+      200:
+        description: Valores máximos del coordinador para parametrizar nuevos vendedores
+        schema:
+          type: object
+          properties:
+            maximum_cash_coordinator:
+              type: string
+              description: Máxima caja del coordinador
+            total_cash_salesman:
+              type: string
+              description: Total de caja ya asignada a vendedores
+            maximum_cash_salesman:
+              type: string
+              description: Máximo disponible para nuevo vendedor
+            maximum_sale_coordinator:
+              type: string
+              description: Máxima venta permitida
+            maximum_expense_coordinator:
+              type: string
+              description: Máximo gasto permitido
+            maximum_installments_coordinator:
+              type: string
+              description: Máximo de cuotas permitidas
+            minimum_interest_coordinator:
+              type: string
+              description: Mínimo interés permitido
+      404:
+        description: Coordinador o empleado no encontrado
+    """
     # Buscar el empleado id a partir del user_id de la sesión
     user_id = session['user_id']
     employee_id = Employee.query.filter_by(user_id=user_id).first()
@@ -281,6 +315,26 @@ def get_maximum_values_create_salesman():
 
 @routes.route('/maximum-values-loan', methods=['GET'])
 def get_maximum_values_loan():
+    """Obtener valores máximos para crear un préstamo
+    ---
+    tags:
+      - Usuarios
+    responses:
+      200:
+        description: Valores máximos de préstamo del empleado actual
+        schema:
+          type: object
+          properties:
+            maximum_sale:
+              type: string
+              description: Monto máximo de venta
+            maximum_installments:
+              type: string
+              description: Número máximo de cuotas
+            minimum_interest:
+              type: string
+              description: Interés mínimo permitido
+    """
     # Verificamos si 'user_id' está presente en la sesión
     if 'user_id' not in session:
         return "Error: El usuario no ha iniciado sesión."
@@ -307,6 +361,43 @@ def get_maximum_values_loan():
 
 @routes.route('/change-password/<int:employee_id>', methods=['POST'])
 def change_password(employee_id):
+    """Cambiar usuario y contraseña de un empleado subordinado
+    ---
+    tags:
+      - Usuarios
+    parameters:
+      - name: employee_id
+        in: path
+        type: integer
+        required: true
+        description: ID del empleado al que se le cambiará la contraseña
+      - name: new_username
+        in: formData
+        type: string
+        required: true
+        description: Nuevo nombre de usuario
+      - name: new_password
+        in: formData
+        type: string
+        required: true
+        description: Nueva contraseña (mínimo 4 caracteres)
+    responses:
+      200:
+        description: Credenciales actualizadas exitosamente
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+      400:
+        description: Datos inválidos (usuario en uso o contraseña muy corta)
+      403:
+        description: Sin permisos (no es coordinador o no es subordinado)
+      404:
+        description: Empleado no encontrado
+      500:
+        description: Error interno del servidor
+    """
     try:
         user_id, user = validate_coordinator_access()
 

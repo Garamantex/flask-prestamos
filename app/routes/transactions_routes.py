@@ -54,6 +54,27 @@ from app.routes.helpers import (
 
 @routes.route('/concept', methods=['GET', 'POST'])
 def create_concept():
+    """Crear un nuevo concepto de transacción
+    ---
+    tags:
+      - Transacciones
+    consumes:
+      - application/x-www-form-urlencoded
+    parameters:
+      - name: concept
+        in: formData
+        type: string
+        required: true
+        description: Nombre del concepto
+      - name: transaction_types
+        in: formData
+        type: string
+        required: true
+        description: Tipo de transacción (GASTO, INGRESO, RETIRO)
+    responses:
+      200:
+        description: Concepto creado exitosamente
+    """
     if 'user_id' in session and session['role'] == 'ADMINISTRADOR':
         if request.method == 'POST':
             name = request.form.get('concept')
@@ -70,6 +91,45 @@ def create_concept():
 
 @routes.route('/concept/<int:concept_id>', methods=['PUT'])
 def update_concept(concept_id):
+    """Actualizar un concepto existente
+    ---
+    tags:
+      - Transacciones
+    consumes:
+      - application/json
+    parameters:
+      - name: concept_id
+        in: path
+        type: integer
+        required: true
+        description: ID del concepto a actualizar
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Nuevo nombre del concepto
+            transaction_types:
+              type: string
+              description: Nuevo tipo de transacción
+    responses:
+      200:
+        description: Concepto actualizado
+        schema:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            transaction_types:
+              type: string
+      404:
+        description: Concepto no encontrado
+    """
     concept = Concept.query.get(concept_id)
 
     if not concept:
@@ -88,6 +148,32 @@ def update_concept(concept_id):
 
 @routes.route('/get-concepts', methods=['GET'])
 def get_concepts():
+    """Listar conceptos por tipo de transacción
+    ---
+    tags:
+      - Transacciones
+    parameters:
+      - name: transaction_type
+        in: query
+        type: string
+        required: true
+        description: Tipo de transacción (GASTO, INGRESO, RETIRO)
+        enum: [GASTO, INGRESO, RETIRO]
+    responses:
+      200:
+        description: Lista de conceptos
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              transaction_types:
+                type: string
+    """
     transaction_type = request.args.get('transaction_type')
 
     # Consultar los conceptos relacionados con el tipo de transacción
@@ -187,6 +273,42 @@ def debtor():
 
 @routes.route('/get-debtors', methods=['GET'])
 def get_debtors():
+    """Obtener lista de clientes morosos con detalles de deuda
+    ---
+    tags:
+      - Transacciones
+    responses:
+      200:
+        description: Lista de vendedores con sus clientes morosos
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              employee_name:
+                type: string
+                description: Nombre del vendedor
+              total_overdue_installments:
+                type: integer
+                description: Total de cuotas en mora
+              clients:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    client_name:
+                      type: string
+                    paid_installments:
+                      type: integer
+                    overdue_installments:
+                      type: integer
+                    remaining_debt:
+                      type: number
+                    total_overdue_amount:
+                      type: number
+      404:
+        description: Empleado no encontrado
+    """
     # Obtener el ID del usuario desde la sesión
     user_id = session.get('user_id')
 
@@ -684,7 +806,53 @@ def modify_transaction(transaction_id):
 
 @routes.route('/api/transactions/<int:employee_id>/<transaction_type>', methods=['GET'])
 def get_transactions_by_type(employee_id, transaction_type):
-    """Obtener transacciones aprobadas por tipo y empleado"""
+    """Obtener transacciones aprobadas del día por tipo y empleado
+    ---
+    tags:
+      - Transacciones
+    parameters:
+      - name: employee_id
+        in: path
+        type: integer
+        required: true
+        description: ID del empleado
+      - name: transaction_type
+        in: path
+        type: string
+        required: true
+        description: Tipo de transacción
+        enum: [GASTO, INGRESO, RETIRO]
+    responses:
+      200:
+        description: Lista de transacciones del día
+        schema:
+          type: object
+          properties:
+            transactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  description:
+                    type: string
+                  amount:
+                    type: number
+                  approval_status:
+                    type: string
+                  creation_date:
+                    type: string
+                    format: date-time
+                  employee_id:
+                    type: integer
+      400:
+        description: Tipo de transacción inválido
+      401:
+        description: Usuario no autenticado
+      403:
+        description: Acceso denegado
+    """
     try:
         # Validar usuario autenticado y coordinador
         user_id = session.get('user_id')
@@ -739,7 +907,62 @@ def get_transactions_by_type(employee_id, transaction_type):
 
 @routes.route('/api/transactions/<int:transaction_id>', methods=['PUT'])
 def update_transaction(transaction_id):
-    """Editar transacción"""
+    """Editar una transacción existente
+    ---
+    tags:
+      - Transacciones
+    consumes:
+      - application/json
+    parameters:
+      - name: transaction_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la transacción a editar
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            amount:
+              type: number
+              description: Nuevo monto (debe ser mayor a 0)
+            description:
+              type: string
+              description: Nueva descripción
+            approval_status:
+              type: string
+              description: Nuevo estado
+              enum: [APROBADA, RECHAZADA]
+    responses:
+      200:
+        description: Transacción actualizada exitosamente
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            transaction:
+              type: object
+              properties:
+                id:
+                  type: integer
+                description:
+                  type: string
+                amount:
+                  type: number
+                approval_status:
+                  type: string
+      400:
+        description: Datos inválidos
+      401:
+        description: Usuario no autenticado
+      403:
+        description: Acceso denegado
+      404:
+        description: Transacción no encontrada
+    """
     try:
         # Validar usuario autenticado y coordinador
         user_id = session.get('user_id')
@@ -825,7 +1048,35 @@ def update_transaction(transaction_id):
 
 @routes.route('/api/transactions/<int:transaction_id>', methods=['DELETE'])
 def delete_transaction(transaction_id):
-    """Eliminar transacción (soft delete)"""
+    """Eliminar transacción (soft delete)
+    ---
+    tags:
+      - Transacciones
+    parameters:
+      - name: transaction_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la transacción a eliminar
+    responses:
+      200:
+        description: Transacción eliminada exitosamente
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            transaction_id:
+              type: integer
+      400:
+        description: Transacción ya eliminada
+      401:
+        description: Usuario no autenticado
+      403:
+        description: Acceso denegado
+      404:
+        description: Transacción no encontrada
+    """
     try:
         # Validar usuario autenticado y coordinador
         user_id = session.get('user_id')

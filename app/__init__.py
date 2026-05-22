@@ -33,6 +33,11 @@ def create_app():
     from app.routes import routes
     app.register_blueprint(routes)
 
+    # Inicializar Swagger (documentación API en /apidocs)
+    from flasgger import Swagger
+    from app.swagger_config import swagger_template, swagger_config
+    Swagger(app, template=swagger_template, config=swagger_config)
+
     # Importar y registrar los modelos
     from app.models import User, Client, Loan
 
