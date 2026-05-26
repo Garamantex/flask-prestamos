@@ -145,8 +145,10 @@ def wallet():
             ).all()
             
             # 2. Obtener todas las primeras cuotas en una sola consulta
+            today = date.today()
             loan_ids = [row.loan_id for row in clients_with_loans]
             first_installments = {}
+            first_inst_overdue_amounts = {}  # Montos de primeras cuotas que están vencidas
             if loan_ids:
                 # Subconsulta para obtener el ID de la primera cuota de cada préstamo
                 subquery = db.session.query(
@@ -156,10 +158,13 @@ def wallet():
                     LoanInstallment.loan_id.in_(loan_ids)
                 ).group_by(LoanInstallment.loan_id).subquery()
                 
-                # Obtener las primeras cuotas
+                # Obtener las primeras cuotas con datos adicionales
                 first_inst_query = db.session.query(
                     LoanInstallment.loan_id,
-                    LoanInstallment.fixed_amount
+                    LoanInstallment.fixed_amount,
+                    LoanInstallment.due_date,
+                    LoanInstallment.amount,
+                    LoanInstallment.status
                 ).join(
                     subquery,
                     and_(
@@ -168,9 +173,15 @@ def wallet():
                     )
                 ).all()
                 
-                first_installments = {row.loan_id: row.fixed_amount for row in first_inst_query}
+                for row in first_inst_query:
+                    first_installments[row.loan_id] = row.fixed_amount
+                    # Registrar el monto de las primeras cuotas vencidas
+                    # (ya se muestran en "Debido Cobrar", no deben contarse en "Vencido")
+                    if row.due_date < today and row.status in (InstallmentStatus.PENDIENTE, InstallmentStatus.MORA):
+                        first_inst_overdue_amounts[row.loan_id] = float(row.amount or 0)
             
-            # 3. Obtener todas las cuotas pendientes y en mora para calcular balance
+            # 3. Obtener todas las cuotas pendientes, en mora y abonadas para calcular balance
+            # Se incluye ABONADA porque las cuotas parcialmente pagadas aún tienen saldo por cobrar
             installments_data = {}
             if loan_ids:
                 installments_query = db.session.query(
@@ -179,7 +190,7 @@ def wallet():
                     func.sum(LoanInstallment.amount).label('total_amount')
                 ).filter(
                     LoanInstallment.loan_id.in_(loan_ids),
-                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
+                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA])
                 ).group_by(
                     LoanInstallment.loan_id,
                     LoanInstallment.status
@@ -187,12 +198,11 @@ def wallet():
                 
                 for row in installments_query:
                     if row.loan_id not in installments_data:
-                        installments_data[row.loan_id] = {'PENDIENTE': 0, 'MORA': 0}
+                        installments_data[row.loan_id] = {'PENDIENTE': 0, 'MORA': 0, 'ABONADA': 0}
                     installments_data[row.loan_id][row.status.value] = float(row.total_amount or 0)
             
             # 4. Obtener cuotas vencidas (due_date < hoy y estado PENDIENTE o MORA) para calcular "Vencido"
             # Solo de préstamos activos
-            today = date.today()
             overdue_installments = {}
             if loan_ids:
                 # Obtener todas las cuotas vencidas con estado PENDIENTE o MORA de préstamos activos
@@ -251,9 +261,15 @@ def wallet():
                 emp_id = row.employee_id
                 loan_id = row.loan_id
                 
-                # Sumar cuotas en mora (independiente de si tiene primera cuota)
+                # Sumar cuotas vencidas, EXCLUYENDO la primera cuota de cada préstamo
+                # (la primera cuota ya se muestra en "Debido Cobrar", no debe contarse doble)
                 if loan_id in overdue_installments:
-                    result[emp_id]['total_overdue_installments'] += overdue_installments[loan_id]
+                    loan_overdue = overdue_installments[loan_id]
+                    # Restar la primera cuota si está vencida (ya contada en "Debido Cobrar")
+                    if loan_id in first_inst_overdue_amounts:
+                        loan_overdue -= first_inst_overdue_amounts[loan_id]
+                    if loan_overdue > 0:
+                        result[emp_id]['total_overdue_installments'] += loan_overdue
                 
                 # Solo contar si tiene primera cuota
                 if loan_id in first_installments:
@@ -265,11 +281,13 @@ def wallet():
                     result[emp_id]['total_portfolio_value'] += total_with_interest
                     result[emp_id]['total_pending_installments'] += float(first_installments[loan_id] or 0)
                     
-                    # Calcular balance (cuotas pendientes + cuotas en mora)
+                    # Calcular balance (cuotas pendientes + cuotas en mora + cuotas abonadas)
+                    # Se incluye ABONADA porque aún tienen saldo restante por cobrar
                     if loan_id in installments_data:
                         loan_inst_data = installments_data[loan_id]
                         result[emp_id]['balance'] += loan_inst_data.get('PENDIENTE', 0)
                         result[emp_id]['balance'] += loan_inst_data.get('MORA', 0)
+                        result[emp_id]['balance'] += loan_inst_data.get('ABONADA', 0)
             
             return result
         
