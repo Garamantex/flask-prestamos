@@ -125,11 +125,10 @@
         </div>
 
         <!-- Botón para abrir todas las cajas -->
-        {% if all_boxes_closed %}
         <div class="row mb-4">
             <div class="col-12">
                 <div class="c-form__container">
-                    <form action="/all-open-boxes" method="POST">
+                    <form action="/all-open-boxes" method="POST" id="openAllBoxesForm" onsubmit="return confirm('¿Está seguro de que desea abrir todas las cajas?');">
                         <input type="hidden" name="redirect_url" value="{{ redirect_url|default('/box') }}">
                         <button class="c-btn c-btn-success" type="submit">
                             <i class="bi bi-unlock me-2"></i>Abrir todas las cajas
@@ -138,7 +137,6 @@
                 </div>
             </div>
         </div>
-        {% endif %}
 
         <!-- Lista de vendedores - Tarjetas con funcionalidad de expandir/contraer -->
         <div class="row">
