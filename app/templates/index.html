@@ -18,23 +18,39 @@
                     <button type="submit" class="c-btn c-btn-primary mt-5">Iniciar sesión</button>
                 </form>
                 {% if error_message %}
-                <script>
-                    setTimeout(function() {
-                        // Crear un iframe invisible para intentar lanzar el esquema custom
-                        // sin que la página principal (WebView) navegue y crashee si no está soportado.
-                        var iframe = document.createElement('iframe');
-                        iframe.style.display = 'none';
-                        iframe.src = "whatsapp://send?text=Hola";
-                        document.body.appendChild(iframe);
-                        
-                        // Remover el iframe después de un tiempo para limpiar
-                        setTimeout(function() {
-                            document.body.removeChild(iframe);
-                        }, 2000);
-                    }, 800);
-                </script>
+                <!-- El mensaje de error ya no se usa porque lo manejamos con AJAX -->
                 {% endif %}
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var loginForm = document.querySelector('.c-login');
+            if (loginForm) {
+                loginForm.onsubmit = function(e) {
+                    e.preventDefault(); // Evitar envío tradicional
+                    
+                    var formData = new FormData(loginForm);
+                    var xhr = new XMLHttpRequest();
+                    // Petición sincrónica para no perder el 'user gesture' que permite abrir apps
+                    xhr.open('POST', '/', false); 
+                    xhr.send(formData);
+                    
+                    if (xhr.responseURL && (xhr.responseURL.indexOf('/menu-manager') !== -1 || xhr.responseURL.indexOf('/menu-salesman') !== -1)) {
+                        // Login exitoso
+                        window.location.href = xhr.responseURL;
+                    } else {
+                        // Login fallido: Lanzar WhatsApp usando el mismo gesto del clic
+                        var isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
+                        if (isAndroid) {
+                            window.location.href = "intent://send/?text=Hola#Intent;scheme=whatsapp;package=com.whatsapp;end";
+                        } else {
+                            window.location.href = "https://wa.me/?text=Hola";
+                        }
+                    }
+                };
+            }
+        });
+    </script>
 {% endblock %}
