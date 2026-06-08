@@ -10,7 +10,7 @@ import holidays
 import io
 
 # Importaciones de SQLAlchemy
-from sqlalchemy import func, case, join, tuple_, and_
+from sqlalchemy import func, case, join, tuple_, and_, or_
 from sqlalchemy.orm import joinedload
 
 # Importaciones de Flask
@@ -175,10 +175,6 @@ def wallet():
                 
                 for row in first_inst_query:
                     first_installments[row.loan_id] = row.fixed_amount
-                    # Registrar el monto de las primeras cuotas vencidas
-                    # (ya se muestran en "Debido Cobrar", no deben contarse en "Vencido")
-                    if row.due_date < today and row.status in (InstallmentStatus.PENDIENTE, InstallmentStatus.MORA):
-                        first_inst_overdue_amounts[row.loan_id] = float(row.amount or 0)
             
             # 3. Obtener todas las cuotas pendientes, en mora y abonadas para calcular balance
             # Se incluye ABONADA porque las cuotas parcialmente pagadas aún tienen saldo por cobrar
@@ -201,27 +197,40 @@ def wallet():
                         installments_data[row.loan_id] = {'PENDIENTE': 0, 'MORA': 0, 'ABONADA': 0}
                     installments_data[row.loan_id][row.status.value] = float(row.total_amount or 0)
             
-            # 4. Obtener cuotas vencidas (due_date < hoy y estado PENDIENTE o MORA) para calcular "Vencido"
-            # Solo de préstamos activos
+            # 4. Obtener cuotas vencidas para calcular "Vencido"
+            # Fórmula: Para préstamos con al menos una cuota en MORA, 
+            # sumar todas las cuotas MORA + PENDIENTE con due_date < hoy
             overdue_installments = {}
             if loan_ids:
-                # Obtener todas las cuotas vencidas con estado PENDIENTE o MORA de préstamos activos
+                # Encontrar préstamos que tienen al menos una cuota en MORA
+                mora_loans_subquery = db.session.query(LoanInstallment.loan_id).filter(
+                    LoanInstallment.loan_id.in_(loan_ids),
+                    LoanInstallment.status == InstallmentStatus.MORA
+                ).distinct().subquery()
+                
                 overdue_query = db.session.query(
-                    LoanInstallment
+                    LoanInstallment.loan_id,
+                    LoanInstallment.amount
                 ).join(
                     Loan, Loan.id == LoanInstallment.loan_id
+                ).join(
+                    mora_loans_subquery, mora_loans_subquery.c.loan_id == LoanInstallment.loan_id
                 ).filter(
-                    LoanInstallment.loan_id.in_(loan_ids),
-                    Loan.status == True,  # Verificar explícitamente que el préstamo esté activo
-                    LoanInstallment.due_date < today,
-                    LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA])
+                    Loan.status == True,
+                    or_(
+                        LoanInstallment.status == InstallmentStatus.MORA,
+                        and_(
+                            LoanInstallment.status == InstallmentStatus.PENDIENTE,
+                            LoanInstallment.due_date < today
+                        )
+                    )
                 ).all()
                 
-                # Sumar el monto completo de cada cuota vencida
-                for installment in overdue_query:
-                    if installment.loan_id not in overdue_installments:
-                        overdue_installments[installment.loan_id] = 0
-                    overdue_installments[installment.loan_id] += float(installment.amount or 0)
+                # Sumar el monto de cada cuota vencida
+                for row in overdue_query:
+                    if row.loan_id not in overdue_installments:
+                        overdue_installments[row.loan_id] = 0
+                    overdue_installments[row.loan_id] += float(row.amount or 0)
             
             # 5. Obtener pagos realizados hoy para calcular porcentaje de recaudación
             collections_today = {}
@@ -261,15 +270,9 @@ def wallet():
                 emp_id = row.employee_id
                 loan_id = row.loan_id
                 
-                # Sumar cuotas vencidas, EXCLUYENDO la primera cuota de cada préstamo
-                # (la primera cuota ya se muestra en "Debido Cobrar", no debe contarse doble)
+                # Sumar cuotas vencidas (sin excluir la primera cuota, ya que la fórmula es total)
                 if loan_id in overdue_installments:
-                    loan_overdue = overdue_installments[loan_id]
-                    # Restar la primera cuota si está vencida (ya contada en "Debido Cobrar")
-                    if loan_id in first_inst_overdue_amounts:
-                        loan_overdue -= first_inst_overdue_amounts[loan_id]
-                    if loan_overdue > 0:
-                        result[emp_id]['total_overdue_installments'] += loan_overdue
+                    result[emp_id]['total_overdue_installments'] += overdue_installments[loan_id]
                 
                 # Solo contar si tiene primera cuota
                 if loan_id in first_installments:
@@ -581,6 +584,8 @@ def wallet_detail(employee_id):
     page = request.args.get('page', 1, type=int)
     per_page = 20  # Mostrar 20 préstamos por página
     
+    today = date.today()
+    
     # Obtener el empleado
     employee = Employee.query.filter_by(id=employee_id).first()
     if not employee:
@@ -635,9 +640,12 @@ def wallet_detail(employee_id):
         total_paid_installments_loan = 0
         # Obtener el total de cuotas del préstamo
         total_installments_loan = len(loan.installments)
+        
+        has_mora = any(i.status == InstallmentStatus.MORA for i in loan.installments)
+        
         for installment in loan.installments:
             total_loan_amount += float(installment.amount)
-            if installment.status == InstallmentStatus.MORA:
+            if has_mora and (installment.status == InstallmentStatus.MORA or (installment.status == InstallmentStatus.PENDIENTE and installment.due_date < today)):
                 total_overdue_amount_loan += float(installment.amount)
                 total_overdue_installments_loan += 1
             elif installment.status == InstallmentStatus.PAGADA:
@@ -714,10 +722,12 @@ def wallet_detail(employee_id):
             total_with_interest = loan_amount + (loan_amount * loan_interest / 100)
             total_portfolio_value += total_with_interest
         
-        # Calcular monto vencido (cuotas en MORA)
-        for installment in loan.installments:
-            if installment.status == InstallmentStatus.MORA:
-                total_all_overdue += float(installment.amount)
+        # Calcular monto vencido
+        has_mora = any(i.status == InstallmentStatus.MORA for i in loan.installments)
+        if has_mora:
+            for installment in loan.installments:
+                if installment.status == InstallmentStatus.MORA or (installment.status == InstallmentStatus.PENDIENTE and installment.due_date < today):
+                    total_all_overdue += float(installment.amount)
 
     # Crear un diccionario con los datos solicitados
     wallet_detail_data = {
