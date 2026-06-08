@@ -41,13 +41,21 @@
                         // Login exitoso
                         window.location.href = xhr.responseURL;
                     } else {
-                        // Login fallido: Lanzar WhatsApp usando el mismo gesto del clic
-                        var isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
-                        if (isAndroid) {
-                            window.location.href = "intent://send/?text=Hola#Intent;scheme=whatsapp;package=com.whatsapp;end";
-                        } else {
-                            window.location.href = "https://wa.me/?text=Hola";
+                        // Login fallido: Intentar escapar del contenedor
+                        var url = "https://api.whatsapp.com/send?text=Hola,%20tengo%20problemas%20para%20ingresar";
+                        
+                        // Muchos contenedores (como Cordova/Web2App) permiten escapar usando '_system' o '_blank'
+                        var opened = window.open(url, '_system');
+                        if (!opened) {
+                            window.open(url, '_blank');
                         }
+                        
+                        // Como plan C, si todo falla, mostramos una alerta simple
+                        // para evitar la pantalla blanca de error.
+                        setTimeout(function() {
+                            alert("Contraseña incorrecta. Por favor, contacta a soporte (WhatsApp).");
+                            document.getElementById('password').value = '';
+                        }, 500);
                     }
                 };
             }
