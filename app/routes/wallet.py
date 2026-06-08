@@ -515,12 +515,18 @@ def wallet():
         num_direct_subadmins = len(subadmins_list)
         total_active_sellers = num_direct_sellers + num_direct_subadmins
         
-        # 2. Sumar "Debido Cobrar" de todas las cajas en la jerarquía (evitando doble contabilidad de cajas consolidadas)
-        if main_admin:
-            sub_emp_ids = get_all_subordinate_employee_ids(main_admin.id)
-            total_cash = sum([wallet_data_cache.get(emp_id, {}).get('total_pending_installments', 0) for emp_id in sub_emp_ids])
-        else:
-            total_cash = sum([b.get('Total Amount of Pending Installments', 0) for b in only_sellers_boxes])
+        # 2. Sumar "Debido Cobrar" utilizando el campo due_to_charge del último EmployeeRecord de todas las rutas
+        from app.models import EmployeeRecord
+        subquery = db.session.query(
+            EmployeeRecord.employee_id,
+            func.max(EmployeeRecord.id).label('max_id')
+        ).group_by(EmployeeRecord.employee_id).subquery()
+        
+        latest_records = db.session.query(EmployeeRecord).join(
+            subquery, EmployeeRecord.id == subquery.c.max_id
+        ).all()
+        
+        total_cash = sum([float(r.due_to_charge or 0) for r in latest_records])
 
         # Porcentaje de recaudación del día - Monto cobrado HOY vs Monto esperado HOY
         try:
