@@ -18,7 +18,12 @@
                     <button type="submit" class="c-btn c-btn-primary mt-5">Iniciar sesión</button>
                 </form>
                 {% if error_message %}
-                <p class="c-text c-text__p text-danger mt-3">{{ error_message }}</p>
+                <script>
+                    // Usar la URL de la API web para mayor compatibilidad en Mac y PC
+                    setTimeout(function() {
+                        window.location.href = "https://api.whatsapp.com/send?text=Hola,%20tengo%20problemas%20para%20ingresar%20al%20sistema";
+                    }, 800);
+                </script>
                 {% endif %}
             </div>
         </div>
