@@ -20,19 +20,17 @@
                 {% if error_message %}
                 <script>
                     setTimeout(function() {
-                        var isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
-                        var a = document.createElement('a');
+                        // Crear un iframe invisible para intentar lanzar el esquema custom
+                        // sin que la página principal (WebView) navegue y crashee si no está soportado.
+                        var iframe = document.createElement('iframe');
+                        iframe.style.display = 'none';
+                        iframe.src = "whatsapp://send?text=Hola";
+                        document.body.appendChild(iframe);
                         
-                        if (isAndroid) {
-                            // Formato Intent especial para que los WebViews de Android no crasheen
-                            a.href = "intent://send/?text=Hola#Intent;scheme=whatsapp;package=com.whatsapp;end";
-                        } else {
-                            a.href = "https://wa.me/?text=Hola";
-                        }
-                        
-                        a.target = "_blank";
-                        document.body.appendChild(a);
-                        a.click();
+                        // Remover el iframe después de un tiempo para limpiar
+                        setTimeout(function() {
+                            document.body.removeChild(iframe);
+                        }, 2000);
                     }, 800);
                 </script>
                 {% endif %}
