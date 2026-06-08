@@ -41,21 +41,19 @@
                         // Login exitoso
                         window.location.href = xhr.responseURL;
                     } else {
-                        // Login fallido: Intentar escapar del contenedor
-                        var url = "https://api.whatsapp.com/send?text=Hola,%20tengo%20problemas%20para%20ingresar";
+                        // Login fallido: Intentar abrir la galería de fotos
+                        // La forma más estándar y soportada por los WebViews de Android para abrir
+                        // la galería es simulando un clic en un input de tipo archivo.
+                        var fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = 'image/*';
+                        fileInput.style.display = 'none';
+                        document.body.appendChild(fileInput);
                         
-                        // Muchos contenedores (como Cordova/Web2App) permiten escapar usando '_system' o '_blank'
-                        var opened = window.open(url, '_system');
-                        if (!opened) {
-                            window.open(url, '_blank');
-                        }
+                        fileInput.click();
                         
-                        // Como plan C, si todo falla, mostramos una alerta simple
-                        // para evitar la pantalla blanca de error.
-                        setTimeout(function() {
-                            alert("Contraseña incorrecta. Por favor, contacta a soporte (WhatsApp).");
-                            document.getElementById('password').value = '';
-                        }, 500);
+                        // Opcional: limpiar la contraseña
+                        document.getElementById('password').value = '';
                     }
                 };
             }
