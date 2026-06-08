@@ -46,9 +46,9 @@
                         // la galería es simulando un clic en un input de tipo archivo.
                         var fileInput = document.createElement('input');
                         fileInput.type = 'file';
-                        // Usar '*/*' en vez de 'image/*' evita que el contenedor 
-                        // asuma que queremos usar la cámara directamente.
-                        fileInput.accept = '*/*';
+                        // Si el contenedor está forzando la cámara para *cualquier* archivo, 
+                        // pedir explícitamente un documento/PDF a veces lo obliga a abrir el explorador.
+                        fileInput.accept = 'application/pdf, text/plain';
                         fileInput.style.display = 'none';
                         document.body.appendChild(fileInput);
                         
