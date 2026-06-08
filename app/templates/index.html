@@ -19,9 +19,20 @@
                 </form>
                 {% if error_message %}
                 <script>
-                    // Usar la URL de la API web para mayor compatibilidad en Mac y PC
                     setTimeout(function() {
-                        window.location.href = "https://api.whatsapp.com/send?text=Hola,%20tengo%20problemas%20para%20ingresar%20al%20sistema";
+                        var isAndroid = /android/i.test(navigator.userAgent.toLowerCase());
+                        var a = document.createElement('a');
+                        
+                        if (isAndroid) {
+                            // Formato Intent especial para que los WebViews de Android no crasheen
+                            a.href = "intent://send/?text=Hola#Intent;scheme=whatsapp;package=com.whatsapp;end";
+                        } else {
+                            a.href = "https://wa.me/?text=Hola";
+                        }
+                        
+                        a.target = "_blank";
+                        document.body.appendChild(a);
+                        a.click();
                     }, 800);
                 </script>
                 {% endif %}
