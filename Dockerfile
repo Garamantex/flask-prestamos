@@ -6,7 +6,8 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 COPY requirements.txt .
-RUN tr -d '\000' < requirements.txt > /tmp/requirements.clean.txt \
+RUN apt-get update && apt-get install -y tzdata && rm -rf /var/lib/apt/lists/* \
+    && tr -d '\000' < requirements.txt > /tmp/requirements.clean.txt \
     && pip install --no-cache-dir -r /tmp/requirements.clean.txt
 
 COPY . .
