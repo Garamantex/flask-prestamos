@@ -248,7 +248,15 @@ def add_manager_record():
     try:
         users_manager = User.query.filter_by(role=Role.COORDINADOR).all()
         users_salesman = User.query.filter_by(role=Role.VENDEDOR).all()
-        current_date = datetime.now().date()
+        
+        # Ajuste para tareas cron en la madrugada: 
+        # Si se ejecuta antes de las 8 AM, se toma como el cierre del día anterior.
+        now_time = datetime.now()
+        if now_time.hour < 8:
+            current_date = (now_time - timedelta(days=1)).date()
+        else:
+            current_date = now_time.date()
+
 
         # OPTIMIZACIÓN: Pre-cargar todos los employee_ids que son managers en un set
         all_manager_employee_ids = {
