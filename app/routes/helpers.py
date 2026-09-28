@@ -2102,12 +2102,15 @@ def process_salesman_record(employee_id, current_date):
         initial_state = float(last_record.closing_total)
 
     # Calcular closing_total
-    closing_total = int(initial_state) + int(paid_installments_amount) \
-        + int(partial_installments) + int(daily_incomes_amount) \
-        - int(new_clients_loan_amount) \
-        - int(total_renewal_loans_amount) \
-        - int(daily_withdrawals_amount) \
-        - int(daily_expenses_amount)
+    closing_total = round(
+        float(initial_state) + float(paid_installments_amount) \
+        + float(partial_installments) + float(daily_incomes_amount) \
+        - float(new_clients_loan_amount) \
+        - float(total_renewal_loans_amount) \
+        - float(daily_withdrawals_amount) \
+        - float(daily_expenses_amount),
+        2
+    )
 
     # Si existe un registro, actualizarlo; si no, crear uno nuevo
     if existing_record:
@@ -2298,7 +2301,10 @@ def process_coordinator_hierarchy(manager_id, current_date):
     daily_expenses_amount = coordinator_expenses
 
     # Calcular closing_total usando la misma fórmula que la interfaz
-    closing_total_calculated = float(initial_state) + float(daily_incomes_amount) - float(daily_withdrawals_amount) - float(daily_expenses_amount)
+    closing_total_calculated = round(
+        float(initial_state) + float(daily_incomes_amount) - float(daily_withdrawals_amount) - float(daily_expenses_amount),
+        2
+    )
 
     # Si existe un registro, actualizarlo; si no, crear uno nuevo
     if existing_record:

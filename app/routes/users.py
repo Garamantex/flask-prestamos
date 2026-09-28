@@ -436,24 +436,15 @@ def change_password(employee_id):
         if not target_user:
             return jsonify({'message': 'Usuario no encontrado'}), 404
 
-        first_name = request.form.get('first_name', '').strip()
-        last_name = request.form.get('last_name', '').strip()
+        new_username = (request.form.get('new_username') or request.form.get('username') or '').strip()
+        if not new_username:
+            # Fallback en caso de que envíen el campo con otro nombre
+            new_username = request.form.get('first_name', '').strip() or target_user.username
 
-        # Si se envía un solo campo de nombre completo o display_name
-        if not first_name and not last_name:
-            full_name = request.form.get('name', '').strip() or request.form.get('employee_name', '').strip()
-            if full_name:
-                parts = full_name.split(' ', 1)
-                first_name = parts[0]
-                last_name = parts[1] if len(parts) > 1 else ''
+        if not new_username:
+            return jsonify({'message': 'El nombre de usuario es obligatorio'}), 400
 
-        if first_name:
-            target_user.first_name = first_name
-        if last_name:
-            target_user.last_name = last_name
-
-        new_username = request.form.get('new_username', '').strip()
-        if new_username and new_username != target_user.username:
+        if new_username != target_user.username:
             taken = User.query.filter(
                 User.username == new_username,
                 User.id != target_user.id
@@ -461,6 +452,10 @@ def change_password(employee_id):
             if taken:
                 return jsonify({'message': 'Ese nombre de usuario ya está en uso'}), 400
             target_user.username = new_username
+
+        # El nombre que se muestra en la app y el nombre de usuario son el mismo
+        target_user.first_name = new_username[:30]
+        target_user.last_name = ''
 
         new_password = request.form.get('new_password', '').strip()
         if new_password:
@@ -470,10 +465,9 @@ def change_password(employee_id):
 
         db.session.commit()
 
-        full_display_name = f'{target_user.first_name} {target_user.last_name}'.strip()
         return jsonify({
-            'message': f'Datos de {full_display_name} actualizados correctamente',
-            'salesman_name': full_display_name,
+            'message': f'Usuario {new_username} actualizado correctamente',
+            'salesman_name': new_username,
             'first_name': target_user.first_name,
             'last_name': target_user.last_name,
             'username': target_user.username

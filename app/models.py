@@ -54,12 +54,12 @@ class Employee(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey(
         'user.id'), nullable=False, unique=True, doc='Usuario')
     maximum_cash = db.Column(db.Numeric(
-        10, 2), nullable=False, doc='Máxima caja')
+        14, 2), nullable=False, doc='Máxima caja')
     maximum_sale = db.Column(db.Numeric(
-        10, 2), nullable=False, doc='Máxima venta')
-    box_value = db.Column(db.Numeric(10, 2), nullable=False, doc='Valor caja')
+        14, 2), nullable=False, doc='Máxima venta')
+    box_value = db.Column(db.Numeric(14, 2), nullable=False, doc='Valor caja')
     maximum_expense = db.Column(db.Numeric(
-        10, 2), nullable=False, doc='Límite gasto')
+        14, 2), nullable=False, doc='Límite gasto')
     maximum_installments = db.Column(db.Numeric(
         10, 2), nullable=False, doc='Máximo de cuotas')
     minimum_interest = db.Column(db.Numeric(
@@ -398,20 +398,20 @@ class EmployeeRecord(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
-    initial_state = db.Column(db.Float, nullable=False)
+    initial_state = db.Column(db.Numeric(14, 2), nullable=False)
     loans_to_collect = db.Column(db.Integer, nullable=False)
-    paid_installments = db.Column(db.Integer, nullable=False)
-    partial_installments = db.Column(db.Integer, nullable=False)
-    due_to_collect_tomorrow = db.Column(db.Float, nullable=False)
+    paid_installments = db.Column(db.Numeric(14, 2), nullable=False)
+    partial_installments = db.Column(db.Numeric(14, 2), nullable=False)
+    due_to_collect_tomorrow = db.Column(db.Numeric(14, 2), nullable=False)
     overdue_installments = db.Column(db.Integer, nullable=False)
-    total_collected = db.Column(db.Float, nullable=False)
-    sales = db.Column(db.Float, nullable=False)
-    renewals = db.Column(db.Float, nullable=False)
-    incomings = db.Column(db.Float, nullable=False)
-    withdrawals = db.Column(db.Float, nullable=False)
-    expenses = db.Column(db.Float, nullable=False)
-    closing_total = db.Column(db.Float, nullable=False)
-    due_to_charge = db.Column(db.Float, nullable=False, default=0.0)  # Nuevo campo
+    total_collected = db.Column(db.Numeric(14, 2), nullable=False)
+    sales = db.Column(db.Numeric(14, 2), nullable=False)
+    renewals = db.Column(db.Numeric(14, 2), nullable=False)
+    incomings = db.Column(db.Numeric(14, 2), nullable=False)
+    withdrawals = db.Column(db.Numeric(14, 2), nullable=False)
+    expenses = db.Column(db.Numeric(14, 2), nullable=False)
+    closing_total = db.Column(db.Numeric(14, 2), nullable=False)
+    due_to_charge = db.Column(db.Numeric(14, 2), nullable=False, default=0.0)  # Nuevo campo
     creation_date = db.Column(db.DateTime, default=datetime.datetime.now)
 
     # Relación con el modelo Employee
@@ -422,21 +422,21 @@ class EmployeeRecord(db.Model):
         return {
             'id': self.id,
             'employee_id': self.employee_id,
-            'initial_state': self.initial_state,
+            'initial_state': float(self.initial_state) if self.initial_state is not None else 0.0,
             'loans_to_collect': self.loans_to_collect,
-            'paid_installments': self.paid_installments,
-            'partial_installments': self.partial_installments,
-            'due_to_collect_tomorrow': self.due_to_collect_tomorrow,
+            'paid_installments': float(self.paid_installments) if self.paid_installments is not None else 0.0,
+            'partial_installments': float(self.partial_installments) if self.partial_installments is not None else 0.0,
+            'due_to_collect_tomorrow': float(self.due_to_collect_tomorrow) if self.due_to_collect_tomorrow is not None else 0.0,
             'overdue_installments': self.overdue_installments,
-            'total_collected': self.total_collected,
-            'sales': self.sales,
-            'renewals': self.renewals,
-            'incomings': self.incomings,
-            'withdrawals': self.withdrawals,
-            'expenses': self.expenses,
-            'closing_total': self.closing_total,
-            'due_to_charge': self.due_to_charge,
-            'creation_date': self.creation_date.isoformat()
+            'total_collected': float(self.total_collected) if self.total_collected is not None else 0.0,
+            'sales': float(self.sales) if self.sales is not None else 0.0,
+            'renewals': float(self.renewals) if self.renewals is not None else 0.0,
+            'incomings': float(self.incomings) if self.incomings is not None else 0.0,
+            'withdrawals': float(self.withdrawals) if self.withdrawals is not None else 0.0,
+            'expenses': float(self.expenses) if self.expenses is not None else 0.0,
+            'closing_total': float(self.closing_total) if self.closing_total is not None else 0.0,
+            'due_to_charge': float(self.due_to_charge) if self.due_to_charge is not None else 0.0,
+            'creation_date': self.creation_date.isoformat() if self.creation_date else None
         }
 
     def __str__(self):

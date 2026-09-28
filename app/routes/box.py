@@ -1018,13 +1018,16 @@ def add_daily_collected(employee_id):
                 due_to_collect_tomorrow=total_pending_installments_amount,
                 withdrawals=daily_withdrawals,
                 total_collected=total_collected,
-                closing_total=int(initial_state) + int(paid_installments)
-                + int(partial_installments)
-                - int(new_clients_loan_amount)
-                - int(total_renewal_loans_amount)
-                #   + int(daily_incomings)
-                - int(daily_withdrawals)
-                - int(daily_expenses_amount),  # Calcular el cierre de caja
+                closing_total=round(
+                    float(initial_state) + float(paid_installments)
+                    + float(partial_installments)
+                    - float(new_clients_loan_amount)
+                    - float(total_renewal_loans_amount)
+                    #   + float(daily_incomings)
+                    - float(daily_withdrawals)
+                    - float(daily_expenses_amount),
+                    2
+                ),  # Calcular el cierre de caja
                 creation_date=datetime.now()
             )
 
