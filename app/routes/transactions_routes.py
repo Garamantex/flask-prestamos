@@ -589,38 +589,37 @@ def transactions():
                 attachment = request.files.get('photo')
 
                 filename = None  # Inicializar filename
-                if attachment and attachment.filename:  # Verificar que se haya subido un archivo válido
+                from flask import current_app
+                upload_folder = current_app.config.get('UPLOAD_FOLDER', os.path.join('app', 'static', 'images'))
+                os.makedirs(upload_folder, exist_ok=True)
+
+                if attachment and attachment.filename and attachment.filename.strip():  # Verificar que se haya subido un archivo válido
                     try:
-                        # Importar app para acceder a la configuración
-                        from flask import current_app
-                        upload_folder = current_app.config['UPLOAD_FOLDER']
-                        
-                        # Crear nombre único para el archivo
-                        filename = str(uuid.uuid4()) + '_' + secure_filename(attachment.filename)
-                        
-                        # Asegurar que la carpeta existe
-                        os.makedirs(upload_folder, exist_ok=True)
+                        orig_sec = secure_filename(attachment.filename)
+                        base_name, ext = os.path.splitext(orig_sec)
+                        if not ext:
+                            ext = '.jpg'
+                        safe_base = base_name[:40] if base_name else 'photo'
+                        filename = f"{uuid.uuid4().hex[:16]}_{safe_base}{ext.lower()}"
                         
                         # Guardar el archivo
                         file_path = os.path.join(upload_folder, filename)
                         attachment.save(file_path)
-                        
                     except Exception as e:
                         print(f"Error al guardar archivo: {e}")
                         print(f"Upload folder: {upload_folder}")
-                        print(f"Filename: {filename}")
                         filename = None
-                else:
-                    # Si no se subió archivo, usar imagen fallback
-                    from flask import current_app
-                    upload_folder = current_app.config['UPLOAD_FOLDER']
-                    fallback_path = os.path.join('app', 'static', 'images', 'black_bg.png')
+
+                if not filename:
+                    # Si no se subió archivo o falló, usar imagen fallback
                     fallback_filename = 'black_bg.png'
                     fallback_dest = os.path.join(upload_folder, fallback_filename)
-                    os.makedirs(upload_folder, exist_ok=True)
                     if not os.path.exists(fallback_dest):
-                        import shutil
-                        shutil.copyfile(fallback_path, fallback_dest)
+                        app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                        fallback_source = os.path.join(app_dir, 'static', 'images', 'black_bg.png')
+                        if os.path.exists(fallback_source):
+                            import shutil
+                            shutil.copyfile(fallback_source, fallback_dest)
                     filename = fallback_filename
 
                 current_date = datetime.now()

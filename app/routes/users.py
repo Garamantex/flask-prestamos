@@ -436,28 +436,47 @@ def change_password(employee_id):
         if not target_user:
             return jsonify({'message': 'Usuario no encontrado'}), 404
 
-        new_username = request.form.get('new_username', '').strip()
-        if not new_username:
-            return jsonify({'message': 'El nombre de usuario es obligatorio'}), 400
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
 
-        if new_username != target_user.username:
+        # Si se envía un solo campo de nombre completo o display_name
+        if not first_name and not last_name:
+            full_name = request.form.get('name', '').strip() or request.form.get('employee_name', '').strip()
+            if full_name:
+                parts = full_name.split(' ', 1)
+                first_name = parts[0]
+                last_name = parts[1] if len(parts) > 1 else ''
+
+        if first_name:
+            target_user.first_name = first_name
+        if last_name:
+            target_user.last_name = last_name
+
+        new_username = request.form.get('new_username', '').strip()
+        if new_username and new_username != target_user.username:
             taken = User.query.filter(
                 User.username == new_username,
                 User.id != target_user.id
             ).first()
             if taken:
                 return jsonify({'message': 'Ese nombre de usuario ya está en uso'}), 400
+            target_user.username = new_username
 
         new_password = request.form.get('new_password', '').strip()
-        if not new_password or len(new_password) < 4:
-            return jsonify({'message': 'La contraseña debe tener al menos 4 caracteres'}), 400
+        if new_password:
+            if len(new_password) < 4:
+                return jsonify({'message': 'La contraseña debe tener al menos 4 caracteres'}), 400
+            target_user.password = new_password
 
-        target_user.username = new_username
-        target_user.password = new_password
         db.session.commit()
 
+        full_display_name = f'{target_user.first_name} {target_user.last_name}'.strip()
         return jsonify({
-            'message': f'Usuario y contraseña de {target_user.first_name} {target_user.last_name} actualizados correctamente'
+            'message': f'Datos de {full_display_name} actualizados correctamente',
+            'salesman_name': full_display_name,
+            'first_name': target_user.first_name,
+            'last_name': target_user.last_name,
+            'username': target_user.username
         }), 200
 
     except ValueError as e:

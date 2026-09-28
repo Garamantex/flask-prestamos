@@ -63,17 +63,21 @@
                     <fieldset>
                         <div class="mb-3">
                             <legend for="description" style="color: #272727;" class="form-label">Descripción</legend>
-                            <textarea class="c-form" style="width: 100%;" name="description" id="description" cols="30" rows="10"></textarea>
+                            <textarea class="c-form" style="width: 100%; min-height: 120px;" name="description" id="description" cols="30" rows="6" placeholder="Descripción detallada de la transacción..." required></textarea>
                         </div>
                     </fieldset>
                     <fieldset>
                         <div class="mb-3">
                             <legend style="color:#272727;">Valor</legend>
-                            <input type="text" class="c-form c-form__input" id="quantity" name="quantity" placeholder="">
+                            <input type="text" class="c-form c-form__input" id="quantity" name="quantity" placeholder="Monto" required>
                         </div>
                         <div class="mb-3">
-                            <label for="photo" style="color:#272727;" class="form-label">Subir foto:</label>
-                            <input type="file" class="form-control" id="photo" accept="image/*" capture="user" name="photo">
+                            <label for="photo" style="color:#272727;" class="form-label">Subir foto / comprobante:</label>
+                            <input type="file" class="form-control" id="photo" accept="image/*" name="photo">
+                            <div id="photoPreviewContainer" class="mt-2 text-center" style="display: none;">
+                                <img id="photoPreview" src="" alt="Vista previa" style="max-height: 180px; max-width: 100%; border-radius: 8px; border: 1px solid #ced4da; object-fit: contain;">
+                                <div id="photoStatus" class="small text-muted mt-1"></div>
+                            </div>
                         </div>
                         
                         <button class="c-btn c-btn-primary mb-4" type="submit" id="submitButton">Enviar</button>
@@ -85,120 +89,153 @@
 
 
 <script>
+    var isCompressing = false;
+
     // Prevenir múltiples envíos del formulario
     document.getElementById('transactionForm').addEventListener('submit', function(e) {
         var submitButton = document.getElementById('submitButton');
-        var form = this;
         
-        // Si el botón ya está deshabilitado, prevenir el envío
+        if (isCompressing) {
+            e.preventDefault();
+            alert('Por favor espere a que termine de procesarse la imagen.');
+            return false;
+        }
+        
         if (submitButton.disabled) {
             e.preventDefault();
             return false;
         }
         
-        // Deshabilitar el botón y cambiar el texto
         submitButton.disabled = true;
         submitButton.textContent = 'Enviando...';
-        
-        // Opcional: prevenir doble clic accidental manteniendo el envío
-        // El botón deshabilitado ya previene múltiples clics
     });
     
     // Obtener el tipo de transacción pasado desde el backend
     var transactionType = "{{ transaction_type }}";
-    // Filtrar las opciones del segundo select basado en el tipo de transacción inicial
     filterConceptOptions(transactionType);
 
     document.getElementById('transactionType').addEventListener('change', function() {
-        var transactionType = this.value;
-        // Llamar a la función de filtrado cuando cambia el tipo de transacción
-        filterConceptOptions(transactionType);
+        filterConceptOptions(this.value);
     });
 
     document.getElementById('photo').addEventListener('change', function(event) {
         var file = event.target.files[0];
-        if (file) {
-            compressAndConvertImage(file, function(compressedFile) {
-                // Aquí puedes manejar el archivo comprimido y convertirlo a JPG
-                var dataTransfer = new DataTransfer();
-                dataTransfer.items.add(compressedFile);
-                document.getElementById('photo').files = dataTransfer.files;
-                checkImageFilled();
-            });
+        var previewContainer = document.getElementById('photoPreviewContainer');
+        var previewImg = document.getElementById('photoPreview');
+        var statusText = document.getElementById('photoStatus');
+        var submitBtn = document.getElementById('submitButton');
+
+        if (!file) {
+            previewContainer.style.display = 'none';
+            previewImg.src = '';
+            statusText.textContent = '';
+            return;
         }
+
+        // Mostrar vista previa inmediata
+        try {
+            previewImg.src = URL.createObjectURL(file);
+            previewContainer.style.display = 'block';
+            statusText.textContent = 'Archivo: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+        } catch(e) {
+            console.warn('No se pudo generar vista previa:', e);
+        }
+
+        // Si no es imagen o es menor a 400KB, no requiere compresión adicional
+        if (!file.type || !file.type.startsWith('image/') || file.size < 400 * 1024) {
+            return;
+        }
+
+        isCompressing = true;
+        statusText.textContent = 'Optimizando imagen...';
+        if (submitBtn) submitBtn.disabled = true;
+
+        compressAndConvertImage(file, function(compressedFile) {
+            isCompressing = false;
+            if (submitBtn) submitBtn.disabled = false;
+
+            if (compressedFile) {
+                try {
+                    var dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(compressedFile);
+                    document.getElementById('photo').files = dataTransfer.files;
+                    statusText.textContent = 'Imagen optimizada: ' + Math.round(compressedFile.size / 1024) + ' KB';
+                    previewImg.src = URL.createObjectURL(compressedFile);
+                } catch(err) {
+                    console.warn('DataTransfer no soportado, se usará el archivo original:', err);
+                    statusText.textContent = 'Imagen lista (original): ' + Math.round(file.size / 1024) + ' KB';
+                }
+            } else {
+                statusText.textContent = 'Imagen lista (original): ' + Math.round(file.size / 1024) + ' KB';
+            }
+        });
     });
 
     function compressAndConvertImage(file, callback) {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = function(event) {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+        try {
+            const reader = new FileReader();
+            reader.onerror = function() {
+                callback(null);
+            };
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onerror = function() {
+                    callback(null);
+                };
+                img.onload = function() {
+                    try {
+                        const canvas = document.createElement("canvas");
+                        const ctx = canvas.getContext("2d");
 
-                const maxWidth = img.width;
-                const maxHeight = img.height;
-                let width = img.width;
-                let height = img.height;
+                        const MAX_DIM = 1200;
+                        let width = img.width;
+                        let height = img.height;
 
-                // Redimensionar si la imagen es demasiado grande
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height *= maxWidth / width;
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width *= maxHeight / height;
-                        height = maxHeight;
-                    }
-                }
-                canvas.width = width;
-                canvas.height = height;
-                ctx.drawImage(img, 0, 0, width, height);
+                        if (width > MAX_DIM || height > MAX_DIM) {
+                            if (width > height) {
+                                height = Math.round((height * MAX_DIM) / width);
+                                width = MAX_DIM;
+                            } else {
+                                width = Math.round((width * MAX_DIM) / height);
+                                height = MAX_DIM;
+                            }
+                        }
 
-                canvas.toBlob(function(blob) {
-                    if (blob.size > 600 * 1024) { // Si la imagen sigue siendo grande, reducir la calidad
-                        canvas.toBlob(function(compressedBlob) {
-                            const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
-                                type: 'image/jpeg',
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob(function(blob) {
+                            if (!blob) {
+                                callback(null);
+                                return;
+                            }
+                            const newName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+                            const compressedFile = new File([blob], newName, {
+                                type: "image/jpeg",
                                 lastModified: Date.now()
                             });
                             callback(compressedFile);
-                        }, 'image/jpeg', 0.3);
-                    } else {
-                        const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
-                            type: 'image/jpeg',
-                            lastModified: Date.now()
-                        });
-                        callback(compressedFile);
+                        }, "image/jpeg", 0.75);
+                    } catch(err) {
+                        console.error("Error durante compresión canvas:", err);
+                        callback(null);
                     }
-                }, 'image/jpeg', 0.3); // calidad inicial
-            }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        } catch(err) {
+            console.error("Error al leer archivo:", err);
+            callback(null);
         }
     }
-
-    function checkImageFilled() {
-        var photoInput = document.getElementById('photo');
-        var submitButton = document.querySelector('button[type="submit"]');
-
-        if (photoInput.files.length > 0) {
-            submitButton.removeAttribute('disabled');
-        } else {
-            submitButton.setAttribute('disabled', 'disabled');
-        }
-    }
-    
 
     function filterConceptOptions(transactionType) {
-        console.log("Transaction Type:", transactionType);
         var conceptOptions = document.querySelectorAll('#concept option');
         conceptOptions.forEach(function(option) {
             var dataTransactionType = option.getAttribute('data-transaction-type');
-            console.log("Data Transaction Type:", dataTransactionType);
-            if (transactionType === '' || dataTransactionType === transactionType) {
+            if (!transactionType || dataTransactionType === transactionType || option.value === '') {
                 option.style.display = '';
             } else {
                 option.style.display = 'none';

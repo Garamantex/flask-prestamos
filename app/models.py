@@ -356,9 +356,9 @@ class Transaction(db.Model):
         db.Enum(TransactionType), nullable=False, doc='Tipo')
     concept_id = db.Column(db.Integer, db.ForeignKey(
         'concept.id'), nullable=False)
-    description = db.Column(db.String(100), nullable=False, doc='Descripción')
+    description = db.Column(db.Text, nullable=False, doc='Descripción')
     amount = db.Column(db.Numeric(10, 2), nullable=False, doc='Monto')
-    attachment = db.Column(db.String(100), nullable=True, doc='Adjunto')
+    attachment = db.Column(db.String(255), nullable=True, doc='Adjunto')
     loan_id = db.Column(db.Integer, db.ForeignKey(
         'loan.id'), nullable=True, doc='Préstamo')
     approval_status = db.Column(db.Enum(ApprovalStatus), default=ApprovalStatus.PENDIENTE, nullable=False,

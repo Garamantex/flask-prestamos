@@ -182,6 +182,8 @@ def box():
             # Crear datos del vendedor
             salesman_data = {
                 'salesman_name': data['salesman_name'],
+                'first_name': user.first_name,
+                'last_name': user.last_name,
                 'username': user.username,
                 'employee_id': employee_id,
                 'employee_status': data['employee_status'],
@@ -432,6 +434,8 @@ def box_detail_admin(employee_id):
             # Crear datos del vendedor
             salesman_data = {
                 'salesman_name': data['salesman_name'],
+                'first_name': user.first_name,
+                'last_name': user.last_name,
                 'username': user.username,
                 'employee_id': emp_id,
                 'employee_status': data['employee_status'],

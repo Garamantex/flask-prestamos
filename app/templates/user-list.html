@@ -20,6 +20,7 @@
                     {% for user in users %}
                     <div class="request-item">
                         <span class="list-item-title">Nombre:</span> {{ user.first_name }} {{ user.last_name }}<br>
+                        <span class="list-item-title">Usuario (Login):</span> {{ user.username }}<br>
                         <span class="list-item-title">Rol:</span> {{ user.role.value }}<br>
                         <span class="list-item-title">Información Adicional:</span><br>
                         {% for employee in employees %}
