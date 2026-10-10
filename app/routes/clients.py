@@ -796,6 +796,12 @@ def edit_loan(loan_id):
         installments = LoanInstallment.query.filter_by(loan_id=loan.id)\
             .order_by(LoanInstallment.installment_number.asc()).all()
         
+        # Obtener los pagos del préstamo
+        payments = db.session.query(Payment, LoanInstallment)\
+            .join(LoanInstallment, Payment.installment_id == LoanInstallment.id)\
+            .filter(LoanInstallment.loan_id == loan.id)\
+            .order_by(Payment.payment_date.desc(), Payment.id.desc()).all()
+        
         # Calcular información adicional
         total_paid = db.session.query(func.sum(Payment.amount))\
             .join(LoanInstallment, Payment.installment_id == LoanInstallment.id)\
@@ -810,9 +816,12 @@ def edit_loan(loan_id):
                              client=client,
                              employee=employee,
                              installments=installments,
+                             payments=payments,
+                             total_amount=float(total_amount),
                              total_paid=float(total_paid),
                              pending_balance=float(pending_balance),
                              coordinator_name=coordinator_name,
+                             current_datetime=datetime.now().strftime('%Y-%m-%dT%H:%M'),
                              user_id=user_id)
     
     except ValueError as e:
@@ -820,6 +829,302 @@ def edit_loan(loan_id):
     except Exception as e:
         flash(f'Error al editar préstamo: {str(e)}', 'error')
         return redirect(url_for('routes.loan_management'))
+
+
+def update_installment_after_payment_change(installment):
+    """Recalcula el monto pendiente y estado de una cuota en base a sus pagos"""
+    total_paid = db.session.query(func.sum(Payment.amount)).filter(
+        Payment.installment_id == installment.id
+    ).scalar() or Decimal('0')
+    
+    installment.amount = max(Decimal('0'), installment.fixed_amount - total_paid)
+    
+    last_payment = db.session.query(func.max(Payment.payment_date)).filter(
+        Payment.installment_id == installment.id
+    ).scalar()
+    
+    current_date = datetime.now().date()
+    
+    if installment.amount <= Decimal('0'):
+        installment.status = InstallmentStatus.PAGADA
+        installment.amount = Decimal('0')
+        if last_payment:
+            installment.payment_date = last_payment.date() if isinstance(last_payment, datetime) else last_payment
+        elif not installment.payment_date:
+            installment.payment_date = current_date
+    elif total_paid > Decimal('0'):
+        installment.status = InstallmentStatus.ABONADA
+        installment.payment_date = None
+    else:
+        if installment.due_date and installment.due_date < current_date:
+            installment.status = InstallmentStatus.MORA
+        else:
+            installment.status = InstallmentStatus.PENDIENTE
+        installment.payment_date = None
+    
+    db.session.add(installment)
+
+
+def update_loan_status_after_changes(loan):
+    """Actualiza el estado (activo/inactivo) y fecha de modificación del préstamo"""
+    installments = LoanInstallment.query.filter_by(loan_id=loan.id).all()
+    remaining_outstanding = sum(
+        inst.amount for inst in installments
+        if inst.status in [InstallmentStatus.PENDIENTE, InstallmentStatus.ABONADA, InstallmentStatus.MORA]
+        and inst.amount > 0
+    )
+    
+    if remaining_outstanding <= Decimal('0') and installments:
+        loan.status = False
+        loan.up_to_date = True
+    else:
+        loan.status = True
+        loan.up_to_date = False
+        
+    loan.modification_date = datetime.now()
+    db.session.add(loan)
+
+
+@routes.route('/edit-loan/<int:loan_id>/edit-payment/<int:payment_id>', methods=['POST'])
+def edit_loan_payment(loan_id, payment_id):
+    """Endpoint para editar un pago existente de un préstamo"""
+    try:
+        user_id, user = validate_coordinator_access()
+        coordinator, coordinator_cash, coordinator_name, manager_id, salesmen = get_coordinator_data(user_id)
+        
+        all_salesmen_ids = [s[0].employee_id for s in salesmen]
+        
+        loan = Loan.query.get(loan_id)
+        if not loan:
+            flash('Préstamo no encontrado', 'error')
+            return redirect(url_for('routes.loan_management'))
+            
+        if loan.employee_id not in all_salesmen_ids:
+            flash('No tiene permisos para modificar este préstamo', 'error')
+            return redirect(url_for('routes.loan_management'))
+            
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            flash('Pago no encontrado', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        old_installment = LoanInstallment.query.get(payment.installment_id)
+        if not old_installment or old_installment.loan_id != loan.id:
+            flash('El pago no pertenece a una cuota de este préstamo', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        amount_str = request.form.get('amount', '').strip().replace('$', '').replace(' ', '')
+        date_str = request.form.get('payment_date', '').strip()
+        new_installment_id = request.form.get('installment_id', type=int)
+        
+        if not amount_str:
+            flash('El monto es requerido', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        try:
+            new_amount = Decimal(amount_str)
+        except Exception:
+            flash('Formato de monto inválido', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        if new_amount <= 0:
+            flash('El monto del pago debe ser mayor a 0', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        # Parsear fecha
+        new_payment_date = payment.payment_date
+        if date_str:
+            try:
+                if 'T' in date_str:
+                    new_payment_date = datetime.strptime(date_str[:16], '%Y-%m-%dT%H:%M')
+                elif ' ' in date_str:
+                    new_payment_date = datetime.strptime(date_str[:19], '%Y-%m-%d %H:%M:%S')
+                else:
+                    new_payment_date = datetime.strptime(date_str, '%Y-%m-%d')
+            except Exception:
+                pass
+                
+        # Actualizar box_value del vendedor por la diferencia del monto
+        amount_diff = new_amount - payment.amount
+        employee = Employee.query.get(loan.employee_id)
+        if employee and amount_diff != Decimal('0'):
+            employee.box_value += amount_diff
+            db.session.add(employee)
+            
+        # Validar si cambió de cuota
+        target_installment = old_installment
+        if new_installment_id and new_installment_id != old_installment.id:
+            selected_inst = LoanInstallment.query.get(new_installment_id)
+            if selected_inst and selected_inst.loan_id == loan.id:
+                target_installment = selected_inst
+                payment.installment_id = selected_inst.id
+                
+        payment.amount = new_amount
+        payment.payment_date = new_payment_date
+        db.session.add(payment)
+        db.session.flush()
+        
+        # Recalcular cuota(s)
+        update_installment_after_payment_change(old_installment)
+        if target_installment.id != old_installment.id:
+            update_installment_after_payment_change(target_installment)
+            
+        # Recalcular estado del préstamo
+        update_loan_status_after_changes(loan)
+        
+        db.session.commit()
+        flash('Pago actualizado correctamente', 'success')
+        return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+        
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 401 if 'Usuario no encontrado' in str(e) else 403
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al actualizar el pago: {str(e)}', 'error')
+        return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+
+
+@routes.route('/edit-loan/<int:loan_id>/delete-payment/<int:payment_id>', methods=['POST'])
+def delete_loan_payment(loan_id, payment_id):
+    """Endpoint para eliminar un pago de un préstamo"""
+    try:
+        user_id, user = validate_coordinator_access()
+        coordinator, coordinator_cash, coordinator_name, manager_id, salesmen = get_coordinator_data(user_id)
+        
+        all_salesmen_ids = [s[0].employee_id for s in salesmen]
+        
+        loan = Loan.query.get(loan_id)
+        if not loan:
+            flash('Préstamo no encontrado', 'error')
+            return redirect(url_for('routes.loan_management'))
+            
+        if loan.employee_id not in all_salesmen_ids:
+            flash('No tiene permisos para modificar este préstamo', 'error')
+            return redirect(url_for('routes.loan_management'))
+            
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            flash('Pago no encontrado', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        installment = LoanInstallment.query.get(payment.installment_id)
+        if not installment or installment.loan_id != loan.id:
+            flash('El pago no pertenece a una cuota de este préstamo', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        deleted_amount = payment.amount
+        
+        # Revertir box_value del vendedor
+        employee = Employee.query.get(loan.employee_id)
+        if employee:
+            employee.box_value -= deleted_amount
+            db.session.add(employee)
+            
+        # Eliminar el pago
+        db.session.delete(payment)
+        db.session.flush()
+        
+        # Recalcular cuota
+        update_installment_after_payment_change(installment)
+        
+        # Recalcular préstamo
+        update_loan_status_after_changes(loan)
+        
+        db.session.commit()
+        flash(f'Pago de ${deleted_amount:,.0f} eliminado correctamente', 'success')
+        return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+        
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 401 if 'Usuario no encontrado' in str(e) else 403
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar el pago: {str(e)}', 'error')
+        return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+
+
+@routes.route('/edit-loan/<int:loan_id>/add-payment', methods=['POST'])
+def add_loan_payment(loan_id):
+    """Endpoint para agregar manualmente un pago a una cuota de un préstamo"""
+    try:
+        user_id, user = validate_coordinator_access()
+        coordinator, coordinator_cash, coordinator_name, manager_id, salesmen = get_coordinator_data(user_id)
+        
+        all_salesmen_ids = [s[0].employee_id for s in salesmen]
+        
+        loan = Loan.query.get(loan_id)
+        if not loan:
+            flash('Préstamo no encontrado', 'error')
+            return redirect(url_for('routes.loan_management'))
+            
+        if loan.employee_id not in all_salesmen_ids:
+            flash('No tiene permisos para modificar este préstamo', 'error')
+            return redirect(url_for('routes.loan_management'))
+            
+        installment_id = request.form.get('installment_id', type=int)
+        amount_str = request.form.get('amount', '').strip().replace('$', '').replace(' ', '')
+        date_str = request.form.get('payment_date', '').strip()
+        
+        if not installment_id or not amount_str:
+            flash('Cuota y monto son obligatorios', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        try:
+            amount = Decimal(amount_str)
+        except Exception:
+            flash('Formato de monto inválido', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        if amount <= 0:
+            flash('El monto del pago debe ser mayor a 0', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        installment = LoanInstallment.query.get(installment_id)
+        if not installment or installment.loan_id != loan.id:
+            flash('Cuota no válida para este préstamo', 'error')
+            return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+            
+        payment_date = datetime.now()
+        if date_str:
+            try:
+                if 'T' in date_str:
+                    payment_date = datetime.strptime(date_str[:16], '%Y-%m-%dT%H:%M')
+                elif ' ' in date_str:
+                    payment_date = datetime.strptime(date_str[:19], '%Y-%m-%d %H:%M:%S')
+                else:
+                    payment_date = datetime.strptime(date_str, '%Y-%m-%d')
+            except Exception:
+                pass
+                
+        # Crear pago
+        payment = Payment(
+            amount=amount,
+            payment_date=payment_date,
+            installment_id=installment.id
+        )
+        db.session.add(payment)
+        
+        # Actualizar box_value del vendedor
+        employee = Employee.query.get(loan.employee_id)
+        if employee:
+            employee.box_value += amount
+            db.session.add(employee)
+            
+        db.session.flush()
+        
+        # Recalcular cuota y préstamo
+        update_installment_after_payment_change(installment)
+        update_loan_status_after_changes(loan)
+        
+        db.session.commit()
+        flash(f'Pago de ${amount:,.0f} registrado correctamente', 'success')
+        return redirect(url_for('routes.edit_loan', loan_id=loan_id))
+        
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 401 if 'Usuario no encontrado' in str(e) else 403
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al registrar el pago: {str(e)}', 'error')
+        return redirect(url_for('routes.edit_loan', loan_id=loan_id))
 
 
 @routes.route('/create-custom-loan', methods=['GET', 'POST'])
