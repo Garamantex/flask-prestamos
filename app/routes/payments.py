@@ -399,7 +399,8 @@ def payments_list(user_id):
             LoanInstallment.loan_id,
             func.max(case((Payment.payment_date.isnot(None), Payment.payment_date), else_=None)).label('last_payment_date'),
             func.min(case((LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]), LoanInstallment.due_date), else_=None)).label('next_due_date'),
-            func.max(case((LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.due_date), else_=None)).label('prev_due_date')
+            func.max(case((LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.due_date), else_=None)).label('prev_due_date'),
+            func.max(LoanInstallment.due_date).label('last_due_date')
         ).outerjoin(Payment, Payment.installment_id == LoanInstallment.id) \
          .filter(LoanInstallment.loan_id.in_(loan_ids)) \
          .group_by(LoanInstallment.loan_id).all()
@@ -408,6 +409,7 @@ def payments_list(user_id):
         last_payment_by_loan = {row.loan_id: row.last_payment_date for row in loan_additional_data if row.last_payment_date}
         next_due_by_loan = {row.loan_id: row.next_due_date for row in loan_additional_data if row.next_due_date}
         prev_due_by_loan = {row.loan_id: row.prev_due_date for row in loan_additional_data if row.prev_due_date}
+        last_due_by_loan = {row.loan_id: row.last_due_date for row in loan_additional_data if row.last_due_date}
 
         # Obtener estado de cuota previa y actual
         prev_status_by_loan = {}
@@ -487,6 +489,7 @@ def payments_list(user_id):
             total_amount_paid = float(amount_paid_installments_by_loan.get(loan.id, 0) or 0)
 
             next_due = next_due_by_loan.get(loan.id)
+            last_due = last_due_by_loan.get(loan.id)
             last_payment_date = last_payment_by_loan.get(loan.id)
             prev_status = prev_status_by_loan.get(loan.id)
             current_status = current_status_by_loan.get(loan.id)
@@ -511,6 +514,12 @@ def payments_list(user_id):
             else:
                 installment_status = 'PENDIENTE'
 
+            end_date_front = (
+                last_due.strftime('%Y-%m-%d')
+                if last_due
+                else (loan.creation_date.date() + timedelta(days=int(loan.dues))).strftime('%Y-%m-%d')
+            )
+
             client_info = {
                 'First Name': client.first_name,
                 'Last Name': client.last_name,
@@ -527,6 +536,8 @@ def payments_list(user_id):
                 'Installment Value': installment_value,
                 'Total Installments': loan.dues,
                 'Sales Date': loan.creation_date.isoformat(),
+                'Sales Date front': loan.creation_date.strftime('%Y-%m-%d'),
+                'End Date front': end_date_front,
                 'Next Installment Date': next_due.isoformat() if next_due else 0,
                 'Next Installment Date front': next_due.strftime('%Y-%m-%d') if next_due else '0',
                 'Cuota Number': round(cuota_number_with_decimal, 2),
@@ -602,7 +613,8 @@ def payments_list(user_id):
             LoanInstallment.loan_id,
             db.func.max(db.case((Payment.payment_date.isnot(None), Payment.payment_date), else_=None)).label('last_payment_date'),
             db.func.min(db.case((LoanInstallment.status.in_([InstallmentStatus.PENDIENTE, InstallmentStatus.MORA, InstallmentStatus.ABONADA]), LoanInstallment.due_date), else_=None)).label('next_due_date'),
-            db.func.max(db.case((LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.due_date), else_=None)).label('prev_due_date')
+            db.func.max(db.case((LoanInstallment.status.in_([InstallmentStatus.PAGADA, InstallmentStatus.ABONADA, InstallmentStatus.MORA]), LoanInstallment.due_date), else_=None)).label('prev_due_date'),
+            db.func.max(LoanInstallment.due_date).label('last_due_date')
         ).outerjoin(Payment, Payment.installment_id == LoanInstallment.id) \
          .filter(LoanInstallment.loan_id.in_(processed_loan_ids)) \
          .group_by(LoanInstallment.loan_id).all()
@@ -611,6 +623,7 @@ def payments_list(user_id):
         processed_last_payment_by_loan = {row.loan_id: row.last_payment_date for row in processed_loan_additional_data if row.last_payment_date}
         processed_next_due_by_loan = {row.loan_id: row.next_due_date for row in processed_loan_additional_data if row.next_due_date}
         processed_prev_due_by_loan = {row.loan_id: row.prev_due_date for row in processed_loan_additional_data if row.prev_due_date}
+        processed_last_due_by_loan = {row.loan_id: row.last_due_date for row in processed_loan_additional_data if row.last_due_date}
 
         # Obtener estado de la última cuota procesada para préstamos procesados
         processed_last_processed_status_rows = db.session.query(
@@ -656,6 +669,7 @@ def payments_list(user_id):
             total_amount_paid = float(processed_amount_paid_installments_by_loan.get(loan.id, 0) or 0)
 
             next_due = processed_next_due_by_loan.get(loan.id)
+            last_due = processed_last_due_by_loan.get(loan.id)
             last_payment_date = processed_last_payment_by_loan.get(loan.id)
             last_processed_status = processed_last_processed_by_loan.get(loan.id)
 
@@ -670,6 +684,12 @@ def payments_list(user_id):
                 installment_status = last_processed_status.value
             else:
                 installment_status = 'PENDIENTE'
+
+            end_date_front = (
+                last_due.strftime('%Y-%m-%d')
+                if last_due
+                else (loan.creation_date.date() + timedelta(days=int(loan.dues))).strftime('%Y-%m-%d')
+            )
 
             processed_client_info = {
                 'First Name': client.first_name,
@@ -687,6 +707,8 @@ def payments_list(user_id):
                 'Installment Value': installment_value,
                 'Total Installments': loan.dues,
                 'Sales Date': loan.creation_date.isoformat(),
+                'Sales Date front': loan.creation_date.strftime('%Y-%m-%d'),
+                'End Date front': end_date_front,
                 'Next Installment Date': next_due.isoformat() if next_due else 0,
                 'Next Installment Date front': next_due.strftime('%Y-%m-%d') if next_due else '0',
                 'Cuota Number': round(cuota_number_with_decimal, 2),

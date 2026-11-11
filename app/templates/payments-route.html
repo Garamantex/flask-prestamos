@@ -169,19 +169,19 @@
                                 <div class="row g-1">
                                     <div class="col-6">
                                         <div class="metric-item">
-                                            <div class="metric-label">Estado Anterior</div>
+                                            <div class="metric-label">Fecha de Venta</div>
                                             <div class="metric-value text-muted">
-                                                <i class="bi bi-clock-history me-1"></i>
-                                                {{ client['Previous Installment Status'] | capitalize }}
+                                                <i class="bi bi-calendar-event me-1"></i>
+                                                {{ client['Sales Date front'] }}
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="metric-item">
-                                            <div class="metric-label">Estado Actual</div>
+                                            <div class="metric-label">Fecha de Finalización</div>
                                             <div class="metric-value text-muted">
-                                                <i class="bi bi-check-circle me-1"></i>
-                                                {{ client['Installment Status'] | capitalize }}
+                                                <i class="bi bi-calendar-check me-1"></i>
+                                                {{ client['End Date front'] }}
                                             </div>
                                         </div>
                                     </div>
@@ -300,19 +300,19 @@
                                     <div class="row g-1">
                                         <div class="col-6">
                                             <div class="metric-item">
-                                                <div class="metric-label">Estado Anterior</div>
+                                                <div class="metric-label">Fecha de Venta</div>
                                                 <div class="metric-value text-muted">
-                                                    <i class="bi bi-clock-history me-1"></i>
-                                                    {{ client['Previous Installment Status'] | capitalize if client['Previous Installment Status'] else 'N/A' }}
+                                                    <i class="bi bi-calendar-event me-1"></i>
+                                                    {{ client['Sales Date front'] }}
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="col-6">
                                             <div class="metric-item">
-                                                <div class="metric-label">Estado Actual</div>
+                                                <div class="metric-label">Fecha de Finalización</div>
                                                 <div class="metric-value text-muted">
-                                                    <i class="bi bi-check-circle me-1"></i>
-                                                    {{ client['Installment Status'] | capitalize }}
+                                                    <i class="bi bi-calendar-check me-1"></i>
+                                                    {{ client['End Date front'] }}
                                                 </div>
                                             </div>
                                         </div>
