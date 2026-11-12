@@ -19,31 +19,54 @@
         <div class="c-form">
             <div class="container py-3">
                 <!-- ... -->
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label for="clientSearch">Buscar Cliente:</label>
-                        <input type="search"
-                               class="c-form c-form__input"
-                               id="clientSearch"
-                               placeholder="Filtrar por nombre, documento o alias..."
-                               autocorrect="off"
-                               autocapitalize="none"
-                               spellcheck="false"
-                               aria-describedby="clientSearchStatus">
-                        <small id="clientSearchStatus" class="text-muted" aria-live="polite"></small>
-                    </div>
+                <form method="POST" id="renewalForm">
                     <div class="form-group">
-                        <label for="usuarios">Usuarios:</label>
-                        <select class="c-form c-form__input" name="document_number" id="usuarios" title="Document Number">
-                            <option value="">Seleccionar usuario</option>
-                            {% for client in clients|sort(attribute=1) %}
-                                <option value="{{ client[0] }}"
-                                        data-document="{{ client[0] }}"
-                                        data-alias="{{ client[2] }}">
-                                    {{ client[1] }}{% if client[2] %} ({{ client[2] }}){% endif %}
-                                </option>
-                            {% endfor %}
-                        </select>
+                        <label for="userSearchInput">Usuarios:</label>
+                        <div class="c-searchable-select" id="userSearchableSelect">
+                            <input type="hidden" name="document_number" id="usuarios" value="">
+                            <div class="c-searchable-select__control">
+                                <input type="text"
+                                       class="c-form c-form__input c-searchable-select__input"
+                                       id="userSearchInput"
+                                       placeholder="Seleccionar o buscar usuario..."
+                                       autocomplete="off"
+                                       autocorrect="off"
+                                       autocapitalize="none"
+                                       spellcheck="false"
+                                       role="combobox"
+                                       aria-autocomplete="list"
+                                       aria-expanded="false"
+                                       aria-controls="userDropdownList">
+                                <button type="button"
+                                        class="c-searchable-select__clear"
+                                        id="userClearBtn"
+                                        aria-label="Limpiar selección"
+                                        hidden>&times;</button>
+                                <span class="c-searchable-select__arrow" aria-hidden="true"></span>
+                            </div>
+                            <ul class="c-searchable-select__dropdown"
+                                id="userDropdownList"
+                                role="listbox"
+                                hidden>
+                                {% for client in clients|sort(attribute=1) %}
+                                <li class="c-searchable-select__option"
+                                    role="option"
+                                    aria-selected="false"
+                                    data-value="{{ client[0] }}"
+                                    data-name="{{ client[1] }}"
+                                    data-alias="{{ client[2] }}">
+                                    <span class="c-searchable-select__option-name">{{ client[1] }}</span>
+                                    {% if client[2] %}
+                                    <span class="c-searchable-select__option-meta">({{ client[2] }})</span>
+                                    {% endif %}
+                                    <span class="c-searchable-select__option-doc">{{ client[0] }}</span>
+                                </li>
+                                {% endfor %}
+                                <li class="c-searchable-select__empty" id="userDropdownEmpty" hidden>
+                                    No se encontraron usuarios
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="amount">Valor del Préstamo:</label>
@@ -68,13 +91,143 @@
     </div>
 </div>
 
+<style>
+.c-searchable-select {
+    position: relative;
+    width: 100%;
+}
+
+.c-searchable-select__control {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.c-searchable-select__input {
+    margin: 0 !important;
+    padding-right: 3.5rem !important;
+    cursor: pointer;
+}
+
+.c-searchable-select__input:focus {
+    cursor: text;
+}
+
+.c-searchable-select__clear {
+    position: absolute;
+    right: 2.1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 1.25rem;
+    line-height: 1;
+    padding: 0.25rem 0.4rem;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.c-searchable-select__clear:hover {
+    color: #111827;
+}
+
+.c-searchable-select__arrow {
+    position: absolute;
+    right: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #6b7280;
+    pointer-events: none;
+    transition: transform 0.2s ease;
+}
+
+.c-searchable-select.is-open .c-searchable-select__arrow {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.c-searchable-select__dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    margin: 0;
+    padding: 0.25rem 0;
+    list-style: none;
+    z-index: 1050;
+}
+
+.c-searchable-select__option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.95rem;
+    color: #374151;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.c-searchable-select__option:hover,
+.c-searchable-select__option.is-active {
+    background-color: #eef2ff;
+    color: #0a1c47;
+}
+
+.c-searchable-select__option[aria-selected="true"] {
+    background-color: #e0e7ff;
+    color: #0a1c47;
+    font-weight: 600;
+}
+
+.c-searchable-select__option-name {
+    font-weight: 500;
+}
+
+.c-searchable-select__option-meta {
+    color: #6b7280;
+    font-size: 0.85rem;
+}
+
+.c-searchable-select__option-doc {
+    margin-left: auto;
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+.c-searchable-select__empty {
+    padding: 0.75rem 0.9rem;
+    color: #6b7280;
+    font-size: 0.9rem;
+    text-align: center;
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const searchInput = document.getElementById('clientSearch');
-    const userSelect = document.getElementById('usuarios');
-    const searchStatus = document.getElementById('clientSearchStatus');
+    const container = document.getElementById('userSearchableSelect');
+    const hiddenInput = document.getElementById('usuarios');
+    const searchInput = document.getElementById('userSearchInput');
+    const clearBtn = document.getElementById('userClearBtn');
+    const dropdown = document.getElementById('userDropdownList');
+    const emptyItem = document.getElementById('userDropdownEmpty');
 
-    if (!searchInput || !userSelect) return;
+    if (!container || !hiddenInput || !searchInput || !dropdown) return;
+
+    const options = Array.from(dropdown.querySelectorAll('.c-searchable-select__option'));
+    let activeIndex = -1;
+    let selectedOption = null;
 
     const normalizeText = (text) =>
         (text || '')
@@ -84,62 +237,204 @@ document.addEventListener('DOMContentLoaded', function () {
             .toLowerCase()
             .trim();
 
-    // Guardar todas las opciones originales (excepto el placeholder inicial)
-    const allClients = Array.from(userSelect.querySelectorAll('option'))
-        .filter(opt => opt.value !== '')
-        .map(opt => ({
-            value: opt.value,
-            label: opt.textContent.trim(),
-            searchText: normalizeText(
-                `${opt.textContent} ${opt.getAttribute('data-document') || ''} ${opt.getAttribute('data-alias') || ''}`
-            )
-        }));
+    // Precalcular texto de búsqueda para cada opción
+    options.forEach(opt => {
+        const name = opt.getAttribute('data-name') || '';
+        const alias = opt.getAttribute('data-alias') || '';
+        const doc = opt.getAttribute('data-value') || '';
+        opt.dataset.search = normalizeText(`${name} ${alias} ${doc}`);
+    });
 
-    searchInput.addEventListener('input', function () {
-        const query = normalizeText(this.value);
-        const currentSelected = userSelect.value;
+    function getVisibleOptions() {
+        return options.filter(opt => !opt.hidden);
+    }
 
-        const filtered = query
-            ? allClients.filter(client => client.searchText.includes(query))
-            : allClients;
+    function updateActiveOption(newIndex) {
+        const visible = getVisibleOptions();
+        visible.forEach(opt => opt.classList.remove('is-active'));
 
-        // Reconstruir opciones del select para compatibilidad total en móvil y escritorio
-        userSelect.innerHTML = '';
-
-        const placeholderOpt = document.createElement('option');
-        placeholderOpt.value = '';
-        if (!query) {
-            placeholderOpt.textContent = 'Seleccionar usuario';
-        } else if (filtered.length === 0) {
-            placeholderOpt.textContent = 'No se encontraron clientes';
-        } else {
-            placeholderOpt.textContent = `Seleccionar usuario (${filtered.length} encontrado${filtered.length === 1 ? '' : 's'})`;
+        if (visible.length === 0 || newIndex < 0) {
+            activeIndex = -1;
+            return;
         }
-        userSelect.appendChild(placeholderOpt);
 
-        filtered.forEach(client => {
-            const opt = document.createElement('option');
-            opt.value = client.value;
-            opt.textContent = client.label;
-            userSelect.appendChild(opt);
+        activeIndex = ((newIndex % visible.length) + visible.length) % visible.length;
+        const target = visible[activeIndex];
+        target.classList.add('is-active');
+        target.scrollIntoView({ block: 'nearest' });
+    }
+
+    function openDropdown() {
+        dropdown.hidden = false;
+        container.classList.add('is-open');
+        searchInput.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeDropdown() {
+        dropdown.hidden = true;
+        container.classList.remove('is-open');
+        searchInput.setAttribute('aria-expanded', 'false');
+        updateActiveOption(-1);
+    }
+
+    function filterOptions(query) {
+        const normalizedQuery = normalizeText(query);
+        let matchCount = 0;
+
+        options.forEach(opt => {
+            const matches = !normalizedQuery || opt.dataset.search.includes(normalizedQuery);
+            opt.hidden = !matches;
+            if (matches) matchCount++;
         });
 
-        // Si solo hay 1 coincidencia al buscar, seleccionarla automáticamente;
-        // de lo contrario, mantener la selección previa si sigue en la lista
-        if (query && filtered.length === 1) {
-            userSelect.value = filtered[0].value;
-        } else if (filtered.some(c => c.value === currentSelected)) {
-            userSelect.value = currentSelected;
-        } else {
-            userSelect.value = '';
+        if (emptyItem) {
+            emptyItem.hidden = matchCount > 0;
         }
 
-        if (searchStatus) {
-            searchStatus.textContent = query
-                ? `${filtered.length} cliente${filtered.length === 1 ? '' : 's'} coincide${filtered.length === 1 ? '' : 'n'} con la búsqueda`
-                : '';
+        updateActiveOption(matchCount > 0 ? 0 : -1);
+    }
+
+    function selectOption(opt) {
+        options.forEach(o => o.setAttribute('aria-selected', 'false'));
+
+        if (!opt) {
+            selectedOption = null;
+            hiddenInput.value = '';
+            searchInput.value = '';
+            clearBtn.hidden = true;
+            filterOptions('');
+            return;
+        }
+
+        selectedOption = opt;
+        opt.setAttribute('aria-selected', 'true');
+        hiddenInput.value = opt.getAttribute('data-value') || '';
+
+        const name = opt.getAttribute('data-name') || '';
+        const alias = opt.getAttribute('data-alias') || '';
+        searchInput.value = alias ? `${name} (${alias})` : name;
+        clearBtn.hidden = false;
+        closeDropdown();
+    }
+
+    // Al hacer clic o enfocar el campo, abrir el desplegable con las opciones
+    searchInput.addEventListener('focus', function () {
+        // Mostrar todas las opciones al abrir si el texto coincide con el usuario ya seleccionado
+        if (selectedOption) {
+            filterOptions('');
+            searchInput.select();
+        } else {
+            filterOptions(this.value);
+        }
+        openDropdown();
+    });
+
+    searchInput.addEventListener('click', function () {
+        if (dropdown.hidden) {
+            if (selectedOption) {
+                filterOptions('');
+            } else {
+                filterOptions(this.value);
+            }
+            openDropdown();
         }
     });
+
+    // Al escribir, filtrar y mostrar la lista desplegada en tiempo real
+    searchInput.addEventListener('input', function () {
+        selectedOption = null;
+        hiddenInput.value = '';
+        options.forEach(o => o.setAttribute('aria-selected', 'false'));
+
+        clearBtn.hidden = this.value.length === 0;
+        filterOptions(this.value);
+        openDropdown();
+    });
+
+    // Navegación con teclado (flechas, Enter, Escape)
+    searchInput.addEventListener('keydown', function (e) {
+        const visible = getVisibleOptions();
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (dropdown.hidden) {
+                openDropdown();
+                updateActiveOption(0);
+            } else {
+                updateActiveOption(activeIndex + 1);
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (dropdown.hidden) {
+                openDropdown();
+                updateActiveOption(visible.length - 1);
+            } else {
+                updateActiveOption(activeIndex - 1);
+            }
+        } else if (e.key === 'Enter') {
+            if (!dropdown.hidden) {
+                e.preventDefault();
+                if (activeIndex >= 0 && visible[activeIndex]) {
+                    selectOption(visible[activeIndex]);
+                } else if (visible.length === 1) {
+                    selectOption(visible[0]);
+                }
+            }
+        } else if (e.key === 'Escape') {
+            closeDropdown();
+        }
+    });
+
+    // Seleccionar opción al hacer clic o tocar en la lista
+    options.forEach(opt => {
+        opt.addEventListener('mousedown', function (e) {
+            // Evitar que el input pierda el foco antes del click
+            e.preventDefault();
+        });
+        opt.addEventListener('click', function () {
+            selectOption(this);
+        });
+    });
+
+    // Botón para limpiar búsqueda/selección
+    clearBtn.addEventListener('click', function () {
+        selectOption(null);
+        openDropdown();
+        searchInput.focus();
+    });
+
+    // Cerrar al hacer clic fuera del componente
+    document.addEventListener('click', function (e) {
+        if (!container.contains(e.target)) {
+            if (!selectedOption && searchInput.value.trim() !== '') {
+                const visible = getVisibleOptions();
+                if (visible.length === 1) {
+                    selectOption(visible[0]);
+                } else {
+                    selectOption(null);
+                }
+            }
+            closeDropdown();
+        }
+    });
+
+    // Asegurar selección al enviar el formulario si hay una única coincidencia
+    const renewalForm = document.getElementById('renewalForm');
+    if (renewalForm) {
+        renewalForm.addEventListener('submit', function (e) {
+            if (!hiddenInput.value && searchInput.value.trim() !== '') {
+                const visible = getVisibleOptions();
+                if (visible.length === 1) {
+                    selectOption(visible[0]);
+                }
+            }
+            if (!hiddenInput.value) {
+                e.preventDefault();
+                openDropdown();
+                searchInput.focus();
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
