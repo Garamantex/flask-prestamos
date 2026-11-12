@@ -325,7 +325,7 @@ def renewal():
             ).all()
 
         client_data = [
-            (client.document, f"{client.first_name} {client.last_name}") for client in clients]
+            (client.document, f"{client.first_name} {client.last_name}", client.alias or '') for client in clients]
 
         return render_template('renewal.html', clients=client_data, user_id=user_id)
     else:

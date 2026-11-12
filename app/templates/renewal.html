@@ -20,29 +20,45 @@
             <div class="container py-3">
                 <!-- ... -->
                 <form method="POST">
+                    <div class="form-group mb-3">
+                        <label for="clientSearch">Buscar Cliente:</label>
+                        <input type="search"
+                               class="c-form c-form__input"
+                               id="clientSearch"
+                               placeholder="Filtrar por nombre, documento o alias..."
+                               autocorrect="off"
+                               autocapitalize="none"
+                               spellcheck="false"
+                               aria-describedby="clientSearchStatus">
+                        <small id="clientSearchStatus" class="text-muted" aria-live="polite"></small>
+                    </div>
                     <div class="form-group">
                         <label for="usuarios">Usuarios:</label>
-                        <select class="c-form c-form__input" name="document_number" title="Document Number">
-                            <option value>Seleccionar usuario</option>
+                        <select class="c-form c-form__input" name="document_number" id="usuarios" title="Document Number">
+                            <option value="">Seleccionar usuario</option>
                             {% for client in clients|sort(attribute=1) %}
-                                <option value="{{ client[0] }}">{{ client[1] }}</option>
+                                <option value="{{ client[0] }}"
+                                        data-document="{{ client[0] }}"
+                                        data-alias="{{ client[2] }}">
+                                    {{ client[1] }}{% if client[2] %} ({{ client[2] }}){% endif %}
+                                </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="valor">Valor del Préstamo:</label>
+                        <label for="amount">Valor del Préstamo:</label>
                         <input type="text" class="c-form c-form__input" name="amount" id="amount" placeholder="Ingrese el valor del préstamo">
                     </div>
                     <div class="form-group">
-                        <label for="cuotas">Número de Cuotas:</label>
+                        <label for="dues">Número de Cuotas:</label>
                         <select class="c-form c-form__input" name="dues" id="dues" title="Select number of dues">
-                            <option value>Seleccionar número de cuotas</option>
+                            <option value="">Seleccionar número de cuotas</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="interes">Interés del Préstamo:</label>
+                        <label for="interest">Interés del Préstamo:</label>
                         <select class="c-form c-form__input" name="interest" id="interest" title="Select interest">
-                            <option value>Seleccionar interés del préstamo</option>
+                            <option value="">Seleccionar interés del préstamo</option>
                         </select>
                     </div>
                     <button type="submit" class="c-btn c-btn-primary mt-4">Crear Préstamo</button>
@@ -51,4 +67,79 @@
         </div>   
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('clientSearch');
+    const userSelect = document.getElementById('usuarios');
+    const searchStatus = document.getElementById('clientSearchStatus');
+
+    if (!searchInput || !userSelect) return;
+
+    const normalizeText = (text) =>
+        (text || '')
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+
+    // Guardar todas las opciones originales (excepto el placeholder inicial)
+    const allClients = Array.from(userSelect.querySelectorAll('option'))
+        .filter(opt => opt.value !== '')
+        .map(opt => ({
+            value: opt.value,
+            label: opt.textContent.trim(),
+            searchText: normalizeText(
+                `${opt.textContent} ${opt.getAttribute('data-document') || ''} ${opt.getAttribute('data-alias') || ''}`
+            )
+        }));
+
+    searchInput.addEventListener('input', function () {
+        const query = normalizeText(this.value);
+        const currentSelected = userSelect.value;
+
+        const filtered = query
+            ? allClients.filter(client => client.searchText.includes(query))
+            : allClients;
+
+        // Reconstruir opciones del select para compatibilidad total en móvil y escritorio
+        userSelect.innerHTML = '';
+
+        const placeholderOpt = document.createElement('option');
+        placeholderOpt.value = '';
+        if (!query) {
+            placeholderOpt.textContent = 'Seleccionar usuario';
+        } else if (filtered.length === 0) {
+            placeholderOpt.textContent = 'No se encontraron clientes';
+        } else {
+            placeholderOpt.textContent = `Seleccionar usuario (${filtered.length} encontrado${filtered.length === 1 ? '' : 's'})`;
+        }
+        userSelect.appendChild(placeholderOpt);
+
+        filtered.forEach(client => {
+            const opt = document.createElement('option');
+            opt.value = client.value;
+            opt.textContent = client.label;
+            userSelect.appendChild(opt);
+        });
+
+        // Si solo hay 1 coincidencia al buscar, seleccionarla automáticamente;
+        // de lo contrario, mantener la selección previa si sigue en la lista
+        if (query && filtered.length === 1) {
+            userSelect.value = filtered[0].value;
+        } else if (filtered.some(c => c.value === currentSelected)) {
+            userSelect.value = currentSelected;
+        } else {
+            userSelect.value = '';
+        }
+
+        if (searchStatus) {
+            searchStatus.textContent = query
+                ? `${filtered.length} cliente${filtered.length === 1 ? '' : 's'} coincide${filtered.length === 1 ? '' : 'n'} con la búsqueda`
+                : '';
+        }
+    });
+});
+</script>
 {% endblock %}
